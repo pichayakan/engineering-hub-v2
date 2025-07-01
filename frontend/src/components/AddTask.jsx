@@ -1,26 +1,47 @@
 // frontend/src/components/AddTask.jsx
 import React, { useState } from 'react'
-import './AddProject.css' // ใช้สไตล์เดียวกัน
+import Select from 'react-select'
+import './AddProject.css'
+import './MultiSelect.css'
 
-function AddTask({ onTaskAdded, users }) {
+function AddTask({ onTaskAdded, users, isSubmitting }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [assignee, setAssignee] = useState('')
+  const [selectedAssignees, setSelectedAssignees] = useState([])
   const [dueDate, setDueDate] = useState('')
+  const [priority, setPriority] = useState('Medium')
 
-  const handleSubmit = (e) => {
+  // --- ส่วนที่แก้ไข: สร้าง label ให้แสดงชื่อเต็ม ---
+  const userOptions = users.map((user) => ({
+    value: user.id,
+    label: `${user.first_name} ${user.last_name} (${user.username})`,
+  }))
+
+  const priorityOptions = [
+    { value: 'Low', label: 'Low' },
+    { value: 'Medium', label: 'Medium' },
+    { value: 'High', label: 'High' },
+  ]
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!title.trim()) return
-    onTaskAdded({
+    if (isSubmitting) return
+
+    const assigneeIds = selectedAssignees.map((option) => option.value)
+
+    await onTaskAdded({
       title,
       description,
-      assignee: assignee || null,
+      assignees: assigneeIds,
       due_date: dueDate || null,
+      priority: priority,
     })
+
     setTitle('')
     setDescription('')
-    setAssignee('')
-    setDueDate('') // 3. เคลียร์ค่าหลัง submit
+    setSelectedAssignees([])
+    setDueDate('')
+    setPriority('Medium')
   }
 
   return (
@@ -48,20 +69,17 @@ function AddTask({ onTaskAdded, users }) {
           />
         </div>
         <div className='form-group'>
-          <label htmlFor='assignee'>Assign To</label>
-          <select
-            id='assignee'
-            value={assignee}
-            onChange={(e) => setAssignee(e.target.value)}
-          >
-            <option value=''>Unassigned</option>
-            {users &&
-              users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.username}
-                </option>
-              ))}
-          </select>
+          <label htmlFor='assignees'>Assign To</label>
+          <Select
+            id='assignees'
+            isMulti
+            options={userOptions}
+            className='multi-select-container'
+            classNamePrefix='multi-select'
+            value={selectedAssignees}
+            onChange={setSelectedAssignees}
+            placeholder='Select assignees...'
+          />
         </div>
         <div className='form-group'>
           <label htmlFor='dueDate'>Due Date</label>
@@ -72,8 +90,22 @@ function AddTask({ onTaskAdded, users }) {
             onChange={(e) => setDueDate(e.target.value)}
           />
         </div>
-        <button type='submit' className='submit-button'>
-          Add Task
+        <div className='form-group'>
+          <label htmlFor='priority'>Priority</label>
+          <select
+            id='priority'
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+          >
+            {priorityOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button type='submit' className='submit-button' disabled={isSubmitting}>
+          {isSubmitting ? 'Adding Task...' : 'Add Task'}
         </button>
       </form>
     </div>

@@ -1,0 +1,65 @@
+/* frontend/src/components/MultiSelect.css */
+/* ทำให้ react-select เข้ากับ Dark Theme ของเรา */
+
+.multi-select-container .multi-select__control {
+    background-color: #2b2b2b;
+    border: 1px solid #4a4a4a;
+    border-radius: 8px;
+    box-shadow: none;
+    padding: 0.2rem;
+}
+
+.multi-select-container .multi-select__control--is-focused {
+    border-color: #5a9eee;
+    box-shadow: 0 0 0 1px #5a9eee;
+}
+
+.multi-select-container .multi-select__input-container {
+    color: #f5f5f5;
+}
+
+.multi-select-container .multi-select__menu {
+    background-color: #2b2b2b;
+    border: 1px solid #4a4a4a;
+    border-radius: 8px;
+}
+
+.multi-select-container .multi-select__option {
+    background-color: #2b2b2b;
+    color: #f5f5f5;
+}
+
+.multi-select-container .multi-select__option--is-focused {
+    background-color: #3f3f3f;
+}
+
+.multi-select-container .multi-select__option--is-selected {
+    background-color: #5a9eee;
+    color: white;
+}
+
+.multi-select-container .multi-select__multi-value {
+    background-color: #3f3f3f;
+    border-radius: 5px;
+}
+
+.multi-select-container .multi-select__multi-value__label {
+    color: #f5f5f5;
+}
+
+.multi-select-container .multi-select__multi-value__remove {
+    color: #a0a0a0;
+}
+
+.multi-select-container .multi-select__multi-value__remove:hover {
+    background-color: #d9534f;
+    color: white;
+}
+
+.multi-select-container .multi-select__indicator-separator {
+    background-color: #4a4a4a;
+}
+
+.multi-select-container .multi-select__placeholder {
+    color: #a0a0a0;
+}

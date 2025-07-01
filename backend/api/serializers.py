@@ -1,7 +1,8 @@
 # backend/api/serializers.py
 from rest_framework import serializers
-from .models import Project, Task
+from .models import Project, Task , Comment
 from accounts.models import User
+from accounts.serializers import UserListSerializer
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -27,10 +28,11 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 # --- เพิ่ม TaskSerializer ที่หายไปกลับเข้ามา ---
 class TaskSerializer(serializers.ModelSerializer):
-    assignee_username = serializers.ReadOnlyField(
-        source="assignee.username", allow_null=True
+    # แสดงรายละเอียดของ assignees ตอนอ่านข้อมูล (GET)
+    assignees_details = UserListSerializer(
+        source="assignees", many=True, read_only=True
     )
-
+    comment_count = serializers.IntegerField(read_only=True)
     class Meta:
         model = Task
         fields = [
@@ -40,11 +42,21 @@ class TaskSerializer(serializers.ModelSerializer):
             "description",
             "status",
             "priority",
-            "assignee",
-            "assignee_username",
+            "assignees",
+            "assignees_details",
             "created_at",
             "due_date",
+            'comment_count'
         ]
-        # ทำให้ field 'project' อ่านได้อย่างเดียวตอน response
-        # เพราะเราจะกำหนด project จาก URL ไม่ใช่จากการส่งข้อมูลมาตรงๆ
+        # ตอนเขียนข้อมูล (POST, PATCH) เราจะส่งไปแค่ ID ของ assignees
+        # ดังนั้นเราจะกำหนดให้ 'assignees' เป็น write-only และรับเป็น PrimaryKeyRelatedField ใน extra_kwargs
+        extra_kwargs = {"assignees": {"write_only": True, "required": False}}
         read_only_fields = ["project"]
+
+class CommentSerializer(serializers.ModelSerializer):
+    author_details = UserListSerializer(source="author", read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ["id", "task", "author", "author_details", "text", "created_at"]
+        read_only_fields = ["task", "author"]

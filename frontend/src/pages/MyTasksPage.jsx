@@ -1,30 +1,63 @@
 // frontend/src/pages/MyTasksPage.jsx
 import React, { useState, useEffect } from 'react'
 import apiClient from '../api'
-import TaskList from '../components/TaskList.jsx' // เราจะใช้ TaskList component เดิม
-import './MyTasksPage.css' // Import CSS ใหม่
+import TaskList from '../components/TaskList.jsx'
+import { useAuth } from '../context/AuthContext'
+import './MyTasksPage.css'
 
 function MyTasksPage() {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
+  const { setUnseenTaskCount } = useAuth()
 
   useEffect(() => {
-    const fetchMyTasks = async () => {
+    const initPage = async () => {
       setLoading(true)
       try {
+        // 1. บอก Backend ว่าเราเห็น Task แล้ว และเคลียร์ค่าใน Context ทันที
+        await apiClient.post('/api/notifications/mark-as-seen/')
+        setUnseenTaskCount(0)
+
+        // 2. ดึงข้อมูล Task ทั้งหมดที่เป็นของเรา
         const response = await apiClient.get('/api/my-tasks/')
         setTasks(response.data)
       } catch (error) {
-        console.error('Failed to fetch assigned tasks', error)
+        console.error('Failed to initialize My Tasks page', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchMyTasks()
-  }, [])
+    initPage()
+  }, [setUnseenTaskCount]) // Dependency array ทำให้ useEffect ทำงานแค่ครั้งเดียว
 
-  // จัดกลุ่ม Task ตามสถานะ
+  const handleTaskStatusChange = async (taskId, newStatus, projectId) => {
+    if (!projectId) {
+      alert('Cannot update task: Project ID is missing.')
+      return
+    }
+
+    const originalTasks = [...tasks]
+
+    // อัปเดต UI ทันที (Optimistic Update)
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId ? { ...task, status: newStatus } : task
+      )
+    )
+
+    try {
+      await apiClient.patch(`/api/projects/${projectId}/tasks/${taskId}/`, {
+        status: newStatus,
+      })
+    } catch (error) {
+      console.error('Failed to update task status', error)
+      alert('Could not update the task status. Reverting.')
+      // ย้อนกลับถ้า API call ล้มเหลว
+      setTasks(originalTasks)
+    }
+  }
+
   const tasksByStatus = {
     'To Do': tasks.filter((t) => t.status === 'To Do'),
     'In Progress': tasks.filter((t) => t.status === 'In Progress'),
@@ -45,19 +78,31 @@ function MyTasksPage() {
         <div className='status-column'>
           <h2>To Do ({tasksByStatus['To Do'].length})</h2>
           <div className='task-column-list'>
-            <TaskList tasks={tasksByStatus['To Do']} />
+            <TaskList
+              tasks={tasksByStatus['To Do']}
+              onStatusChange={handleTaskStatusChange}
+              showProjectLink={true}
+            />
           </div>
         </div>
         <div className='status-column'>
           <h2>In Progress ({tasksByStatus['In Progress'].length})</h2>
           <div className='task-column-list'>
-            <TaskList tasks={tasksByStatus['In Progress']} />
+            <TaskList
+              tasks={tasksByStatus['In Progress']}
+              onStatusChange={handleTaskStatusChange}
+              showProjectLink={true}
+            />
           </div>
         </div>
         <div className='status-column'>
           <h2>Done ({tasksByStatus['Done'].length})</h2>
           <div className='task-column-list'>
-            <TaskList tasks={tasksByStatus['Done']} />
+            <TaskList
+              tasks={tasksByStatus['Done']}
+              onStatusChange={handleTaskStatusChange}
+              showProjectLink={true}
+            />
           </div>
         </div>
       </div>

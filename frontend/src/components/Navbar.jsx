@@ -1,11 +1,11 @@
 // frontend/src/components/Navbar.jsx
 import React from 'react'
-import { Link, NavLink } from 'react-router-dom' // ใช้ NavLink เพื่อทำ Active Style
+import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import './Navbar.css'
 
 function Navbar() {
-  const { user, logoutUser } = useAuth()
+  const { user, logoutUser, unseenTaskCount } = useAuth()
 
   return (
     <header className='navbar'>
@@ -16,15 +16,16 @@ function Navbar() {
       </div>
 
       <nav className='navbar-links'>
-        {user && ( // แสดงลิงก์เหล่านี้เมื่อ Login แล้วเท่านั้น
+        {user && (
           <>
-            {/* 1. เปลี่ยน Link เดิมให้เป็น NavLink เพื่อให้มี active style */}
             <NavLink to='/' className='nav-link' end>
               All Projects
             </NavLink>
-            {/* 2. เพิ่ม NavLink ใหม่สำหรับ My Tasks */}
             <NavLink to='/my-tasks' className='nav-link'>
               My Tasks
+              {unseenTaskCount > 0 && (
+                <span className='notification-badge'>{unseenTaskCount}</span>
+              )}
             </NavLink>
           </>
         )}
@@ -33,7 +34,13 @@ function Navbar() {
       <div className='navbar-user'>
         {user ? (
           <>
-            <span>สวัสดี, {user.username}</span>
+            {/* --- โครงสร้างที่ถูกต้องสำหรับแสดงผล --- */}
+            <div className='user-details'>
+              <span className='user-fullname'>
+                {user.first_name} {user.last_name}
+              </span>
+              <span className='user-role'>{user.role}</span>
+            </div>
             <button onClick={logoutUser} className='logout-button'>
               Logout
             </button>

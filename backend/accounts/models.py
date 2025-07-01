@@ -61,6 +61,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
+    @property
+    def role(self):
+        if self.is_superadmin:
+            return "Super Admin"
+        if self.is_staff:
+            return "Administrator"
+        # คุณสามารถเพิ่มเงื่อนไขอื่นๆ ได้ตามต้องการ
+        return "User"  # สิทธิ์พื้นฐาน
+
     def __str__(self):
         return self.email
 

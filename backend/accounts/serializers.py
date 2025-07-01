@@ -36,6 +36,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(read_only=True)
     class Meta:
         model = User
         fields = [
@@ -46,6 +47,7 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             "phone_number",
             "employee_id",
+            "role",
         ]
 
 
@@ -56,4 +58,4 @@ class UserListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username"]
+        fields = ["id", "username", "first_name", "last_name"]

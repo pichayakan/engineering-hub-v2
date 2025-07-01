@@ -37,18 +37,31 @@ class Task(models.Model):
     priority = models.CharField(
         max_length=50, choices=PRIORITY_CHOICES, default="Medium"
     )
-    assignee = models.ForeignKey(
+    assignees = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        related_name="tasks",
-        on_delete=models.SET_NULL,  # ถ้า User ถูกลบ Task จะยังอยู่แต่ไม่มีคนรับผิดชอบ
-        null=True,
-        blank=True,
+        related_name="assigned_tasks",
+        blank=True,  # อนุญาตให้มี Task ที่ยังไม่มีคนรับผิดชอบได้
     )
     created_at = models.DateTimeField(auto_now_add=True)
     due_date = models.DateField(null=True, blank=True)
+    is_seen = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["created_at"]
 
     def __str__(self):
         return self.title
+    
+class Comment(models.Model):
+    task = models.ForeignKey(Task, related_name="comments", on_delete=models.CASCADE)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="comments", on_delete=models.CASCADE
+    )
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Comment by {self.author} on {self.task.title}"

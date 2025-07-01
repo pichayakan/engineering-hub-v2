@@ -1,0 +1,99 @@
+/* frontend/src/components/CommentSection.css */
+.comment-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #363636;
+}
+
+.comment-section h4 {
+    font-size: 1.2rem;
+    color: #e0e0e0;
+    margin-bottom: 1rem;
+}
+
+.comment-list {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 10px; /* สำหรับ scrollbar */
+    margin-bottom: 1.5rem;
+}
+
+.comment-item {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.comment-author-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #5a9eee;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.comment-body {
+    background-color: #2b2b2b;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    width: 100%;
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.comment-author-name {
+    font-weight: 600;
+    color: #f5f5f5;
+}
+
+.comment-timestamp {
+    font-size: 0.8rem;
+    color: #a0a0a0;
+}
+
+.comment-text {
+    color: #dcdcdc;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.add-comment-form textarea {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background-color: #2b2b2b;
+    border: 1px solid #4a4a4a;
+    border-radius: 8px;
+    color: #f5f5f5;
+    font-size: 1rem;
+    box-sizing: border-box;
+    min-height: 80px;
+    resize: vertical;
+    margin-bottom: 0.75rem;
+}
+
+.add-comment-form button {
+    display: block;
+    margin-left: auto; /* จัดปุ่มไปทางขวา */
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    background-color: #5a9eee;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.add-comment-form button:hover {
+    background-color: #3b7fde;
+}
