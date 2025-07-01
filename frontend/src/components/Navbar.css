@@ -1,0 +1,89 @@
+/* frontend/src/components/Navbar.css */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #20232a;
+    padding: 0.8rem 2rem;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar-brand h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #61dafb;
+}
+
+.navbar-title-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.navbar-links {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.nav-link {
+    color: #a0a0a0;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.nav-link.active {
+    color: white;
+    background-color: #3f3f3f;
+}
+
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.navbar-user span {
+    font-weight: 500;
+}
+
+.guest-links {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.nav-link.register {
+    background-color: #5a9eee;
+    color: white;
+}
+
+.nav-link.register:hover {
+    background-color: #3b7fde;
+}
+
+
+.logout-button {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+    background-color: #d32f2f;
+}

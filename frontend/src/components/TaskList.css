@@ -1,0 +1,154 @@
+/* frontend/src/components/TaskList.css */
+.task-list-container {
+    margin-top: 0; /* เอา margin-top ออก เพราะ Project card มี margin-bottom แล้ว */
+}
+
+.task-list-container h3 {
+    font-size: 1.5rem; /* เพิ่มขนาดหัวข้อ */
+    color: #e0e0e0;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #363636;
+}
+
+.task-item {
+    background-color: #2b2b2b;
+    border: 1px solid #4a4a4a;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    transition: box-shadow 0.3s, border-color 0.3s;
+    overflow: hidden; /* สำหรับกรอบสีสถานะ */
+    display: flex;
+    flex-direction: column;
+}
+
+.task-item:hover {
+    border-color: #666;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.task-item-content {
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.task-main-info {
+    flex-grow: 1;
+}
+
+.task-main-info h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.15rem;
+    color: #f5f5f5;
+    font-weight: 600;
+}
+
+.task-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    font-size: 0.85rem;
+    color: #a0a0a0;
+}
+
+.task-right-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    flex-shrink: 0; /* ไม่ให้ส่วนนี้หดตัว */
+}
+
+.task-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.action-button {
+    background: #3f3f3f;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    padding: 0.3rem 0.6rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background-color 0.2s, color 0.2s;
+    line-height: 1;
+}
+
+.action-button.edit:hover {
+    background-color: #5a9eee;
+    color: white;
+}
+
+.action-button.delete:hover {
+    background-color: #d9534f;
+    color: white;
+}
+
+.priority-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.priority-Low { border: 1px solid #5cb85c; color: #5cb85c; }
+.priority-Medium { border: 1px solid #f0ad4e; color: #f0ad4e; }
+.priority-High { border: 1px solid #d9534f; color: #d9534f; }
+
+.task-status-bar {
+    height: 6px;
+    width: 100%;
+}
+.status-To-Do { background-color: #5a9eee; }
+.status-In-Progress { background-color: #f0ad4e; }
+.status-Done { background-color: #5cb85c; }
+
+
+.task-right-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.75rem; /* เพิ่ม gap เล็กน้อย */
+    flex-shrink: 0;
+}
+
+/* --- เพิ่มส่วนนี้เข้าไป --- */
+.status-select-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.status-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: #3f3f3f;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    padding: 0.3rem 1.5rem 0.3rem 0.6rem; /* เว้นที่ให้ลูกศร */
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background-color 0.2s;
+    outline: none;
+}
+
+.status-select:hover {
+    background-color: #4a4a4a;
+}
+
+.status-select-wrapper::after {
+    content: '▼';
+    font-size: 0.7rem;
+    color: #a0a0a0;
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none; /* ทำให้คลิกทะลุไปที่ select ได้ */
+}

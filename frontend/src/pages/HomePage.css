@@ -1,0 +1,23 @@
+/* frontend/src/pages/HomePage.css */
+.homepage-layout {
+    display: grid;
+    grid-template-columns: 1fr; /* ค่าเริ่มต้นสำหรับจอมือถือ */
+    gap: 2rem;
+}
+
+/* สำหรับจอที่กว้างกว่า 992px */
+@media (min-width: 992px) {
+    .homepage-layout {
+        /* แบ่ง 2 คอลัมน์: คอลัมน์แรกยืดหยุ่น, คอลัมน์สองกว้าง 400px */
+        grid-template-columns: 1fr 450px; 
+    }
+
+    .project-list-section {
+        grid-column: 1 / 2; /* รายการอยู่คอลัมน์แรก */
+    }
+
+    .add-project-section {
+        grid-column: 2 / 3; /* ฟอร์มอยู่คอลัมน์สอง */
+        grid-row: 1 / 2; /* ให้อยู่แถวแรก */
+    }
+}

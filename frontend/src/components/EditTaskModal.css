@@ -1,0 +1,40 @@
+/* frontend/src/components/EditTaskModal.css */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background-color: #1e1e1e;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    border: 1px solid #363636;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+}
+
+.modal-close-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: #a0a0a0;
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close-button:hover {
+    color: white;
+}
