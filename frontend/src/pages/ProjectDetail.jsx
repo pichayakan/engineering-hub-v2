@@ -1,6 +1,6 @@
 // frontend/src/pages/ProjectDetail.jsx
 import React, { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import apiClient from '../api'
 import { useAuth } from '../context/AuthContext'
 import TaskList from '../components/TaskList.jsx'
@@ -172,6 +172,9 @@ function ProjectDetail() {
           <div className='project-info-card'>
             <div className='project-header'>
               <h1>{project.name}</h1>
+              <Link to={`/projects/${projectId}/kanban`} className='nav-link'>
+                View as Board
+              </Link>
               {/* 9. แสดงปุ่ม Edit/Delete เฉพาะเจ้าของ */}
               {isOwner && (
                 <div className='project-actions'>

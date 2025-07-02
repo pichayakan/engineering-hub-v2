@@ -1,0 +1,64 @@
+/* frontend/src/components/KanbanBoard.css */
+.kanban-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); /* Responsive */
+    gap: 1.5rem;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.kanban-column {
+    display: flex;
+    flex-direction: column;
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    border: 1px solid #363636;
+    max-height: 80vh; /* จำกัดความสูงของคอลัมน์ */
+}
+
+.column-title {
+    padding: 1rem 1.5rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #e0e0e0;
+    border-bottom: 1px solid #363636;
+    flex-shrink: 0;
+}
+
+.droppable-area {
+    padding: 1rem;
+    flex-grow: 1;
+    min-height: 200px;
+    overflow-y: auto; /* เพิ่ม scrollbar เมื่อ task เยอะ */
+    transition: background-color 0.2s ease;
+}
+
+.droppable-area.is-dragging-over {
+    background-color: #2a2a2a;
+}
+
+.task-card {
+    background-color: #2b2b2b;
+    border: 1px solid #4a4a4a;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    cursor: grab; /* เปลี่ยน cursor ให้รู้ว่าลากได้ */
+    touch-action: none; /* สำหรับ mobile */
+}
+
+.task-card:active {
+    cursor: grabbing;
+}
+
+.task-card-title {
+    font-weight: 600;
+    color: #f5f5f5;
+    margin-bottom: 0.5rem;
+}
+
+.task-card-meta {
+    font-size: 0.8rem;
+    color: #a0a0a0;
+}

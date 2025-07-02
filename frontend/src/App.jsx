@@ -1,6 +1,7 @@
 // frontend/src/App.jsx
 import React from 'react'
 import { Routes, Route } from 'react-router-dom'
+import KanbanPage from './pages/KanbanPage.jsx'
 
 import Navbar from './components/Navbar.jsx'
 import HomePage from './pages/HomePage'
@@ -29,6 +30,10 @@ function App() {
             {/* 2. เพิ่ม Route */}
             <Route path='/my-tasks' element={<MyTasksPage />} />
             <Route path='/projects/:projectId' element={<ProjectDetail />} />
+            <Route
+              path='/projects/:projectId/kanban'
+              element={<KanbanPage />}
+            />
           </Route>
         </Routes>
       </main>
