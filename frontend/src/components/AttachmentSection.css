@@ -1,0 +1,127 @@
+/* frontend/src/components/AttachmentSection.css */
+.attachment-section {
+    background-color: #1e1e1e;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #363636;
+    margin-top: 2rem;
+}
+
+.attachment-section h3 {
+    margin-top: 0;
+    font-size: 1.3rem;
+    color: #e0e0e0;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #363636;
+    margin-bottom: 1rem;
+}
+
+.attachment-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.attachment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #2b2b2b;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #4a4a4a;
+    align-items: center;
+}
+
+.attachment-details {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.delete-attachment-button {
+    background: #4a4a4a;
+    color: #a0a0a0;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 3px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.delete-attachment-button:hover {
+    background-color: #d9534f;
+    color: white;
+}
+
+.attachment-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #5a9eee;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.attachment-link:hover {
+    text-decoration: underline;
+}
+
+.attachment-meta {
+    font-size: 0.8rem;
+    color: #a0a0a0;
+}
+
+.upload-form h4 {
+    font-size: 1rem;
+    color: #c7c7c7;
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.upload-input {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #2b2b2b;
+    border: 1px dashed #4a4a4a;
+    border-radius: 8px;
+    color: #f5f5f5;
+    cursor: pointer;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.upload-input:hover {
+    background-color: #363636;
+    border-color: #5a9eee;
+}
+
+.upload-button {
+    margin-top: 1rem;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    background-color: #5cb85c;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.upload-button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+.upload-button:not(:disabled):hover {
+    background-color: #4a9d4a;
+}

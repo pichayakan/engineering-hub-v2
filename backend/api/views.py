@@ -3,9 +3,16 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import SearchFilter
 from django.http import JsonResponse
-from rest_framework import viewsets, permissions, generics
-from .models import Project, Task, Comment
-from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer
+from rest_framework import viewsets, permissions, generics, status
+from .models import Project, Task, Comment, ProjectAttachment, TaskAttachment , Activity
+from .serializers import (
+    ProjectSerializer,
+    TaskSerializer,
+    CommentSerializer,
+    ProjectAttachmentSerializer,
+    TaskAttachmentSerializer,
+    ActivitySerializer
+)
 from rest_framework.views import APIView  # <-- เพิ่มการ import APIView
 from rest_framework.response import Response  # <-- เพิ่มการ import Response
 from .permissions import IsOwnerOrReadOnly
@@ -70,7 +77,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         # ตรวจสอบว่า URL มี 'project_pk' หรือไม่
         if "project_pk" in self.kwargs:
             return self.queryset.filter(project_id=self.kwargs["project_pk"]).annotate(
-                comment_count=Count("comments")
+                comment_count=Count("comments"), attachment_count=Count("attachments")
             )
         return self.queryset.none()
 
@@ -79,6 +86,33 @@ class TaskViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         project = Project.objects.get(pk=self.kwargs["project_pk"])
         serializer.save(project=project)
+    
+    # --- Override perform_update เพื่อแนบ user ไปกับ instance ---
+    def perform_update(self, serializer):
+        # ก่อนที่จะ save, เราจะแนบ user ที่กำลัง login อยู่เข้าไปใน instance
+        # เพื่อให้ signal สามารถนำไปใช้ได้
+        serializer.instance._last_modified_by = self.request.user
+        serializer.save()
+
+    # --- Override เมธอด update เพื่อเพิ่ม Logic การตรวจสอบ ---
+    def update(self, request, *args, **kwargs):
+        task = self.get_object()
+        new_status = request.data.get("status")
+
+        # ตรวจสอบเมื่อมีการเปลี่ยนสถานะเป็น "In Progress" หรือ "Done"
+        if new_status in ["In Progress", "Done"] and task.status != new_status:
+            # ค้นหางานที่ต้องทำก่อน (prerequisites) ที่ยังไม่เสร็จ (สถานะไม่ใช่ 'Done')
+            incomplete_prereqs = task.prerequisites.exclude(status="Done")
+            if incomplete_prereqs.exists():
+                # ถ้ามีงานที่ต้องทำก่อนยังไม่เสร็จ ให้ส่ง Error กลับไป
+                prereq_titles = ", ".join([t.title for t in incomplete_prereqs])
+                error_message = f"Cannot update status. The following prerequisite tasks are not complete: {prereq_titles}"
+                return Response(
+                    {"error": error_message}, status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # ถ้าผ่านการตรวจสอบทั้งหมด ให้ทำการอัปเดตตามปกติ
+        return super().update(request, *args, **kwargs)
 
 
 class MyAssignedTasksView(generics.ListAPIView):
@@ -94,7 +128,9 @@ class MyAssignedTasksView(generics.ListAPIView):
         user = self.request.user
         return (
             Task.objects.filter(assignees=user)
-            .annotate(comment_count=Count("comments"))
+            .annotate(
+                comment_count=Count("comments"), attachment_count=Count("attachments")
+            )
             .order_by("due_date")
         )
 
@@ -123,3 +159,41 @@ class MarkTasksAsSeenView(APIView):
         # เปลี่ยนจาก assignee เป็น assignees
         Task.objects.filter(assignees=request.user, is_seen=False).update(is_seen=True)
         return Response({"status": "success"})
+
+
+class ProjectAttachmentViewSet(viewsets.ModelViewSet):
+    queryset = ProjectAttachment.objects.all()
+    serializer_class = ProjectAttachmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(project_id=self.kwargs["project_pk"])
+
+    def perform_create(self, serializer):
+        project = Project.objects.get(pk=self.kwargs["project_pk"])
+        serializer.save(uploaded_by=self.request.user, project=project)
+
+
+class TaskAttachmentViewSet(viewsets.ModelViewSet):
+    queryset = TaskAttachment.objects.all()
+    serializer_class = TaskAttachmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(task_id=self.kwargs["task_pk"])
+
+    def perform_create(self, serializer):
+        task = Task.objects.get(pk=self.kwargs["task_pk"])
+        serializer.save(uploaded_by=self.request.user, task=task)
+        
+class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    A read-only viewset for listing activities for a given task.
+    """
+
+    queryset = Activity.objects.all()
+    serializer_class = ActivitySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(task_id=self.kwargs["task_pk"])

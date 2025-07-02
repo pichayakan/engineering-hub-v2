@@ -71,9 +71,11 @@
     align-items: center; /* --- เพิ่มบรรทัดนี้ --- */
 }
 
-/* --- เพิ่มส่วนนี้เข้าไป --- */
-.task-comment-count {
+.task-comment-count, .task-attachment-count { /* เพิ่ม .task-attachment-count */
     display: flex;
     align-items: center;
     gap: 0.3rem;
+    background-color: #3f3f3f; /* เพิ่มพื้นหลังเล็กน้อย */
+    padding: 2px 8px;
+    border-radius: 10px;
 }

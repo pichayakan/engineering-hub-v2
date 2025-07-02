@@ -9,6 +9,7 @@ import EditTaskModal from '../components/EditTaskModal.jsx'
 import EditProjectModal from '../components/EditProjectModal.jsx'
 import TaskDetailModal from '../components/TaskDetailModal.jsx'
 import './ProjectDetail.css'
+import AttachmentSection from '../components/AttachmentSection.jsx'
 
 function ProjectDetail() {
   const [project, setProject] = useState(null)
@@ -19,6 +20,7 @@ function ProjectDetail() {
   const [editingProject, setEditingProject] = useState(null)
   const [viewingTask, setViewingTask] = useState(null)
   const [isAddingTask, setIsAddingTask] = useState(false)
+  const [attachments, setAttachments] = useState([]) // 2. state ใหม่สำหรับไฟล์แนบ
 
   const { projectId } = useParams()
   const navigate = useNavigate() // 5. Hook สำหรับ redirect
@@ -27,18 +29,20 @@ function ProjectDetail() {
   const fetchProjectData = useCallback(async () => {
     setLoading(true)
     try {
-      // ดึงข้อมูล 3 ส่วนพร้อมกัน
-      const [projectRes, tasksRes, usersRes] = await Promise.all([
-        apiClient.get(`/api/projects/${projectId}/`),
-        apiClient.get(`/api/projects/${projectId}/tasks/`),
-        apiClient.get('/api/auth/users/'), // <-- 2. เรียก API ดึงรายชื่อ user
-      ])
+      // ดึงข้อมูล 4 ส่วนพร้อมกัน
+      const [projectRes, tasksRes, usersRes, attachmentsRes] =
+        await Promise.all([
+          apiClient.get(`/api/projects/${projectId}/`),
+          apiClient.get(`/api/projects/${projectId}/tasks/`),
+          apiClient.get('/api/auth/users/'),
+          apiClient.get(`/api/projects/${projectId}/attachments/`), // 3. เรียก API ดึงไฟล์แนบ
+        ])
       setProject(projectRes.data)
       setTasks(tasksRes.data)
-      setUsers(usersRes.data) // <-- 3. เก็บข้อมูล user ใน state
+      setUsers(usersRes.data)
+      setAttachments(attachmentsRes.data) // 4. เก็บข้อมูลไฟล์แนบ
     } catch (error) {
-      console.error('Failed to fetch project data', error)
-      setProject(null)
+      console.error('Failed to fetch page data', error)
     } finally {
       setLoading(false)
     }
@@ -104,10 +108,13 @@ function ProjectDetail() {
         status: newStatus,
       })
       // ถ้าสำเร็จ ก็ไม่ต้องทำอะไร เพราะ UI อัปเดตไปแล้ว
+      fetchProjectData() // โหลดข้อมูลใหม่ทั้งหมดเพื่อให้เห็นการเปลี่ยนแปลง
     } catch (error) {
       console.error('Failed to update task status', error)
-      alert('Could not save the task status. Reverting changes.')
-      // ถ้าล้มเหลว ให้ย้อน state กลับไปเป็นเหมือนเดิม
+      const errorMessage =
+        error.response?.data?.error ||
+        'Could not update the task status. Reverting.'
+      alert(errorMessage)
       setTasks(originalTasks)
     }
   }
@@ -197,6 +204,11 @@ function ProjectDetail() {
               <p>{project.description || 'No description provided.'}</p>
             </div>
           </div>
+          <AttachmentSection
+            entityType='project'
+            entityId={projectId}
+            initialAttachments={attachments}
+          />
           <TaskList
             tasks={tasks}
             onEdit={isOwner ? (task) => setEditingTask(task) : null} // แสดงปุ่ม Edit เฉพาะเจ้าของ
@@ -210,6 +222,7 @@ function ProjectDetail() {
             onTaskAdded={handleTaskAdded}
             users={users}
             isSubmitting={isAddingTask}
+            availableTasks={tasks}
           />
         </div>
       </div>
@@ -224,6 +237,8 @@ function ProjectDetail() {
         project={editingProject}
         onSave={handleProjectUpdate}
         onClose={() => setEditingProject(null)}
+        // 2. ส่งรายการ tasks ทั้งหมดไปให้ EditTaskModal
+        availableTasks={tasks}
       />
       <TaskDetailModal
         task={viewingTask}

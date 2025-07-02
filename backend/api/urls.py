@@ -10,7 +10,10 @@ from .views import (
     MyAssignedTasksView,
     UnseenTaskCountView,
     MarkTasksAsSeenView,
-    CommentViewSet
+    CommentViewSet,
+    ProjectAttachmentViewSet,  # 1. Import
+    TaskAttachmentViewSet,  # 1. Import
+    ActivityViewSet
 )
 
 # สร้าง router หลักสำหรับ Project
@@ -20,9 +23,17 @@ router.register(r"projects", ProjectViewSet, basename="project")
 # สร้าง router ที่ซ้อนอยู่ภายใต้ Project สำหรับ Task
 projects_router = routers.NestedSimpleRouter(router, r"projects", lookup="project")
 projects_router.register(r"tasks", TaskViewSet, basename="project-tasks")
+projects_router.register(
+    r"attachments", ProjectAttachmentViewSet, basename="project-attachments"
+)
+
 
 tasks_router = routers.NestedSimpleRouter(projects_router, r"tasks", lookup="task")
 tasks_router.register(r"comments", CommentViewSet, basename="task-comments")
+tasks_router.register(
+    r"attachments", TaskAttachmentViewSet, basename="task-attachments"
+)
+tasks_router.register(r"activities", ActivityViewSet, basename="task-activities")
 
 urlpatterns = [
     path("csrf-cookie/", get_csrf_token, name="csrf-cookie"),

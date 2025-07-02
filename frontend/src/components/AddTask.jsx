@@ -4,17 +4,24 @@ import Select from 'react-select'
 import './AddProject.css'
 import './MultiSelect.css'
 
-function AddTask({ onTaskAdded, users, isSubmitting }) {
+function AddTask({ onTaskAdded, users, isSubmitting, availableTasks }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [selectedAssignees, setSelectedAssignees] = useState([])
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState('Medium')
+  const [selectedPrerequisites, setSelectedPrerequisites] = useState([])
 
   // --- ส่วนที่แก้ไข: สร้าง label ให้แสดงชื่อเต็ม ---
   const userOptions = users.map((user) => ({
     value: user.id,
     label: `${user.first_name} ${user.last_name} (${user.username})`,
+  }))
+
+  // 3. สร้าง options สำหรับ prerequisites
+  const taskOptions = availableTasks.map((task) => ({
+    value: task.id,
+    label: task.title,
   }))
 
   const priorityOptions = [
@@ -28,6 +35,7 @@ function AddTask({ onTaskAdded, users, isSubmitting }) {
     if (isSubmitting) return
 
     const assigneeIds = selectedAssignees.map((option) => option.value)
+    const prerequisiteIds = selectedPrerequisites.map((option) => option.value)
 
     await onTaskAdded({
       title,
@@ -35,7 +43,10 @@ function AddTask({ onTaskAdded, users, isSubmitting }) {
       assignees: assigneeIds,
       due_date: dueDate || null,
       priority: priority,
+      prerequisites: prerequisiteIds,
     })
+
+    setSelectedPrerequisites([])
 
     setTitle('')
     setDescription('')
@@ -103,6 +114,19 @@ function AddTask({ onTaskAdded, users, isSubmitting }) {
               </option>
             ))}
           </select>
+          <label htmlFor='prerequisites'>
+            Prerequisites (Tasks to be done before this)
+          </label>
+          <Select
+            id='prerequisites'
+            isMulti
+            options={taskOptions}
+            className='multi-select-container'
+            classNamePrefix='multi-select'
+            value={selectedPrerequisites}
+            onChange={setSelectedPrerequisites}
+            placeholder='Select prerequisite tasks...'
+          />
         </div>
         <button type='submit' className='submit-button' disabled={isSubmitting}>
           {isSubmitting ? 'Adding Task...' : 'Add Task'}

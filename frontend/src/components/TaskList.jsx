@@ -59,9 +59,22 @@ function TaskList({
                       </Link>
                     </span>
                   )}
-                  <span className='task-comment-count'>
-                    💬 {task.comment_count}
-                  </span>
+                  {task.comment_count > 0 && (
+                    <span
+                      className='task-comment-count'
+                      title={`${task.comment_count} comments`}
+                    >
+                      💬 {task.comment_count}
+                    </span>
+                  )}
+                  {task.attachment_count > 0 && (
+                    <span
+                      className='task-attachment-count'
+                      title={`${task.attachment_count} attachments`}
+                    >
+                      📎 {task.attachment_count}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className='task-right-section'>

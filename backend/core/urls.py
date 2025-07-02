@@ -2,6 +2,9 @@
 from django.contrib import admin
 from django.urls import path, include
 
+from django.conf import settings  # 1. Import settings
+from django.conf.urls.static import static
+
 # Import view สำเร็จรูปจากไลบรารี
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -18,3 +21,6 @@ urlpatterns = [
     # 2. Endpoint สำหรับขอ token ใหม่ด้วย refresh token
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
