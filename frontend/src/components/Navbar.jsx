@@ -18,6 +18,9 @@ function Navbar() {
       <nav className='navbar-links'>
         {user && (
           <>
+            <NavLink to='/dashboard' className='nav-link'>
+              Dashboard
+            </NavLink>
             <NavLink to='/' className='nav-link' end>
               All Projects
             </NavLink>

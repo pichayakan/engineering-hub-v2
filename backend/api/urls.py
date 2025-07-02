@@ -13,7 +13,8 @@ from .views import (
     CommentViewSet,
     ProjectAttachmentViewSet,  # 1. Import
     TaskAttachmentViewSet,  # 1. Import
-    ActivityViewSet
+    ActivityViewSet,
+    DashboardStatsView,
 )
 
 # สร้าง router หลักสำหรับ Project
@@ -47,6 +48,9 @@ urlpatterns = [
         "notifications/mark-as-seen/",
         MarkTasksAsSeenView.as_view(),
         name="mark-tasks-as-seen",
+    ),
+    path(
+        "dashboard-stats/", DashboardStatsView.as_view(), name="dashboard-stats"
     ),
     path("", include(router.urls)),
     path("", include(projects_router.urls)),

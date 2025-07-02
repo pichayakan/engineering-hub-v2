@@ -16,6 +16,69 @@ from .serializers import (
 from rest_framework.views import APIView  # <-- เพิ่มการ import APIView
 from rest_framework.response import Response  # <-- เพิ่มการ import Response
 from .permissions import IsOwnerOrReadOnly
+from .models import Project, Task 
+from accounts.models import User
+
+
+class DashboardStatsView(APIView):
+    """
+    API endpoint to provide aggregated statistics for the main dashboard.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, format=None):
+        # นับจำนวนโปรเจกต์และ Task ทั้งหมด
+        total_projects = Project.objects.count()
+        total_tasks = Task.objects.count()
+
+        # สรุปจำนวน Task ตามสถานะ
+        tasks_by_status = (
+            Task.objects.values("status")
+            .annotate(count=Count("status"))
+            .order_by("status")
+        )
+        status_data = {item["status"]: item["count"] for item in tasks_by_status}
+
+        # สรุปจำนวน Task ตามความสำคัญ
+        tasks_by_priority = (
+            Task.objects.values("priority")
+            .annotate(count=Count("priority"))
+            .order_by("priority")
+        )
+        priority_data = {item["priority"]: item["count"] for item in tasks_by_priority}
+        
+        # 1. นับจำนวน Task ที่เสร็จแล้วโดยเฉพาะ
+        completed_tasks_count = Task.objects.filter(status="Done").count()
+
+        # 2. สรุปภาระงานของแต่ละคน
+        tasks_per_assignee = (
+            Task.objects.filter(assignees__isnull=False)
+            .values(
+                "assignees__username"  # จัดกลุ่มตาม username
+            )
+            .annotate(
+                task_count=Count("id")  # นับจำนวน task
+            )
+            .order_by("-task_count")
+        )  # เรียงจากคนที่งานเยอะที่สุด
+
+        assignee_data = {
+            item["assignees__username"]: item["task_count"]
+            for item in tasks_per_assignee
+        }
+
+        # รวบรวมข้อมูลทั้งหมดเพื่อส่งกลับ
+        data = {
+            "total_projects": total_projects,
+            "total_tasks": total_tasks,
+            "completed_tasks": completed_tasks_count,  # เพิ่มข้อมูลใหม่
+            "status_distribution": status_data,
+            "priority_distribution": priority_data,
+            "assignee_task_load": assignee_data,  # เพิ่มข้อมูลใหม่
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class CommentViewSet(viewsets.ModelViewSet):

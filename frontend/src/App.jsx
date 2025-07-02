@@ -7,7 +7,8 @@ import HomePage from './pages/HomePage'
 import ProjectDetail from './pages/ProjectDetail.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
-import MyTasksPage from './pages/MyTasksPage.jsx' // 1. Import หน้าใหม่เข้ามา
+import MyTasksPage from './pages/MyTasksPage.jsx'
+import DashboardPage from './pages/DashboardPage.jsx' // 1. Import
 import ProtectedRoute from './utils/ProtectedRoute.jsx'
 import './App.css'
 
@@ -24,8 +25,9 @@ function App() {
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path='/' element={<HomePage />} />
-            <Route path='/my-tasks' element={<MyTasksPage />} />{' '}
-            {/* <-- 2. เพิ่ม Route ใหม่ที่นี่ */}
+            <Route path='/dashboard' element={<DashboardPage />} />{' '}
+            {/* 2. เพิ่ม Route */}
+            <Route path='/my-tasks' element={<MyTasksPage />} />
             <Route path='/projects/:projectId' element={<ProjectDetail />} />
           </Route>
         </Routes>
