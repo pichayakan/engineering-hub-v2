@@ -15,6 +15,9 @@ from .views import (
     TaskAttachmentViewSet,  # 1. Import
     ActivityViewSet,
     DashboardStatsView,
+    FileDownloadView,
+    FileUploadView,
+    SharedFileHistoryView,MemberWorkloadView
 )
 
 # สร้าง router หลักสำหรับ Project
@@ -49,10 +52,13 @@ urlpatterns = [
         MarkTasksAsSeenView.as_view(),
         name="mark-tasks-as-seen",
     ),
-    path(
-        "dashboard-stats/", DashboardStatsView.as_view(), name="dashboard-stats"
-    ),
+    path("dashboard-stats/", DashboardStatsView.as_view(), name="dashboard-stats"),
     path("", include(router.urls)),
     path("", include(projects_router.urls)),
     path("", include(tasks_router.urls)),
+    path("share/upload/", FileUploadView.as_view(), name="file-upload"),
+    path("share/history/", SharedFileHistoryView.as_view(), name="file-history"),
+    path(
+        "workload-dashboard/", MemberWorkloadView.as_view(), name="workload-dashboard"
+    ),
 ]

@@ -11,6 +11,11 @@ import RegisterPage from './pages/RegisterPage.jsx'
 import MyTasksPage from './pages/MyTasksPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx' // 1. Import
 import ProtectedRoute from './utils/ProtectedRoute.jsx'
+import FileSharerPage from './pages/FileSharerPage.jsx'
+import AdminRoute from './utils/AdminRoute.jsx' // 1. Import ยามคนใหม่
+import TeamManagementPage from './pages/TeamManagementPage.jsx'
+import TeamDetailPage from './pages/TeamDetailPage.jsx'
+import WorkloadDashboardPage from './pages/WorkloadDashboardPage.jsx'
 import './App.css'
 
 function App() {
@@ -34,7 +39,14 @@ function App() {
               path='/projects/:projectId/kanban'
               element={<KanbanPage />}
             />
+            <Route path='/admin/teams' element={<TeamManagementPage />} />
+            <Route path='/admin/teams/:teamId' element={<TeamDetailPage />} />
+            <Route element={<AdminRoute />}>
+              {/* e.g. <Route path="/admin/settings" element={<SettingsPage />} /> */}
+            </Route>
+            <Route path='/workload' element={<WorkloadDashboardPage />} />
           </Route>
+          <Route path='/share' element={<FileSharerPage />} />
         </Routes>
       </main>
     </div>

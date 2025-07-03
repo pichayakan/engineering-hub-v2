@@ -1,7 +1,8 @@
 from django.db import models
 # from django.contrib.auth.models import User
 from django.conf import settings
-
+import uuid
+from accounts.models import Team
 
 class Project(models.Model):
     name = models.CharField(max_length=200)
@@ -49,6 +50,11 @@ class Task(models.Model):
         related_name="assigned_tasks",
         blank=True,  # อนุญาตให้มี Task ที่ยังไม่มีคนรับผิดชอบได้
     )
+    assigned_teams = models.ManyToManyField(
+        Team, related_name="assigned_tasks", blank=True
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     due_date = models.DateField(null=True, blank=True)
     is_seen = models.BooleanField(default=False)
@@ -107,3 +113,16 @@ class Activity(models.Model):
 
     def __str__(self):
         return f'{self.actor.username} {self.verb} on task "{self.task.title}"'
+    
+class SharedFile(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255, default="Untitled")  # <-- เพิ่มฟิลด์นี้
+    file = models.FileField(upload_to="shared_files/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
+    )
+    filename = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.title

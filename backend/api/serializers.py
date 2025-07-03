@@ -1,8 +1,8 @@
 # backend/api/serializers.py
 from rest_framework import serializers
-from .models import Project, Task, Comment, ProjectAttachment, TaskAttachment, Activity
+from .models import Project, Task, Comment, ProjectAttachment, TaskAttachment, Activity ,SharedFile
 from accounts.models import User
-from accounts.serializers import UserListSerializer
+from accounts.serializers import UserListSerializer ,TeamSerializer
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -40,7 +40,9 @@ class TaskSerializer(serializers.ModelSerializer):
     prerequisites_details = PrerequisiteTaskSerializer(
         source="prerequisites", many=True, read_only=True
     )
-
+    assigned_teams_details = TeamSerializer(
+        source="assigned_teams", many=True, read_only=True
+    )
     # Fields from queryset annotations
     comment_count = serializers.IntegerField(read_only=True)
     attachment_count = serializers.IntegerField(read_only=True)
@@ -71,8 +73,13 @@ class TaskSerializer(serializers.ModelSerializer):
             # เพิ่ม 'assignees_details' และ 'prerequisites_details' กลับเข้ามาเพื่อให้แสดงผล
             "assignees_details",
             "prerequisites_details",
+            "assigned_teams",
+            "assigned_teams_details",
         ]
-        extra_kwargs = {"assignees": {"write_only": True, "required": False}}
+        extra_kwargs = {
+            "assignees": {"write_only": True, "required": False},
+            "assigned_teams": {"write_only": True, "required": False},
+        }
         read_only_fields = ["project"]
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -106,3 +113,19 @@ class ActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Activity
         fields = ["id", "actor_details", "verb", "created_at"]
+        
+class SharedFileSerializer(serializers.ModelSerializer):
+    # เพิ่มข้อมูลผู้สร้างเพื่อแสดงในหน้าประวัติ
+    uploaded_by_details = UserListSerializer(source="uploaded_by", read_only=True)
+
+    class Meta:
+        model = SharedFile
+        fields = [
+            "id",
+            "title",
+            "file",
+            "filename",
+            "uploaded_at",
+            "uploaded_by_details",
+        ]
+        read_only_fields = ["filename", "uploaded_at", "uploaded_by_details"]

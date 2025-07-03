@@ -21,6 +21,11 @@ function Navbar() {
             <NavLink to='/dashboard' className='nav-link'>
               Dashboard
             </NavLink>
+            {user.is_staff && (
+              <NavLink to='/workload' className='nav-link'>
+                Workload
+              </NavLink>
+            )}
             <NavLink to='/' className='nav-link' end>
               All Projects
             </NavLink>
@@ -29,6 +34,12 @@ function Navbar() {
               {unseenTaskCount > 0 && (
                 <span className='notification-badge'>{unseenTaskCount}</span>
               )}
+            </NavLink>
+            <NavLink to='/share' className='nav-link'>
+              File Sharer
+            </NavLink>
+            <NavLink to='/admin/teams' className='nav-link'>
+              Manage Teams
             </NavLink>
           </>
         )}

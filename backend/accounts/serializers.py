@@ -1,6 +1,6 @@
 # accounts/serializers.py
 from rest_framework import serializers
-from .models import User
+from .models import User, Team
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -37,6 +37,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.CharField(read_only=True)
+
     class Meta:
         model = User
         fields = [
@@ -48,6 +49,7 @@ class UserSerializer(serializers.ModelSerializer):
             "phone_number",
             "employee_id",
             "role",
+            "is_staff",
         ]
 
 
@@ -59,3 +61,48 @@ class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "username", "first_name", "last_name"]
+
+
+class TeamSerializer(serializers.ModelSerializer):
+    # แสดงรายละเอียดของสมาชิกในทีม
+    members_details = UserListSerializer(source="members", many=True, read_only=True)
+
+    class Meta:
+        model = Team
+        fields = ["id", "name", "description", "members", "members_details"]
+        extra_kwargs = {"members": {"write_only": True, "required": False}}
+
+class MemberWorkloadSerializer(serializers.ModelSerializer):
+    """
+    Serializer for showing individual member's task stats.
+    """
+
+    total_tasks = serializers.IntegerField()
+    todo_tasks = serializers.IntegerField()
+    inprogress_tasks = serializers.IntegerField()
+    done_tasks = serializers.IntegerField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "total_tasks",
+            "todo_tasks",
+            "inprogress_tasks",
+            "done_tasks",
+        ]
+
+
+class TeamWorkloadSerializer(serializers.ModelSerializer):
+    """
+    Serializer for showing team details along with its members' workload.
+    """
+
+    members_workload = MemberWorkloadSerializer(source="members", many=True)
+
+    class Meta:
+        model = Team
+        fields = ["id", "name", "members_workload"]

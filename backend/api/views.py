@@ -2,7 +2,7 @@ from django.db.models import Count, Q
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import SearchFilter
-from django.http import JsonResponse
+from django.http import JsonResponse , FileResponse
 from rest_framework import viewsets, permissions, generics, status
 from .models import Project, Task, Comment, ProjectAttachment, TaskAttachment , Activity
 from .serializers import (
@@ -11,14 +11,15 @@ from .serializers import (
     CommentSerializer,
     ProjectAttachmentSerializer,
     TaskAttachmentSerializer,
-    ActivitySerializer
+    ActivitySerializer,SharedFileSerializer
 )
 from rest_framework.views import APIView  # <-- เพิ่มการ import APIView
 from rest_framework.response import Response  # <-- เพิ่มการ import Response
 from .permissions import IsOwnerOrReadOnly
-from .models import Project, Task 
+from .models import Project, Task ,SharedFile
 from accounts.models import User
-
+from accounts.serializers import TeamWorkloadSerializer
+from accounts.models import Team
 
 class DashboardStatsView(APIView):
     """
@@ -189,13 +190,12 @@ class MyAssignedTasksView(generics.ListAPIView):
     def get_queryset(self):
         # 2. เพิ่ม .annotate() เพื่อนับจำนวน comments
         user = self.request.user
-        return (
-            Task.objects.filter(assignees=user)
-            .annotate(
-                comment_count=Count("comments"), attachment_count=Count("attachments")
-            )
-            .order_by("due_date")
-        )
+        return Task.objects.filter(
+            Q(assignees=user) | Q(assigned_teams__members=user)
+        ).distinct().annotate(
+            comment_count=Count('comments'),
+            attachment_count=Count('attachments')
+        ).order_by('due_date')
 
 
 class UnseenTaskCountView(APIView):
@@ -260,3 +260,55 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return self.queryset.filter(task_id=self.kwargs["task_pk"])
+    
+class FileUploadView(generics.CreateAPIView):
+    queryset = SharedFile.objects.all()
+    serializer_class = SharedFileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # รับ title จาก form data
+        title = self.request.data.get("title", "Untitled")
+        serializer.save(
+            uploaded_by=self.request.user,
+            filename=self.request.data.get("file").name,
+            title=title,
+        )
+
+
+class FileDownloadView(generics.RetrieveAPIView):
+    queryset = SharedFile.objects.all()
+    permission_classes = [permissions.AllowAny]  # อนุญาตให้ทุกคนดาวน์โหลดได้
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # ส่งไฟล์กลับไปให้เบราว์เซอร์ดาวน์โหลด
+        return FileResponse(
+            instance.file.open("rb"), as_attachment=True, filename=instance.filename
+        )
+        
+class SharedFileHistoryView(generics.ListAPIView):
+    queryset = SharedFile.objects.all().order_by("-uploaded_at")
+    serializer_class = SharedFileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+class MemberWorkloadView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request, format=None):
+        # ดึงทุกทีม พร้อมกับ prefetch สมาชิกและ task ของสมาชิกเหล่านั้น
+        teams_with_members = Team.objects.prefetch_related(
+            "members__assigned_tasks"
+        ).all()
+
+        # คำนวณสถิติสำหรับสมาชิกแต่ละคน
+        for team in teams_with_members:
+            for member in team.members.all():
+                tasks = member.assigned_tasks.all()
+                member.total_tasks = tasks.count()
+                member.todo_tasks = tasks.filter(status="To Do").count()
+                member.inprogress_tasks = tasks.filter(status="In Progress").count()
+                member.done_tasks = tasks.filter(status="Done").count()
+
+        serializer = TeamWorkloadSerializer(teams_with_members, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

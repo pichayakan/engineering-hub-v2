@@ -5,7 +5,7 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
-
+from django.conf import settings
 
 class UserManager(BaseUserManager):
     def create_user(self, email, username, first_name, last_name, password=None):
@@ -78,3 +78,16 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def has_module_perms(self, app_label):
         return True
+
+
+class Team(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="teams", blank=True
+    )
+    # อาจจะเพิ่มฟิลด์ team_lead ในอนาคต
+    # team_lead = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='led_teams')
+
+    def __str__(self):
+        return self.name

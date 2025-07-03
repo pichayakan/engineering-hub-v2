@@ -10,6 +10,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from api.views import FileDownloadView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -20,6 +21,7 @@ urlpatterns = [
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     # 2. Endpoint สำหรับขอ token ใหม่ด้วย refresh token
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("download/<uuid:pk>/", FileDownloadView.as_view(), name="file-download"),
 ]
 
 if settings.DEBUG:

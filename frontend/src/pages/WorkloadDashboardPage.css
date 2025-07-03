@@ -1,0 +1,56 @@
+.workload-dashboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.team-workload-card {
+    background-color: #1e1e1e;
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #363636;
+}
+
+.team-workload-card h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    color: #e0e0e0;
+    border-bottom: 1px solid #363636;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.workload-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.workload-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.workload-table th, .workload-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #2a2a2a;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.workload-table th {
+    color: #a0a0a0;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.workload-table td.stat-cell {
+    font-weight: 600;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.stat-total { color: #f5f5f5; }
+.stat-todo { color: #5a9eee; }
+.stat-inprogress { color: #f0ad4e; }
+.stat-done { color: #5cb85c; }

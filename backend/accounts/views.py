@@ -2,9 +2,10 @@
 from django.contrib.auth import login, logout, authenticate
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions , generics
-from .serializers import UserSerializer, UserRegistrationSerializer , UserListSerializer
-from .models import User
+from rest_framework import status, permissions , generics, viewsets
+from .serializers import UserSerializer, UserRegistrationSerializer , UserListSerializer ,TeamSerializer
+from .models import User,Team
+from api.permissions import IsAdminOrReadOnly
 
 
 class RegistrationView(APIView):
@@ -66,3 +67,13 @@ class UserListView(generics.ListAPIView):
     queryset = User.objects.filter(is_active=True).order_by("username")
     serializer_class = UserListSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+class TeamViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing teams. (Typically for admins)
+    """
+
+    queryset = Team.objects.all().order_by("name")
+    serializer_class = TeamSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
