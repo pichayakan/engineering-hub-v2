@@ -77,10 +77,13 @@ class MemberWorkloadSerializer(serializers.ModelSerializer):
     Serializer for showing individual member's task stats.
     """
 
+    # ใช้ source เพื่อบอกให้ serializer ดึงข้อมูลจาก attribute ที่เราตั้งชื่อใหม่
     total_tasks = serializers.IntegerField()
     todo_tasks = serializers.IntegerField()
     inprogress_tasks = serializers.IntegerField()
     done_tasks = serializers.IntegerField()
+    accepted_tasks = serializers.IntegerField(source="accepted_tasks_count")
+    pending_tasks = serializers.IntegerField(source="pending_tasks_count")
 
     class Meta:
         model = User
@@ -93,6 +96,8 @@ class MemberWorkloadSerializer(serializers.ModelSerializer):
             "todo_tasks",
             "inprogress_tasks",
             "done_tasks",
+            "pending_tasks",
+            "accepted_tasks",
         ]
 
 

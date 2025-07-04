@@ -35,6 +35,8 @@ function WorkloadDashboardPage() {
                 <tr>
                   <th>Member</th>
                   <th style={{ textAlign: 'center' }}>Total Tasks</th>
+                  <th style={{ textAlign: 'center' }}>Pending Accept</th>
+                  <th style={{ textAlign: 'center' }}>Accepted</th>
                   <th style={{ textAlign: 'center' }}>To Do</th>
                   <th style={{ textAlign: 'center' }}>In Progress</th>
                   <th style={{ textAlign: 'center' }}>Done</th>
@@ -48,6 +50,12 @@ function WorkloadDashboardPage() {
                     </td>
                     <td className='stat-cell stat-total'>
                       {member.total_tasks}
+                    </td>
+                    <td className='stat-cell stat-pending'>
+                      {member.pending_tasks}
+                    </td>
+                    <td className='stat-cell stat-accepted'>
+                      {member.accepted_tasks}
                     </td>
                     <td className='stat-cell stat-todo'>{member.todo_tasks}</td>
                     <td className='stat-cell stat-inprogress'>

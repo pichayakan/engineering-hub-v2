@@ -54,3 +54,6 @@
 .stat-todo { color: #5a9eee; }
 .stat-inprogress { color: #f0ad4e; }
 .stat-done { color: #5cb85c; }
+
+.stat-pending { color: #d9534f; }
+.stat-accepted { color: #5cb85c; }

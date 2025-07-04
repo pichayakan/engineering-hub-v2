@@ -159,6 +159,29 @@ function ProjectDetail() {
     )
   }
 
+  const handleAcceptTask = async (taskId, projectId) => {
+    try {
+      await apiClient.post(`/api/projects/${projectId}/tasks/${taskId}/accept/`)
+      // โหลดข้อมูลใหม่ทั้งหมดเพื่อให้เห็นการเปลี่ยนแปลง
+      fetchProjectData()
+    } catch (error) {
+      console.error('Failed to accept task', error)
+      alert(error.response?.data?.error || 'Could not accept the task.')
+    }
+  }
+
+  const handleUnacceptTask = async (taskId, projectId) => {
+    try {
+      await apiClient.post(
+        `/api/projects/${projectId}/tasks/${taskId}/unaccept/`
+      )
+      fetchProjectData()
+    } catch (error) {
+      console.error('Failed to un-accept task', error)
+      alert(error.response?.data?.error || 'Could not un-accept the task.')
+    }
+  }
+
   if (loading) return <div>Loading project details...</div>
   if (!project) return <div>Project not found.</div>
 
@@ -217,7 +240,9 @@ function ProjectDetail() {
             onEdit={isOwner ? (task) => setEditingTask(task) : null} // แสดงปุ่ม Edit เฉพาะเจ้าของ
             onDelete={isOwner ? handleTaskDeleted : null}
             onStatusChange={handleTaskStatusChange}
-            onView={(task) => setViewingTask(task)} // 3. ส่งฟังก์ชันเปิด Modal
+            onView={(task) => setViewingTask(task)}
+            onAcceptTask={handleAcceptTask}
+            onUnacceptTask={handleUnacceptTask}
           />
         </div>
         <div className='project-sidebar'>

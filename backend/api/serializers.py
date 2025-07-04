@@ -1,7 +1,7 @@
 # backend/api/serializers.py
 from rest_framework import serializers
 from .models import Project, Task, Comment, ProjectAttachment, TaskAttachment, Activity ,SharedFile
-from accounts.models import User
+from accounts.models import User, Team
 from accounts.serializers import UserListSerializer ,TeamSerializer
 
 
@@ -75,10 +75,13 @@ class TaskSerializer(serializers.ModelSerializer):
             "prerequisites_details",
             "assigned_teams",
             "assigned_teams_details",
+            "accepted_by",
         ]
         extra_kwargs = {
             "assignees": {"write_only": True, "required": False},
             "assigned_teams": {"write_only": True, "required": False},
+            # เราจะให้ accepted_by เป็น read-only เพราะจะจัดการผ่าน API แยก
+            "accepted_by": {"read_only": True},
         }
         read_only_fields = ["project"]
 
@@ -129,3 +132,42 @@ class SharedFileSerializer(serializers.ModelSerializer):
             "uploaded_by_details",
         ]
         read_only_fields = ["filename", "uploaded_at", "uploaded_by_details"]
+
+class TeamNameSerializer(serializers.ModelSerializer):
+    """A simple serializer to show only the team name and id"""
+
+    class Meta:
+        model = Team
+        fields = ["id", "name"]
+
+        
+class TaskForAssignerSerializer(serializers.ModelSerializer):
+    project_name = serializers.CharField(source="project.name", read_only=True)
+    assignees_details = UserListSerializer(
+        source="assignees", many=True, read_only=True
+    )
+    assigned_teams_details = TeamNameSerializer(
+        source="assigned_teams", many=True, read_only=True
+    )
+
+    # --- เพิ่ม class Meta ที่หายไปกลับเข้ามา ---
+    class Meta:
+        model = Task
+        fields = [
+            "id",
+            "title",
+            "project_name",
+            "assignees_details",
+            "assigned_teams_details",
+            "status",
+            "created_at",
+        ]
+
+
+class AssignerPerformanceSerializer(serializers.ModelSerializer):
+    created_tasks_details = TaskForAssignerSerializer(source="created_tasks", many=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "first_name", "last_name", "created_tasks_details"]
+        

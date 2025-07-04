@@ -2,24 +2,27 @@ from django.db.models import Count, Q
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import SearchFilter
-from django.http import JsonResponse , FileResponse
+from django.http import JsonResponse, FileResponse
 from rest_framework import viewsets, permissions, generics, status
-from .models import Project, Task, Comment, ProjectAttachment, TaskAttachment , Activity
+from .models import Project, Task, Comment, ProjectAttachment, TaskAttachment, Activity
 from .serializers import (
     ProjectSerializer,
     TaskSerializer,
     CommentSerializer,
     ProjectAttachmentSerializer,
     TaskAttachmentSerializer,
-    ActivitySerializer,SharedFileSerializer
+    ActivitySerializer,
+    SharedFileSerializer,AssignerPerformanceSerializer
 )
 from rest_framework.views import APIView  # <-- เพิ่มการ import APIView
-from rest_framework.response import Response  # <-- เพิ่มการ import Response
+from rest_framework.response import Response
+from rest_framework.decorators import action  # <-- เพิ่มการ import Response
 from .permissions import IsOwnerOrReadOnly
-from .models import Project, Task ,SharedFile
+from .models import Project, Task, SharedFile
 from accounts.models import User
 from accounts.serializers import TeamWorkloadSerializer
 from accounts.models import Team
+
 
 class DashboardStatsView(APIView):
     """
@@ -48,7 +51,7 @@ class DashboardStatsView(APIView):
             .order_by("priority")
         )
         priority_data = {item["priority"]: item["count"] for item in tasks_by_priority}
-        
+
         # 1. นับจำนวน Task ที่เสร็จแล้วโดยเฉพาะ
         completed_tasks_count = Task.objects.filter(status="Done").count()
 
@@ -145,12 +148,58 @@ class TaskViewSet(viewsets.ModelViewSet):
             )
         return self.queryset.none()
 
+    @action(detail=True, methods=["post"], url_path="accept")
+    def accept_task(self, request, pk=None, project_pk=None):
+        task = self.get_object()
+        user = request.user
+
+        # ตรวจสอบว่าผู้ใช้คนนี้เป็นหนึ่งใน assignees หรืออยู่ในทีมที่ได้รับมอบหมายหรือไม่
+        is_direct_assignee = task.assignees.filter(pk=user.pk).exists()
+        is_team_assignee = task.assigned_teams.filter(members=user).exists()
+
+        if not is_direct_assignee and not is_team_assignee:
+            return Response(
+                {"error": "You are not assigned to this task."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # เพิ่มผู้ใช้เข้าไปใน list ของคนที่กดยืนยันแล้ว
+        task.accepted_by.add(user)
+        task.save()
+
+        return Response({"status": "task accepted"}, status=status.HTTP_200_OK)
+
+    # --- เพิ่ม Action ใหม่สำหรับยกเลิกการรับงาน ---
+    @action(detail=True, methods=["post"], url_path="unaccept")
+    def unaccept_task(self, request, pk=None, project_pk=None):
+        task = self.get_object()
+        user = request.user
+
+        # ตรวจสอบว่าผู้ใช้เคยกดรับงานนี้ไปแล้วหรือไม่
+        if not task.accepted_by.filter(pk=user.pk).exists():
+            return Response(
+                {"error": "You have not accepted this task."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # นำผู้ใช้ออกจาก list ของคนที่กดยืนยันแล้ว
+        task.accepted_by.remove(user)
+
+        # (Optional) อาจจะตั้งสถานะกลับเป็น To Do ถ้าไม่มีใครรับงานแล้ว
+        if task.accepted_by.count() == 0:
+            task.status = "To Do"
+            task.save()
+
+        return Response(
+            {"status": "task acceptance revoked"}, status=status.HTTP_200_OK
+        )
+
     # เราไม่จำเป็นต้องกำหนด assignee เองอีกต่อไป
     # DRF จะจัดการการบันทึก ManyToManyField ให้จากข้อมูลที่ส่งมาใน request body
     def perform_create(self, serializer):
         project = Project.objects.get(pk=self.kwargs["project_pk"])
-        serializer.save(project=project)
-    
+        serializer.save(project=project, created_by=self.request.user)
+
     # --- Override perform_update เพื่อแนบ user ไปกับ instance ---
     def perform_update(self, serializer):
         # ก่อนที่จะ save, เราจะแนบ user ที่กำลัง login อยู่เข้าไปใน instance
@@ -162,6 +211,25 @@ class TaskViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         task = self.get_object()
         new_status = request.data.get("status")
+        user = request.user
+
+        # --- เพิ่มกฎใหม่ ---
+        # 1. ตรวจสอบว่ามีการเปลี่ยนสถานะหรือไม่
+        if new_status and new_status != task.status:
+            # 2. ตรวจสอบว่าผู้ใช้เป็นหนึ่งในผู้รับผิดชอบงานหรือไม่
+            is_assignee = (
+                task.assignees.filter(pk=user.pk).exists()
+                or task.assigned_teams.filter(members=user).exists()
+            )
+            if is_assignee:
+                # 3. ถ้าเป็นผู้รับผิดชอบ, ตรวจสอบว่ากดยืนยันรับงานแล้วหรือยัง
+                if not task.accepted_by.filter(pk=user.pk).exists():
+                    return Response(
+                        {
+                            "error": "You must accept the task before changing its status."
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
 
         # ตรวจสอบเมื่อมีการเปลี่ยนสถานะเป็น "In Progress" หรือ "Done"
         if new_status in ["In Progress", "Done"] and task.status != new_status:
@@ -190,12 +258,14 @@ class MyAssignedTasksView(generics.ListAPIView):
     def get_queryset(self):
         # 2. เพิ่ม .annotate() เพื่อนับจำนวน comments
         user = self.request.user
-        return Task.objects.filter(
-            Q(assignees=user) | Q(assigned_teams__members=user)
-        ).distinct().annotate(
-            comment_count=Count('comments'),
-            attachment_count=Count('attachments')
-        ).order_by('due_date')
+        return (
+            Task.objects.filter(Q(assignees=user) | Q(assigned_teams__members=user))
+            .distinct()
+            .annotate(
+                comment_count=Count("comments"), attachment_count=Count("attachments")
+            )
+            .order_by("due_date")
+        )
 
 
 class UnseenTaskCountView(APIView):
@@ -248,7 +318,8 @@ class TaskAttachmentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         task = Task.objects.get(pk=self.kwargs["task_pk"])
         serializer.save(uploaded_by=self.request.user, task=task)
-        
+
+
 class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
     """
     A read-only viewset for listing activities for a given task.
@@ -260,7 +331,8 @@ class ActivityViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return self.queryset.filter(task_id=self.kwargs["task_pk"])
-    
+
+
 class FileUploadView(generics.CreateAPIView):
     queryset = SharedFile.objects.all()
     serializer_class = SharedFileSerializer
@@ -286,29 +358,55 @@ class FileDownloadView(generics.RetrieveAPIView):
         return FileResponse(
             instance.file.open("rb"), as_attachment=True, filename=instance.filename
         )
-        
+
+
 class SharedFileHistoryView(generics.ListAPIView):
     queryset = SharedFile.objects.all().order_by("-uploaded_at")
     serializer_class = SharedFileSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
+
 class MemberWorkloadView(APIView):
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request, format=None):
-        # ดึงทุกทีม พร้อมกับ prefetch สมาชิกและ task ของสมาชิกเหล่านั้น
         teams_with_members = Team.objects.prefetch_related(
-            "members__assigned_tasks"
+            "members__assigned_tasks", "members__accepted_tasks"
         ).all()
-
-        # คำนวณสถิติสำหรับสมาชิกแต่ละคน
         for team in teams_with_members:
             for member in team.members.all():
                 tasks = member.assigned_tasks.all()
+                accepted_count = member.accepted_tasks.filter(id__in=tasks).count()
                 member.total_tasks = tasks.count()
                 member.todo_tasks = tasks.filter(status="To Do").count()
                 member.inprogress_tasks = tasks.filter(status="In Progress").count()
                 member.done_tasks = tasks.filter(status="Done").count()
-
+                member.accepted_tasks_count = accepted_count
+                member.pending_tasks_count = member.total_tasks - accepted_count
         serializer = TeamWorkloadSerializer(teams_with_members, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AssignerPerformanceView(generics.ListAPIView):
+    """
+    API endpoint to list performance data for all staff members.
+    """
+
+    serializer_class = AssignerPerformanceSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        # เปลี่ยนจากการ filter ด้วย is_staff=True
+        # มาเป็น filter หา User ทุกคนที่อยู่ในกลุ่ม "Assigners"
+        return (
+            User.objects.filter(groups__name="Assigners")
+            .prefetch_related(
+                "created_tasks__project",
+                "created_tasks__assignees",
+                "created_tasks__assigned_teams",
+            )
+            .order_by("first_name")
+        )
+
+    serializer_class = AssignerPerformanceSerializer
+    permission_classes = [permissions.IsAdminUser]

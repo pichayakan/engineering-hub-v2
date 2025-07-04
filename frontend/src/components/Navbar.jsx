@@ -26,6 +26,11 @@ function Navbar() {
                 Workload
               </NavLink>
             )}
+            {user.is_staff && (
+              <NavLink to='/performance' className='nav-link'>
+                Performance
+              </NavLink>
+            )}
             <NavLink to='/' className='nav-link' end>
               All Projects
             </NavLink>

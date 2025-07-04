@@ -16,6 +16,7 @@ import AdminRoute from './utils/AdminRoute.jsx' // 1. Import ยามคนใ�
 import TeamManagementPage from './pages/TeamManagementPage.jsx'
 import TeamDetailPage from './pages/TeamDetailPage.jsx'
 import WorkloadDashboardPage from './pages/WorkloadDashboardPage.jsx'
+import AssignerPerformancePage from './pages/AssignerPerformancePage.jsx'
 import './App.css'
 
 function App() {
@@ -43,6 +44,10 @@ function App() {
             <Route path='/admin/teams/:teamId' element={<TeamDetailPage />} />
             <Route element={<AdminRoute />}>
               {/* e.g. <Route path="/admin/settings" element={<SettingsPage />} /> */}
+              <Route
+                path='/performance'
+                element={<AssignerPerformancePage />}
+              />
             </Route>
             <Route path='/workload' element={<WorkloadDashboardPage />} />
           </Route>

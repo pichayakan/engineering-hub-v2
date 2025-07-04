@@ -10,51 +10,77 @@ function MyTasksPage() {
   const [loading, setLoading] = useState(true)
   const { setUnseenTaskCount } = useAuth()
 
+  const fetchMyTasks = async () => {
+    setLoading(true)
+    try {
+      const response = await apiClient.get('/api/my-tasks/')
+      setTasks(response.data)
+    } catch (error) {
+      console.error('Failed to fetch assigned tasks', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    const initPage = async () => {
-      setLoading(true)
+    const markTasksAsSeen = async () => {
       try {
-        // 1. บอก Backend ว่าเราเห็น Task แล้ว และเคลียร์ค่าใน Context ทันที
         await apiClient.post('/api/notifications/mark-as-seen/')
         setUnseenTaskCount(0)
-
-        // 2. ดึงข้อมูล Task ทั้งหมดที่เป็นของเรา
-        const response = await apiClient.get('/api/my-tasks/')
-        setTasks(response.data)
       } catch (error) {
-        console.error('Failed to initialize My Tasks page', error)
-      } finally {
-        setLoading(false)
+        console.error('Failed to mark tasks as seen', error)
       }
     }
 
-    initPage()
-  }, [setUnseenTaskCount]) // Dependency array ทำให้ useEffect ทำงานแค่ครั้งเดียว
+    fetchMyTasks()
+    markTasksAsSeen()
+  }, [setUnseenTaskCount])
 
   const handleTaskStatusChange = async (taskId, newStatus, projectId) => {
     if (!projectId) {
       alert('Cannot update task: Project ID is missing.')
       return
     }
-
     const originalTasks = [...tasks]
-
-    // อัปเดต UI ทันที (Optimistic Update)
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
         task.id === taskId ? { ...task, status: newStatus } : task
       )
     )
-
     try {
       await apiClient.patch(`/api/projects/${projectId}/tasks/${taskId}/`, {
         status: newStatus,
       })
     } catch (error) {
       console.error('Failed to update task status', error)
-      alert('Could not update the task status. Reverting.')
-      // ย้อนกลับถ้า API call ล้มเหลว
+      alert(
+        error.response?.data?.error ||
+          'Could not update the task status. Reverting.'
+      )
       setTasks(originalTasks)
+    }
+  }
+
+  const handleAcceptTask = async (taskId, projectId) => {
+    try {
+      await apiClient.post(`/api/projects/${projectId}/tasks/${taskId}/accept/`)
+      fetchMyTasks()
+    } catch (error) {
+      console.error('Failed to accept task', error)
+      alert(error.response?.data?.error || 'Could not accept the task.')
+    }
+  }
+
+  // --- เพิ่มฟังก์ชันสำหรับยกเลิกการรับงาน ---
+  const handleUnacceptTask = async (taskId, projectId) => {
+    try {
+      await apiClient.post(
+        `/api/projects/${projectId}/tasks/${taskId}/unaccept/`
+      )
+      fetchMyTasks()
+    } catch (error) {
+      console.error('Failed to un-accept task', error)
+      alert(error.response?.data?.error || 'Could not un-accept the task.')
     }
   }
 
@@ -75,36 +101,22 @@ function MyTasksPage() {
         <p>Here are all the tasks currently assigned to you.</p>
       </div>
       <div className='task-board'>
-        <div className='status-column'>
-          <h2>To Do ({tasksByStatus['To Do'].length})</h2>
-          <div className='task-column-list'>
-            <TaskList
-              tasks={tasksByStatus['To Do']}
-              onStatusChange={handleTaskStatusChange}
-              showProjectLink={true}
-            />
+        {Object.entries(tasksByStatus).map(([status, tasksInColumn]) => (
+          <div key={status} className='status-column'>
+            <h2>
+              {status} ({tasksInColumn.length})
+            </h2>
+            <div className='task-column-list'>
+              <TaskList
+                tasks={tasksInColumn}
+                onStatusChange={handleTaskStatusChange}
+                onAcceptTask={handleAcceptTask}
+                onUnacceptTask={handleUnacceptTask} // <-- ส่งฟังก์ชันไปให้ TaskList
+                showProjectLink={true}
+              />
+            </div>
           </div>
-        </div>
-        <div className='status-column'>
-          <h2>In Progress ({tasksByStatus['In Progress'].length})</h2>
-          <div className='task-column-list'>
-            <TaskList
-              tasks={tasksByStatus['In Progress']}
-              onStatusChange={handleTaskStatusChange}
-              showProjectLink={true}
-            />
-          </div>
-        </div>
-        <div className='status-column'>
-          <h2>Done ({tasksByStatus['Done'].length})</h2>
-          <div className='task-column-list'>
-            <TaskList
-              tasks={tasksByStatus['Done']}
-              onStatusChange={handleTaskStatusChange}
-              showProjectLink={true}
-            />
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   )

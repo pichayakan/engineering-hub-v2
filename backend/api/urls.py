@@ -1,36 +1,32 @@
 # backend/api/urls.py
 from django.urls import path, include
-
-# --- เปลี่ยนมาใช้ Nested Routers ---
 from rest_framework_nested import routers
 from .views import (
     ProjectViewSet,
     TaskViewSet,
+    CommentViewSet,
+    ProjectAttachmentViewSet,
+    TaskAttachmentViewSet,
+    ActivityViewSet,
     get_csrf_token,
     MyAssignedTasksView,
     UnseenTaskCountView,
     MarkTasksAsSeenView,
-    CommentViewSet,
-    ProjectAttachmentViewSet,  # 1. Import
-    TaskAttachmentViewSet,  # 1. Import
-    ActivityViewSet,
-    DashboardStatsView,
-    FileDownloadView,
     FileUploadView,
-    SharedFileHistoryView,MemberWorkloadView
+    SharedFileHistoryView,
+    DashboardStatsView,  # 1. Import Dashboard views
+    MemberWorkloadView,
+    AssignerPerformanceView,
 )
 
-# สร้าง router หลักสำหรับ Project
 router = routers.SimpleRouter()
 router.register(r"projects", ProjectViewSet, basename="project")
 
-# สร้าง router ที่ซ้อนอยู่ภายใต้ Project สำหรับ Task
 projects_router = routers.NestedSimpleRouter(router, r"projects", lookup="project")
 projects_router.register(r"tasks", TaskViewSet, basename="project-tasks")
 projects_router.register(
     r"attachments", ProjectAttachmentViewSet, basename="project-attachments"
 )
-
 
 tasks_router = routers.NestedSimpleRouter(projects_router, r"tasks", lookup="task")
 tasks_router.register(r"comments", CommentViewSet, basename="task-comments")
@@ -40,8 +36,18 @@ tasks_router.register(
 tasks_router.register(r"activities", ActivityViewSet, basename="task-activities")
 
 urlpatterns = [
-    path("csrf-cookie/", get_csrf_token, name="csrf-cookie"),
+    # --- Dashboard & User-specific URLs ---
     path("my-tasks/", MyAssignedTasksView.as_view(), name="my-tasks"),
+    path("dashboard-stats/", DashboardStatsView.as_view(), name="dashboard-stats"),
+    path(
+        "workload-dashboard/", MemberWorkloadView.as_view(), name="workload-dashboard"
+    ),
+    path(
+        "assigner-performance/",
+        AssignerPerformanceView.as_view(),
+        name="assigner-performance",
+    ),
+    # --- Notification URLs ---
     path(
         "notifications/unseen-count/",
         UnseenTaskCountView.as_view(),
@@ -52,13 +58,12 @@ urlpatterns = [
         MarkTasksAsSeenView.as_view(),
         name="mark-tasks-as-seen",
     ),
-    path("dashboard-stats/", DashboardStatsView.as_view(), name="dashboard-stats"),
+    # --- File Sharer URLs ---
+    path("share/upload/", FileUploadView.as_view(), name="file-upload"),
+    path("share/history/", SharedFileHistoryView.as_view(), name="file-history"),
+    # --- CSRF & Nested Router URLs ---
+    path("csrf-cookie/", get_csrf_token, name="csrf-cookie"),
     path("", include(router.urls)),
     path("", include(projects_router.urls)),
     path("", include(tasks_router.urls)),
-    path("share/upload/", FileUploadView.as_view(), name="file-upload"),
-    path("share/history/", SharedFileHistoryView.as_view(), name="file-history"),
-    path(
-        "workload-dashboard/", MemberWorkloadView.as_view(), name="workload-dashboard"
-    ),
 ]

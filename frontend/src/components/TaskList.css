@@ -71,6 +71,67 @@
     align-items: center; /* --- เพิ่มบรรทัดนี้ --- */
 }
 
+.task-meta strong {
+    color: #c7c7c7;
+}
+
+.assignee-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.assignee-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.accepted-badge {
+    color: #5cb85c;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+.accept-task-button {
+    background-color: #5a9eee;
+    color: white;
+    border: none;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.accept-task-button:hover {
+    background-color: #3b7fde;
+}
+
+.unaccept-task-button {
+    background-color: #777;
+    color: #ddd;
+    border: none;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.unaccept-task-button:hover {
+    background-color: #555;
+}
+
+.status-select:disabled {
+    background-color: #2b2b2b;
+    color: #777;
+    cursor: not-allowed;
+    border-color: #4a4a4a;
+}
+
 .task-comment-count, .task-attachment-count { /* เพิ่ม .task-attachment-count */
     display: flex;
     align-items: center;
