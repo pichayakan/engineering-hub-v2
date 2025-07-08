@@ -1,5 +1,6 @@
 // frontend/src/pages/ProjectDetail.jsx
 import React, { useState, useEffect, useCallback } from 'react'
+// --- ส่วนที่แก้ไข: เพิ่ม Link เข้าไปใน import ---
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import apiClient from '../api'
 import { useAuth } from '../context/AuthContext'
@@ -8,74 +9,83 @@ import AddTask from '../components/AddTask.jsx'
 import EditTaskModal from '../components/EditTaskModal.jsx'
 import EditProjectModal from '../components/EditProjectModal.jsx'
 import TaskDetailModal from '../components/TaskDetailModal.jsx'
-import './ProjectDetail.css'
 import AttachmentSection from '../components/AttachmentSection.jsx'
+import './ProjectDetail.css'
 
 function ProjectDetail() {
   const [project, setProject] = useState(null)
   const [tasks, setTasks] = useState([])
   const [users, setUsers] = useState([])
+  const [allDepartments, setAllDepartments] = useState([])
+  const [projectAttachments, setProjectAttachments] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingTask, setEditingTask] = useState(null)
-  const [editingProject, setEditingProject] = useState(null)
   const [viewingTask, setViewingTask] = useState(null)
+  const [editingProject, setEditingProject] = useState(null)
   const [isAddingTask, setIsAddingTask] = useState(false)
-  const [attachments, setAttachments] = useState([]) // 2. state ใหม่สำหรับไฟล์แนบ
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { projectId } = useParams()
-  const navigate = useNavigate() // 5. Hook สำหรับ redirect
-  const { user } = useAuth() // 6. ดึงข้อมูล user ที่ login อยู่
+  const { user } = useAuth()
+  const navigate = useNavigate()
 
   const fetchProjectData = useCallback(async () => {
-    setLoading(true)
+    // setLoading(true) is now in useEffect to only run on initial load
     try {
-      // ดึงข้อมูล 4 ส่วนพร้อมกัน
-      const [projectRes, tasksRes, usersRes, attachmentsRes] =
+      const [projectRes, tasksRes, usersRes, deptsRes, attachmentsRes] =
         await Promise.all([
           apiClient.get(`/api/projects/${projectId}/`),
           apiClient.get(`/api/projects/${projectId}/tasks/`),
           apiClient.get('/api/auth/users/'),
-          apiClient.get(`/api/projects/${projectId}/attachments/`), // 3. เรียก API ดึงไฟล์แนบ
+          apiClient.get('/api/auth/departments/'),
+          apiClient.get(`/api/projects/${projectId}/attachments/`),
         ])
       setProject(projectRes.data)
       setTasks(tasksRes.data)
       setUsers(usersRes.data)
-      setAttachments(attachmentsRes.data) // 4. เก็บข้อมูลไฟล์แนบ
+      setAllDepartments(deptsRes.data)
+      setProjectAttachments(attachmentsRes.data)
     } catch (error) {
       console.error('Failed to fetch page data', error)
+      navigate('/') // กลับไปหน้าแรกถ้าหาโปรเจกต์ไม่เจอ
     } finally {
       setLoading(false)
     }
-  }, [projectId])
+  }, [projectId, navigate])
 
   useEffect(() => {
+    setLoading(true)
     fetchProjectData()
   }, [fetchProjectData])
 
+  // --- เติมโค้ดในฟังก์ชันต่างๆ ให้สมบูรณ์ ---
   const handleTaskAdded = async (newTaskData) => {
-    setIsAddingTask(true) // 2. ตั้งสถานะเป็น "กำลังเพิ่ม" เพื่อล็อคปุ่ม
+    setIsAddingTask(true)
     try {
       await apiClient.post(`/api/projects/${projectId}/tasks/`, newTaskData)
-      fetchProjectData() // ดึงข้อมูลทั้งหมดใหม่เพื่อให้เห็น Task ล่าสุด
+      fetchProjectData()
     } catch (error) {
       console.error('Failed to add task', error)
       alert('Could not add the task.')
     } finally {
-      setIsAddingTask(false) // 3. คืนสถานะเดิมเมื่อเสร็จสิ้น ไม่ว่าจะสำเร็จหรือล้มเหลว
+      setIsAddingTask(false)
     }
   }
 
   const handleTaskUpdated = async (taskId, updatedData) => {
+    setIsSubmitting(true) // ตั้งสถานะ
     try {
       await apiClient.patch(
         `/api/projects/${projectId}/tasks/${taskId}/`,
         updatedData
       )
-      setEditingTask(null) // ปิด Modal
-      fetchProjectData() // โหลดข้อมูลใหม่
+      setEditingTask(null)
+      fetchProjectData()
     } catch (error) {
       console.error('Failed to update task', error)
       alert('Could not update the task.')
+    } finally {
+      setIsSubmitting(false) // คืนสถานะ
     }
   }
 
@@ -83,7 +93,7 @@ function ProjectDetail() {
     if (window.confirm('Are you sure you want to delete this task?')) {
       try {
         await apiClient.delete(`/api/projects/${projectId}/tasks/${taskId}/`)
-        fetchProjectData() // โหลดข้อมูลใหม่
+        fetchProjectData()
       } catch (error) {
         console.error('Failed to delete task', error)
         alert('Could not delete the task.')
@@ -92,23 +102,16 @@ function ProjectDetail() {
   }
 
   const handleTaskStatusChange = async (taskId, newStatus) => {
-    // เก็บสถานะของ tasks เดิมไว้ก่อน เผื่อการอัปเดตล้มเหลว
     const originalTasks = [...tasks]
-
-    // อัปเดต UI ทันทีเพื่อให้ผู้ใช้เห็นการเปลี่ยนแปลง (Optimistic Update)
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
         task.id === taskId ? { ...task, status: newStatus } : task
       )
     )
-
     try {
-      // ส่ง request ไปอัปเดตที่ backend
       await apiClient.patch(`/api/projects/${projectId}/tasks/${taskId}/`, {
         status: newStatus,
       })
-      // ถ้าสำเร็จ ก็ไม่ต้องทำอะไร เพราะ UI อัปเดตไปแล้ว
-      fetchProjectData() // โหลดข้อมูลใหม่ทั้งหมดเพื่อให้เห็นการเปลี่ยนแปลง
     } catch (error) {
       console.error('Failed to update task status', error)
       const errorMessage =
@@ -119,7 +122,6 @@ function ProjectDetail() {
     }
   }
 
-  // --- 7. เพิ่มฟังก์ชันสำหรับจัดการ Project ---
   const handleProjectUpdate = async (id, updatedData) => {
     try {
       await apiClient.patch(`/api/projects/${id}/`, updatedData)
@@ -140,7 +142,7 @@ function ProjectDetail() {
       try {
         await apiClient.delete(`/api/projects/${id}/`)
         alert('Project deleted successfully.')
-        navigate('/') // กลับไปหน้าแรกหลังลบสำเร็จ
+        navigate('/')
       } catch (error) {
         console.error('Failed to delete project', error)
         alert('Could not delete project.')
@@ -148,21 +150,9 @@ function ProjectDetail() {
     }
   }
 
-  const handleCommentAdded = (taskId) => {
-    // อัปเดต state ของ tasks โดยตรง
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId
-          ? { ...task, comment_count: task.comment_count + 1 }
-          : task
-      )
-    )
-  }
-
-  const handleAcceptTask = async (taskId, projectId) => {
+  const handleAcceptTask = async (taskId, projId) => {
     try {
-      await apiClient.post(`/api/projects/${projectId}/tasks/${taskId}/accept/`)
-      // โหลดข้อมูลใหม่ทั้งหมดเพื่อให้เห็นการเปลี่ยนแปลง
+      await apiClient.post(`/api/projects/${projId}/tasks/${taskId}/accept/`)
       fetchProjectData()
     } catch (error) {
       console.error('Failed to accept task', error)
@@ -170,11 +160,9 @@ function ProjectDetail() {
     }
   }
 
-  const handleUnacceptTask = async (taskId, projectId) => {
+  const handleUnacceptTask = async (taskId, projId) => {
     try {
-      await apiClient.post(
-        `/api/projects/${projectId}/tasks/${taskId}/unaccept/`
-      )
+      await apiClient.post(`/api/projects/${projId}/tasks/${taskId}/unaccept/`)
       fetchProjectData()
     } catch (error) {
       console.error('Failed to un-accept task', error)
@@ -185,7 +173,6 @@ function ProjectDetail() {
   if (loading) return <div>Loading project details...</div>
   if (!project) return <div>Project not found.</div>
 
-  // 8. ตรวจสอบว่าเป็นเจ้าของโปรเจกต์หรือไม่
   const isOwner = user && user.id === project.owner
 
   return (
@@ -195,26 +182,30 @@ function ProjectDetail() {
           <div className='project-info-card'>
             <div className='project-header'>
               <h1>{project.name}</h1>
-              <Link to={`/projects/${projectId}/kanban`} className='nav-link'>
-                View as Board
-              </Link>
-              {/* 9. แสดงปุ่ม Edit/Delete เฉพาะเจ้าของ */}
-              {isOwner && (
-                <div className='project-actions'>
-                  <button
-                    className='action-button edit'
-                    onClick={() => setEditingProject(project)}
-                  >
-                    Edit Project
-                  </button>
-                  <button
-                    className='action-button delete'
-                    onClick={() => handleProjectDelete(project.id)}
-                  >
-                    Delete Project
-                  </button>
-                </div>
-              )}
+              <div className='project-header-actions'>
+                <Link
+                  to={`/projects/${projectId}/kanban`}
+                  className='action-button view-board'
+                >
+                  View as Board
+                </Link>
+                {isOwner && (
+                  <div className='project-actions'>
+                    <button
+                      className='action-button edit'
+                      onClick={() => setEditingProject(project)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className='action-button delete'
+                      onClick={() => handleProjectDelete(project.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className='project-meta-info'>
                 <span>
                   <strong>Owner:</strong> {project.owner_username}
@@ -233,11 +224,12 @@ function ProjectDetail() {
           <AttachmentSection
             entityType='project'
             entityId={projectId}
-            initialAttachments={attachments}
+            initialAttachments={projectAttachments}
+            onUploadSuccess={fetchProjectData}
           />
           <TaskList
             tasks={tasks}
-            onEdit={isOwner ? (task) => setEditingTask(task) : null} // แสดงปุ่ม Edit เฉพาะเจ้าของ
+            onEdit={isOwner ? (task) => setEditingTask(task) : null}
             onDelete={isOwner ? handleTaskDeleted : null}
             onStatusChange={handleTaskStatusChange}
             onView={(task) => setViewingTask(task)}
@@ -260,24 +252,23 @@ function ProjectDetail() {
         users={users}
         onSave={handleTaskUpdated}
         onClose={() => setEditingTask(null)}
+        availableTasks={tasks}
+        allDepartments={allDepartments}
+        isSaving={isSubmitting} // <-- ส่ง prop นี้ไปให้ Modal
       />
       <EditProjectModal
         project={editingProject}
         onSave={handleProjectUpdate}
         onClose={() => setEditingProject(null)}
-        // 2. ส่งรายการ tasks ทั้งหมดไปให้ EditTaskModal
-        availableTasks={tasks}
       />
       <TaskDetailModal
         task={viewingTask}
         project={project}
         onClose={() => setViewingTask(null)}
-        // 2. ส่งฟังก์ชันใหม่ไปให้ Modal
-        onCommentAdded={() => handleCommentAdded(viewingTask.id)}
+        onCommentAdded={fetchProjectData}
       />
     </>
   )
 }
 
 export default ProjectDetail
-

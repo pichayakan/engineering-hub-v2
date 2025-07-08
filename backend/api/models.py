@@ -3,7 +3,7 @@ from django.db import models
 # from django.contrib.auth.models import User
 from django.conf import settings
 import uuid
-from accounts.models import Team
+from accounts.models import Department
 
 
 class Project(models.Model):
@@ -52,8 +52,12 @@ class Task(models.Model):
         related_name="assigned_tasks",
         blank=True,  # อนุญาตให้มี Task ที่ยังไม่มีคนรับผิดชอบได้
     )
-    assigned_teams = models.ManyToManyField(
-        Team, related_name="assigned_tasks", blank=True
+    assigned_department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tasks",
     )
 
     accepted_by = models.ManyToManyField(

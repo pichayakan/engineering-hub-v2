@@ -1,29 +1,50 @@
 // frontend/src/components/AddTask.jsx
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Select from 'react-select'
+import apiClient from '../api'
 import './AddProject.css'
 import './MultiSelect.css'
 
-function AddTask({ onTaskAdded, users, isSubmitting, availableTasks }) {
+function AddTask({
+  onTaskAdded,
+  users,
+  isSubmitting,
+  availableTasks,
+  project,
+}) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [selectedAssignees, setSelectedAssignees] = useState([])
+  const [selectedDepartment, setSelectedDepartment] = useState(null)
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState('Medium')
-  const [selectedPrerequisites, setSelectedPrerequisites] = useState([])
+  const [prerequisites, setPrerequisites] = useState([]) // State สำหรับเก็บ Prerequisites
+  const [departments, setDepartments] = useState([])
 
-  // --- ส่วนที่แก้ไข: สร้าง label ให้แสดงชื่อเต็ม ---
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await apiClient.get('/api/auth/departments/')
+        setDepartments(response.data)
+      } catch (error) {
+        console.error('Failed to fetch departments', error)
+      }
+    }
+    fetchDepartments()
+  }, [])
+
   const userOptions = users.map((user) => ({
     value: user.id,
     label: `${user.first_name} ${user.last_name} (${user.username})`,
   }))
-
-  // 3. สร้าง options สำหรับ prerequisites
+  const departmentOptions = departments.map((dept) => ({
+    value: dept.id,
+    label: `${dept.name} (${dept.member_count} members)`,
+  }))
   const taskOptions = availableTasks.map((task) => ({
     value: task.id,
     label: task.title,
   }))
-
   const priorityOptions = [
     { value: 'Low', label: 'Low' },
     { value: 'Medium', label: 'Medium' },
@@ -35,24 +56,25 @@ function AddTask({ onTaskAdded, users, isSubmitting, availableTasks }) {
     if (isSubmitting) return
 
     const assigneeIds = selectedAssignees.map((option) => option.value)
-    const prerequisiteIds = selectedPrerequisites.map((option) => option.value)
+    const prerequisiteIds = prerequisites.map((option) => option.value)
 
     await onTaskAdded({
       title,
       description,
       assignees: assigneeIds,
+      assigned_department: selectedDepartment ? selectedDepartment.value : null,
       due_date: dueDate || null,
       priority: priority,
       prerequisites: prerequisiteIds,
     })
 
-    setSelectedPrerequisites([])
-
     setTitle('')
     setDescription('')
     setSelectedAssignees([])
+    setSelectedDepartment(null)
     setDueDate('')
     setPriority('Medium')
+    setPrerequisites([])
   }
 
   return (
@@ -80,7 +102,22 @@ function AddTask({ onTaskAdded, users, isSubmitting, availableTasks }) {
           />
         </div>
         <div className='form-group'>
-          <label htmlFor='assignees'>Assign To</label>
+          <label htmlFor='assignDept'>Assign to Department (Optional)</label>
+          <Select
+            id='assignDept'
+            options={departmentOptions}
+            isClearable
+            className='multi-select-container'
+            classNamePrefix='multi-select'
+            value={selectedDepartment}
+            onChange={setSelectedDepartment}
+            placeholder='Assign to a whole department...'
+          />
+        </div>
+        <div className='form-group'>
+          <label htmlFor='assignees'>
+            Assign to Specific Members (Optional)
+          </label>
           <Select
             id='assignees'
             isMulti
@@ -89,7 +126,7 @@ function AddTask({ onTaskAdded, users, isSubmitting, availableTasks }) {
             classNamePrefix='multi-select'
             value={selectedAssignees}
             onChange={setSelectedAssignees}
-            placeholder='Select assignees...'
+            placeholder='Select specific members...'
           />
         </div>
         <div className='form-group'>
@@ -114,6 +151,9 @@ function AddTask({ onTaskAdded, users, isSubmitting, availableTasks }) {
               </option>
             ))}
           </select>
+        </div>
+        {/* --- ส่วนที่แก้ไข: แยก Prerequisites ออกมาเป็น form-group ของตัวเอง --- */}
+        <div className='form-group'>
           <label htmlFor='prerequisites'>
             Prerequisites (Tasks to be done before this)
           </label>
@@ -123,8 +163,8 @@ function AddTask({ onTaskAdded, users, isSubmitting, availableTasks }) {
             options={taskOptions}
             className='multi-select-container'
             classNamePrefix='multi-select'
-            value={selectedPrerequisites}
-            onChange={setSelectedPrerequisites}
+            value={prerequisites} // แก้ไขให้ใช้ state ที่ถูกต้อง
+            onChange={setPrerequisites} // แก้ไขให้ใช้ state ที่ถูกต้อง
             placeholder='Select prerequisite tasks...'
           />
         </div>

@@ -18,19 +18,10 @@ function Navbar() {
       <nav className='navbar-links'>
         {user && (
           <>
+            {/* --- Links for All Logged-in Users --- */}
             <NavLink to='/dashboard' className='nav-link'>
               Dashboard
             </NavLink>
-            {user.is_staff && (
-              <NavLink to='/workload' className='nav-link'>
-                Workload
-              </NavLink>
-            )}
-            {user.is_staff && (
-              <NavLink to='/performance' className='nav-link'>
-                Performance
-              </NavLink>
-            )}
             <NavLink to='/' className='nav-link' end>
               All Projects
             </NavLink>
@@ -43,9 +34,22 @@ function Navbar() {
             <NavLink to='/share' className='nav-link'>
               File Sharer
             </NavLink>
-            <NavLink to='/admin/teams' className='nav-link'>
-              Manage Teams
-            </NavLink>
+
+            {/* --- Admin-only Links (จัดกลุ่มไว้ด้วยกัน) --- */}
+            {user.is_staff && (
+              <>
+                <NavLink to='/workload' className='nav-link'>
+                  Workload
+                </NavLink>
+                <NavLink to='/performance' className='nav-link'>
+                  Performance
+                </NavLink>
+                {/* อัปเดตลิงก์นี้ให้ถูกต้อง และแสดงให้ทุกคนเห็น */}
+                <NavLink to='/admin/departments' className='nav-link'>
+                  Manage Depts
+                </NavLink>
+              </>
+            )}
           </>
         )}
       </nav>
@@ -53,12 +57,18 @@ function Navbar() {
       <div className='navbar-user'>
         {user ? (
           <>
-            {/* --- โครงสร้างที่ถูกต้องสำหรับแสดงผล --- */}
             <div className='user-details'>
               <span className='user-fullname'>
                 {user.first_name} {user.last_name}
               </span>
-              <span className='user-role'>{user.role}</span>
+              {/* --- ส่วนที่แก้ไข --- */}
+              {/* แสดง Department และ Role */}
+              <div className='user-sub-details'>
+                <span className='user-department'>
+                  {user.department_name || 'No Department'}
+                </span>
+                <span className='user-role'>{user.role}</span>
+              </div>
             </div>
             <button onClick={logoutUser} className='logout-button'>
               Logout

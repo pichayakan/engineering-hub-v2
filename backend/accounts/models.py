@@ -7,37 +7,50 @@ from django.contrib.auth.models import (
 )
 from django.conf import settings
 
+
+class Department(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    parent = models.ForeignKey(
+        "self", on_delete=models.CASCADE, null=True, blank=True, related_name="children"
+    )
+    manager = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="managed_departments",
+    )
+
+    def __str__(self):
+        return self.name
+
 class UserManager(BaseUserManager):
-    def create_user(self, email, username, first_name, last_name, password=None):
+    # --- ส่วนที่แก้ไข ---
+    def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("User must have an email address")
-        if not username:
-            raise ValueError("User must have a username")
 
-        user = self.model(
-            email=self.normalize_email(email),
-            username=username,
-            first_name=first_name,
-            last_name=last_name,
-        )
+        # นำ username ออกมา ถ้าไม่มีให้ใช้ email แทน
+        extra_fields.setdefault("username", email)
+
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, username, first_name, last_name, password=None):
-        user = self.create_user(
-            email=email,
-            username=username,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-        )
-        user.is_admin = True
-        user.is_staff = True
-        user.is_active = True  # Superuser ต้อง active ทันที
-        user.is_superadmin = True
-        user.save(using=self._db)
-        return user
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+
+        return self.create_user(email, password, **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -47,6 +60,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=100, unique=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     employee_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="members",
+    )
 
     # Fields สำหรับ Django Admin
     date_joined = models.DateTimeField(auto_now_add=True)
@@ -80,14 +101,5 @@ class User(AbstractBaseUser, PermissionsMixin):
         return True
 
 
-class Team(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True)
-    members = models.ManyToManyField(
-        settings.AUTH_USER_MODEL, related_name="teams", blank=True
-    )
-    # อาจจะเพิ่มฟิลด์ team_lead ในอนาคต
-    # team_lead = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='led_teams')
 
-    def __str__(self):
-        return self.name
+    

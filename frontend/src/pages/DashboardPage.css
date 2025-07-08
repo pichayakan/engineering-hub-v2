@@ -1,20 +1,8 @@
 /* frontend/src/pages/DashboardPage.css */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(1, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
-}
-
-@media (min-width: 768px) {
-    .dashboard-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (min-width: 1024px) {
-    .dashboard-grid {
-        grid-template-columns: repeat(4, 1fr);
-    }
 }
 
 .stat-card {
@@ -22,6 +10,9 @@
     padding: 1.5rem;
     border-radius: 12px;
     border: 1px solid #363636;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -30,10 +21,21 @@
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
+.stat-card-icon {
+    font-size: 2.5rem;
+    background-color: #2a2a2a;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
 .stat-card-title {
     font-size: 1rem;
     color: #a0a0a0;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .stat-card-value {
@@ -48,18 +50,6 @@
     padding: 1.5rem;
     border-radius: 12px;
     border: 1px solid #363636;
-}
-
-@media (min-width: 768px) {
-    .chart-card.col-span-2 {
-        grid-column: span 2 / span 2;
-    }
-}
-
-@media (min-width: 1024px) {
-    .chart-card.col-span-4 {
-        grid-column: span 4 / span 4;
-    }
 }
 
 .chart-card h3 {

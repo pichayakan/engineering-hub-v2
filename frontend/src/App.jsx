@@ -14,6 +14,7 @@ import ProtectedRoute from './utils/ProtectedRoute.jsx'
 import FileSharerPage from './pages/FileSharerPage.jsx'
 import AdminRoute from './utils/AdminRoute.jsx' // 1. Import ยามคนใหม่
 import TeamManagementPage from './pages/TeamManagementPage.jsx'
+import DepartmentManagementPage from './pages/DepartmentManagementPage.jsx'
 import TeamDetailPage from './pages/TeamDetailPage.jsx'
 import WorkloadDashboardPage from './pages/WorkloadDashboardPage.jsx'
 import AssignerPerformancePage from './pages/AssignerPerformancePage.jsx'
@@ -29,29 +30,33 @@ function App() {
           <Route path='/login' element={<LoginPage />} />
           <Route path='/register' element={<RegisterPage />} />
 
-          {/* Protected Routes */}
+          {/* Protected Routes (สำหรับผู้ใช้ที่ Login แล้วทุกคน) */}
           <Route element={<ProtectedRoute />}>
             <Route path='/' element={<HomePage />} />
-            <Route path='/dashboard' element={<DashboardPage />} />{' '}
-            {/* 2. เพิ่ม Route */}
+            <Route path='/dashboard' element={<DashboardPage />} />
             <Route path='/my-tasks' element={<MyTasksPage />} />
             <Route path='/projects/:projectId' element={<ProjectDetail />} />
             <Route
               path='/projects/:projectId/kanban'
               element={<KanbanPage />}
             />
-            <Route path='/admin/teams' element={<TeamManagementPage />} />
-            <Route path='/admin/teams/:teamId' element={<TeamDetailPage />} />
+            <Route
+              path='/admin/departments'
+              element={<DepartmentManagementPage />}
+            />
+            <Route path='/share' element={<FileSharerPage />} />{' '}
+            {/* <-- ย้าย Route มาไว้ที่นี่ */}
+            {/* Admin-only Routes */}
             <Route element={<AdminRoute />}>
-              {/* e.g. <Route path="/admin/settings" element={<SettingsPage />} /> */}
+              <Route path='/workload' element={<WorkloadDashboardPage />} />
               <Route
                 path='/performance'
                 element={<AssignerPerformancePage />}
               />
+              <Route path='/admin/teams' element={<TeamManagementPage />} />
+              <Route path='/admin/teams/:teamId' element={<TeamDetailPage />} />
             </Route>
-            <Route path='/workload' element={<WorkloadDashboardPage />} />
           </Route>
-          <Route path='/share' element={<FileSharerPage />} />
         </Routes>
       </main>
     </div>

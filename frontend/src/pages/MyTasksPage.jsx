@@ -11,7 +11,7 @@ function MyTasksPage() {
   const { setUnseenTaskCount } = useAuth()
 
   const fetchMyTasks = async () => {
-    setLoading(true)
+    // ไม่ต้อง setLoading(true) ที่นี่ เพื่อการ refresh ที่ลื่นไหล
     try {
       const response = await apiClient.get('/api/my-tasks/')
       setTasks(response.data)
@@ -23,17 +23,22 @@ function MyTasksPage() {
   }
 
   useEffect(() => {
-    const markTasksAsSeen = async () => {
-      try {
-        await apiClient.post('/api/notifications/mark-as-seen/')
-        setUnseenTaskCount(0)
-      } catch (error) {
-        console.error('Failed to mark tasks as seen', error)
+    const initPage = async () => {
+      setLoading(true)
+      const markTasksAsSeen = async () => {
+        try {
+          await apiClient.post('/api/notifications/mark-as-seen/')
+          setUnseenTaskCount(0)
+        } catch (error) {
+          console.error('Failed to mark tasks as seen', error)
+        }
       }
+
+      await fetchMyTasks()
+      await markTasksAsSeen()
     }
 
-    fetchMyTasks()
-    markTasksAsSeen()
+    initPage()
   }, [setUnseenTaskCount])
 
   const handleTaskStatusChange = async (taskId, newStatus, projectId) => {
@@ -64,20 +69,19 @@ function MyTasksPage() {
   const handleAcceptTask = async (taskId, projectId) => {
     try {
       await apiClient.post(`/api/projects/${projectId}/tasks/${taskId}/accept/`)
-      fetchMyTasks()
+      fetchMyTasks() // โหลดข้อมูลใหม่เพื่อให้เห็นการเปลี่ยนแปลง
     } catch (error) {
       console.error('Failed to accept task', error)
       alert(error.response?.data?.error || 'Could not accept the task.')
     }
   }
 
-  // --- เพิ่มฟังก์ชันสำหรับยกเลิกการรับงาน ---
   const handleUnacceptTask = async (taskId, projectId) => {
     try {
       await apiClient.post(
         `/api/projects/${projectId}/tasks/${taskId}/unaccept/`
       )
-      fetchMyTasks()
+      fetchMyTasks() // โหลดข้อมูลใหม่เพื่อให้เห็นการเปลี่ยนแปลง
     } catch (error) {
       console.error('Failed to un-accept task', error)
       alert(error.response?.data?.error || 'Could not un-accept the task.')
@@ -111,7 +115,7 @@ function MyTasksPage() {
                 tasks={tasksInColumn}
                 onStatusChange={handleTaskStatusChange}
                 onAcceptTask={handleAcceptTask}
-                onUnacceptTask={handleUnacceptTask} // <-- ส่งฟังก์ชันไปให้ TaskList
+                onUnacceptTask={handleUnacceptTask}
                 showProjectLink={true}
               />
             </div>

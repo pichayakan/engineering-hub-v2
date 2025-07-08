@@ -1,32 +1,35 @@
 # backend/api/permissions.py
 from rest_framework import permissions
+from accounts.models import User, Department
 
 
-class IsOwnerOrReadOnly(permissions.BasePermission):
+def get_all_subordinate_departments(department):
     """
-    Custom permission to only allow owners of an object to edit it.
+    ฟังก์ชันสำหรับหา Department ลูกทั้งหมดที่อยู่ภายใต้ Department ที่กำหนด
     """
+    subordinates = {department}
+    children = department.children.all()
+    for child in children:
+        subordinates.update(get_all_subordinate_departments(child))
+    return subordinates
 
-    def has_object_permission(self, request, view, obj):
-        # Read permissions are allowed to any request,
-        # so we'll always allow GET, HEAD or OPTIONS requests.
-        if request.method in permissions.SAFE_METHODS:
-            return True
 
-        # Write permissions are only allowed to the owner of the project.
-        # obj ในที่นี้คือ Project instance
-        return obj.owner == request.user
-
-class IsAdminOrReadOnly(permissions.BasePermission):
+def user_can_assign_to(assigner: User, assignee: User) -> bool:
     """
-    Custom permission to allow read-only access to any authenticated user,
-    but write access only to admin users.
+    ตรวจสอบว่า 'assigner' มีสิทธิ์มอบหมายงานให้ 'assignee' หรือไม่
     """
+    if assigner.is_superadmin:
+        return True
+    if not assignee.department:
+        return False
 
-    def has_permission(self, request, view):
-        # อนุญาตให้ดูข้อมูล (GET, HEAD, OPTIONS) ได้สำหรับผู้ใช้ที่ login ทุกคน
-        if request.method in permissions.SAFE_METHODS:
-            return True
+    managed_departments = assigner.managed_departments.all()
+    if not managed_departments:
+        return False
 
-        # อนุญาตให้เขียน/แก้ไข/ลบข้อมูลได้เฉพาะผู้ใช้ที่เป็น staff (Admin)
-        return request.user and request.user.is_staff
+    authorized_department_ids = set()
+    for dept in managed_departments:
+        for sub_dept in get_all_subordinate_departments(dept):
+            authorized_department_ids.add(sub_dept.id)
+
+    return assignee.department.id in authorized_department_ids

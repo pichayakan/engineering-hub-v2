@@ -1,16 +1,24 @@
-# accounts/views.py
+# backend/accounts/views.py
+from django.db.models import Count
+from rest_framework import viewsets, permissions, generics, status
 from django.contrib.auth import login, logout, authenticate
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, permissions , generics, viewsets
-from .serializers import UserSerializer, UserRegistrationSerializer , UserListSerializer ,TeamSerializer
-from .models import User,Team
-from api.permissions import IsAdminOrReadOnly
+
+from .models import User , Department # ลบ Team ออก
+from .serializers import (
+    UserSerializer,
+    UserRegistrationSerializer,
+    UserListSerializer,
+    DepartmentSerializer,  # เปลี่ยนจาก TeamSerializer เป็น DepartmentSerializer
+)
 
 
 class RegistrationView(APIView):
+    # อนุญาตให้ทุกคน (ที่ยังไม่ login) สามารถเข้าถึงได้
     permission_classes = [permissions.AllowAny]
 
+    # กำหนดให้ View นี้รับเฉพาะคำขอแบบ POST เท่านั้น
     def post(self, request, format=None):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
@@ -59,21 +67,41 @@ class UserDetailView(APIView):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
-class UserListView(generics.ListAPIView):
-    """
-    View to list all active users in the system.
-    """
 
+class UserListView(generics.ListAPIView):
     queryset = User.objects.filter(is_active=True).order_by("username")
     serializer_class = UserListSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
-class TeamViewSet(viewsets.ModelViewSet):
+class DepartmentViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing teams. (Typically for admins)
+    ViewSet for managing Departments.
     """
 
-    queryset = Team.objects.all().order_by("name")
-    serializer_class = TeamSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
+    serializer_class = DepartmentSerializer
+
+    # --- ส่วนที่รวมโค้ดที่ดีที่สุดเข้าด้วยกัน ---
+
+    def get_queryset(self):
+        """
+        Annotates each department with the count of its members.
+        """
+        # ใช้ annotate เพื่อนับจำนวนสมาชิกในแต่ละ department
+        return Department.objects.annotate(member_count=Count("members")).order_by(
+            "name"
+        )
+
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        Allows anyone to list departments (for registration page),
+        but only admins for other actions.
+        """
+        if self.action == "list":
+            # อนุญาตให้ทุกคนสามารถ "ดู" รายชื่อ department ได้
+            permission_classes = [permissions.AllowAny]
+        else:
+            # สำหรับการกระทำอื่นๆ ทั้งหมด (สร้าง, แก้ไข, ลบ) ต้องเป็น Admin เท่านั้น
+            permission_classes = [permissions.IsAdminUser]
+        return [permission() for permission in permission_classes]

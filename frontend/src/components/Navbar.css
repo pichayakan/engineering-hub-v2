@@ -44,6 +44,17 @@
     color: white;
 }
 
+.user-sub-details {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* ระยะห่างระหว่าง Department กับ Role */
+}
+
+.user-department {
+    font-size: 0.8rem;
+    color: #a0a0a0;
+}
+
 .user-role {
     font-size: 0.75rem;
     color: #a0a0a0;

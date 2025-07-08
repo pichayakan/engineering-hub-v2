@@ -1,14 +1,17 @@
 // frontend/src/pages/DashboardPage.jsx
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react' // เพิ่ม useCallback
 import apiClient from '../api'
 import Chart from 'chart.js/auto'
 import './DashboardPage.css'
 
-function StatCard({ title, value }) {
+function StatCard({ title, value, icon }) {
   return (
     <div className='stat-card'>
-      <p className='stat-card-title'>{title}</p>
-      <h2 className='stat-card-value'>{value}</h2>
+      <div className='stat-card-icon'>{icon}</div>
+      <div>
+        <p className='stat-card-title'>{title}</p>
+        <h2 className='stat-card-value'>{value}</h2>
+      </div>
     </div>
   )
 }
@@ -18,27 +21,46 @@ function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   const statusChartRef = useRef(null)
-  const priorityChartRef = useRef(null)
-  const assigneeChartRef = useRef(null) // 1. เพิ่ม ref สำหรับกราฟใหม่
-
+  const departmentChartRef = useRef(null)
   const chartInstances = useRef({})
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true)
-      try {
-        const response = await apiClient.get('/api/dashboard-stats/')
-        setStats(response.data)
-      } catch (error) {
-        console.error('Failed to fetch dashboard stats', error)
-      } finally {
-        setLoading(false)
-      }
+  // --- ส่วนที่แก้ไข: สร้างฟังก์ชัน fetchStats ---
+  const fetchStats = useCallback(async () => {
+    // ไม่ต้อง setLoading ที่นี่ เพื่อการ refresh ที่ลื่นไหล
+    try {
+      const response = await apiClient.get('/api/dashboard-stats/')
+      setStats(response.data)
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats', error)
+    } finally {
+      setLoading(false) // จะทำงานแค่ครั้งแรก
     }
-    fetchStats()
   }, [])
 
   useEffect(() => {
+    setLoading(true)
+    fetchStats() // เรียกครั้งแรกตอนโหลด
+
+    // --- เพิ่ม Logic การ refetch เมื่อผู้ใช้กลับมาที่หน้านี้ ---
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab is visible, refetching dashboard data...')
+        fetchStats()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Cleanup function
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [fetchStats])
+
+  useEffect(() => {
+    // --- DEBUG LOG: เราจะ log ดูข้อมูล stats ทั้งหมดที่ได้รับมา ---
+    console.log('Dashboard stats received:', stats)
+
     if (stats) {
       const defaultTooltipCallbacks = {
         title: function (tooltipItems) {
@@ -52,7 +74,7 @@ function DashboardPage() {
       }
 
       // --- Status Distribution Chart (Donut) ---
-      if (statusChartRef.current) {
+      if (statusChartRef.current && stats.status_distribution) {
         if (chartInstances.current.statusChart) {
           chartInstances.current.statusChart.destroy()
         }
@@ -65,7 +87,7 @@ function DashboardPage() {
               {
                 label: 'Tasks by Status',
                 data: Object.values(stats.status_distribution),
-                backgroundColor: ['#5a9eee', '#f0ad4e', '#5cb85c'],
+                backgroundColor: ['#5cb85c', '#f0ad4e', '#5a9eee'], // Done, In Progress, To Do
                 borderColor: '#1e1e1e',
                 borderWidth: 4,
               },
@@ -82,61 +104,27 @@ function DashboardPage() {
         })
       }
 
-      // --- Priority Distribution Chart (Bar) ---
-      if (priorityChartRef.current) {
-        if (chartInstances.current.priorityChart) {
-          chartInstances.current.priorityChart.destroy()
+      // --- Department Task Load Chart (Bar) ---
+      if (departmentChartRef.current && stats.department_task_load) {
+        if (chartInstances.current.departmentChart) {
+          chartInstances.current.departmentChart.destroy()
         }
-        const priorityCtx = priorityChartRef.current.getContext('2d')
-        chartInstances.current.priorityChart = new Chart(priorityCtx, {
+        const deptCtx = departmentChartRef.current.getContext('2d')
+        chartInstances.current.departmentChart = new Chart(deptCtx, {
           type: 'bar',
           data: {
-            labels: Object.keys(stats.priority_distribution),
+            labels: Object.keys(stats.department_task_load),
             datasets: [
               {
-                label: 'Tasks by Priority',
-                data: Object.values(stats.priority_distribution),
-                backgroundColor: ['#d9534f', '#5cb85c', '#f0ad4e'],
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              y: { beginAtZero: true, ticks: { color: '#a0a0a0' } },
-              x: { ticks: { color: '#a0a0a0' } },
-            },
-            plugins: {
-              legend: { display: false },
-              tooltip: { callbacks: defaultTooltipCallbacks },
-            },
-          },
-        })
-      }
-
-      // --- 2. เพิ่ม Logic การสร้างกราฟใหม่: Assignee Task Load (Horizontal Bar) ---
-      if (assigneeChartRef.current && stats.assignee_task_load) {
-        if (chartInstances.current.assigneeChart) {
-          chartInstances.current.assigneeChart.destroy()
-        }
-        const assigneeCtx = assigneeChartRef.current.getContext('2d')
-        chartInstances.current.assigneeChart = new Chart(assigneeCtx, {
-          type: 'bar',
-          data: {
-            labels: Object.keys(stats.assignee_task_load),
-            datasets: [
-              {
-                label: 'จำนวนงานที่ได้รับมอบหมาย',
-                data: Object.values(stats.assignee_task_load),
+                label: 'Tasks Assigned',
+                data: Object.values(stats.department_task_load),
                 backgroundColor: '#00A6A6',
-                borderColor: '#1e1e1e',
-                borderWidth: 2,
+                borderRadius: 4,
               },
             ],
           },
           options: {
-            indexAxis: 'y', // ทำให้เป็นกราฟแท่งแนวนอน
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
             scales: {
@@ -144,7 +132,7 @@ function DashboardPage() {
                 beginAtZero: true,
                 ticks: { color: '#a0a0a0', stepSize: 1 },
               },
-              y: { ticks: { color: '#a0a0a0' } },
+              y: { ticks: { color: '#e0e0e0' } },
             },
             plugins: {
               legend: { display: false },
@@ -166,15 +154,24 @@ function DashboardPage() {
 
   return (
     <div>
-      {/* 3. อัปเดต Stat Cards */}
+      <h1>Overall Dashboard</h1>
       <div className='dashboard-grid mb-8'>
-        <StatCard title='Total Projects' value={stats.total_projects} />
-        <StatCard title='Total Tasks' value={stats.total_tasks} />
         <StatCard
-          title='Tasks In Progress'
-          value={stats.status_distribution['In Progress'] || 0}
+          title='Total Projects'
+          value={stats.total_projects}
+          icon='📂'
         />
-        <StatCard title='Tasks Done' value={stats.completed_tasks || 0} />
+        <StatCard title='Total Tasks' value={stats.total_tasks} icon='📝' />
+        <StatCard
+          title='Unclaimed Tasks'
+          value={stats.unclaimed_tasks}
+          icon='❓'
+        />
+        <StatCard
+          title='Total Departments'
+          value={stats.total_departments}
+          icon='🏢'
+        />
       </div>
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
         <div className='chart-card'>
@@ -184,16 +181,9 @@ function DashboardPage() {
           </div>
         </div>
         <div className='chart-card'>
-          <h3>Tasks by Priority</h3>
+          <h3>Tasks per Department</h3>
           <div className='chart-container'>
-            <canvas ref={priorityChartRef}></canvas>
-          </div>
-        </div>
-        {/* 4. เพิ่ม Chart Card ใหม่ */}
-        <div className='chart-card lg:col-span-2'>
-          <h3>Assignee Task Load</h3>
-          <div className='chart-container'>
-            <canvas ref={assigneeChartRef}></canvas>
+            <canvas ref={departmentChartRef}></canvas>
           </div>
         </div>
       </div>

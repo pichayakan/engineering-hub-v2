@@ -1,7 +1,12 @@
 # backend/api/signals.py
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import (
+    post_save,
+    pre_save,
+    m2m_changed,
+)  # 1. Import m2m_changed
 from django.dispatch import receiver
-from .models import Task, Activity,Comment,TaskAttachment
+from .models import Task, Activity, Comment, TaskAttachment
+from accounts.models import User
 
 # ใช้ตัวแปร global ชั่วคราวเพื่อเก็บสถานะเก่าของ task
 # (นี่เป็นเทคนิคง่ายๆ สำหรับกรณีนี้)
@@ -72,3 +77,26 @@ def create_attachment_activity(sender, instance, created, **kwargs):
         Activity.objects.create(
             task=instance.task, actor=instance.uploaded_by, verb=verb
         )
+        
+@receiver(m2m_changed, sender=Task.accepted_by.through)
+def log_acceptance_activity(sender, instance, action, pk_set, **kwargs):
+    """
+    สร้าง Activity log เมื่อมีการเปลี่ยนแปลงใน `accepted_by` field ของ Task
+    """
+    # pk_set คือ set ของ ID ผู้ใช้ที่ถูกเพิ่มหรือลบ
+    if not pk_set:
+        return
+
+    # ดึง User object คนแรกที่ถูกกระทำ (ในระบบของเราจะมีแค่คนเดียว)
+    user_id = list(pk_set)[0]
+    actor = User.objects.get(pk=user_id)
+
+    if action == "post_add":
+        # เกิดขึ้นหลังจากที่ user ถูกเพิ่มเข้าไปใน accepted_by
+        verb = "accepted the task"
+        Activity.objects.create(task=instance, actor=actor, verb=verb)
+
+    elif action == "post_remove":
+        # เกิดขึ้นหลังจากที่ user ถูกนำออกจาก accepted_by
+        verb = "revoked their acceptance of the task"
+        Activity.objects.create(task=instance, actor=actor, verb=verb)

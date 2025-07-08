@@ -7,11 +7,12 @@ from .views import (
     LogoutView,
     UserDetailView,
     UserListView,
-    TeamViewSet
+    DepartmentViewSet,
 )
 
 router = DefaultRouter()
-router.register(r"teams", TeamViewSet, basename="team")
+router.register(r"departments", DepartmentViewSet, basename="department")
+
 
 urlpatterns = [
     path("register/", RegistrationView.as_view(), name="register"),

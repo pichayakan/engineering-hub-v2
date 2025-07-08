@@ -18,6 +18,10 @@
     color: #f5f5f5;
 }
 
+.multi-select-container .multi-select__single-value {
+    color: #f5f5f5; /* กำหนดสีของตัวหนังสือที่ถูกเลือกให้เป็นสีขาว */
+}
+
 .multi-select-container .multi-select__menu {
     background-color: #2b2b2b;
     border: 1px solid #4a4a4a;

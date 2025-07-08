@@ -1,10 +1,15 @@
-# accounts/serializers.py
+# backend/accounts/serializers.py
 from rest_framework import serializers
-from .models import User, Team
+from .models import User, Department  # แก้ไข import
+
+# --- Serializers สำหรับ User ---
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(style={"input_type": "password"}, write_only=True)
+    department = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(), required=False, allow_null=True
+    )
 
     class Meta:
         model = User
@@ -15,6 +20,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "last_name",
             "phone_number",
             "employee_id",
+            "department",
             "password",
             "password2",
         ]
@@ -27,19 +33,27 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             )
         return attrs
 
+    # --- ส่วนที่แก้ไข ---
     def create(self, validated_data):
+        # นำ password และ password2 ออกจาก dict
         validated_data.pop("password2")
-        user = User.objects.create_user(**validated_data)
-        # ไม่ต้อง set_password ซ้ำซ้อน เพราะ create_user ของเราจัดการให้แล้ว
-        # และ is_active จะเป็น False โดยอัตโนมัติตาม default ของ model
+        password = validated_data.pop("password")
+
+        # สร้าง user โดยส่ง password แยกต่างหาก
+        user = User.objects.create_user(password=password, **validated_data)
         return user
 
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.CharField(read_only=True)
+    # เพิ่มฟิลด์นี้เพื่อส่งชื่อ Department ไปด้วย
+    department_name = serializers.CharField(
+        source="department.name", read_only=True, allow_null=True
+    )
 
     class Meta:
         model = User
+        # ตรวจสอบให้แน่ใจว่ามี 'department' และ 'department_name' อยู่ใน fields
         fields = [
             "id",
             "email",
@@ -50,34 +64,31 @@ class UserSerializer(serializers.ModelSerializer):
             "employee_id",
             "role",
             "is_staff",
+            "department",
+            "department_name",
         ]
 
 
 class UserListSerializer(serializers.ModelSerializer):
-    """
-    A lightweight serializer for listing users.
-    """
-
     class Meta:
         model = User
-        fields = ["id", "username", "first_name", "last_name"]
+        fields = ["id", "username", "first_name", "last_name","phone_number"]
 
 
-class TeamSerializer(serializers.ModelSerializer):
-    # แสดงรายละเอียดของสมาชิกในทีม
-    members_details = UserListSerializer(source="members", many=True, read_only=True)
+# --- Serializer สำหรับ Department ---
 
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    member_count = serializers.IntegerField(read_only=True)
     class Meta:
-        model = Team
-        fields = ["id", "name", "description", "members", "members_details"]
-        extra_kwargs = {"members": {"write_only": True, "required": False}}
+        model = Department
+        fields = ["id", "name", "parent", "manager", "member_count"]
+
+
+# --- Serializer สำหรับ Dashboard ---
+
 
 class MemberWorkloadSerializer(serializers.ModelSerializer):
-    """
-    Serializer for showing individual member's task stats.
-    """
-
-    # ใช้ source เพื่อบอกให้ serializer ดึงข้อมูลจาก attribute ที่เราตั้งชื่อใหม่
     total_tasks = serializers.IntegerField()
     todo_tasks = serializers.IntegerField()
     inprogress_tasks = serializers.IntegerField()
@@ -101,13 +112,9 @@ class MemberWorkloadSerializer(serializers.ModelSerializer):
         ]
 
 
-class TeamWorkloadSerializer(serializers.ModelSerializer):
-    """
-    Serializer for showing team details along with its members' workload.
-    """
-
-    members_workload = MemberWorkloadSerializer(source="members", many=True)
-
+class AssignerPerformanceSerializer(serializers.ModelSerializer):
+    # เราจะย้ายคำจำกัดความนี้ไปที่ api/serializers.py เพื่อหลีกเลี่ยง Circular Import
+    # created_tasks_details = TaskForAssignerSerializer(source='created_tasks', many=True)
     class Meta:
-        model = Team
-        fields = ["id", "name", "members_workload"]
+        model = User
+        fields = ["id", "username", "first_name", "last_name"]  # Simplified for now

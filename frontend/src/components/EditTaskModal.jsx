@@ -5,18 +5,31 @@ import './AddProject.css'
 import './EditTaskModal.css'
 import './MultiSelect.css'
 
-// --- ส่วนที่แก้ไข: กำหนดค่าเริ่มต้นให้ availableTasks เป็น array ว่าง ---
-function EditTaskModal({ task, users, onSave, onClose, availableTasks = [] }) {
+function EditTaskModal({
+  task,
+  users,
+  onSave,
+  onClose,
+  availableTasks = [],
+  allDepartments = [],
+  isSaving, // รับ prop isSaving เข้ามา
+}) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [selectedAssignees, setSelectedAssignees] = useState([])
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState('Medium')
   const [selectedPrerequisites, setSelectedPrerequisites] = useState([])
+  const [selectedDepartment, setSelectedDepartment] = useState(null)
 
   const userOptions = users.map((user) => ({
     value: user.id,
     label: `${user.first_name} ${user.last_name} (${user.username})`,
+  }))
+
+  const departmentOptions = allDepartments.map((dept) => ({
+    value: dept.id,
+    label: dept.name,
   }))
 
   const priorityOptions = [
@@ -25,7 +38,6 @@ function EditTaskModal({ task, users, onSave, onClose, availableTasks = [] }) {
     { value: 'High', label: 'High' },
   ]
 
-  // ตอนนี้โค้ดส่วนนี้จะปลอดภัยแล้ว เพราะ availableTasks จะเป็น array เสมอ
   const taskOptions = availableTasks
     .filter((t) => t.id !== task?.id)
     .map((t) => ({
@@ -34,6 +46,7 @@ function EditTaskModal({ task, users, onSave, onClose, availableTasks = [] }) {
     }))
 
   useEffect(() => {
+    // ใช้ 'task' prop ที่ได้รับมา ไม่ใช่ 'department'
     if (task) {
       setTitle(task.title)
       setDescription(task.description || '')
@@ -55,8 +68,14 @@ function EditTaskModal({ task, users, onSave, onClose, availableTasks = [] }) {
           }))
         : []
       setSelectedPrerequisites(currentPrerequisites)
+
+      setSelectedDepartment(
+        departmentOptions.find(
+          (opt) => opt.value === task.assigned_department
+        ) || null
+      )
     }
-  }, [task])
+  }, [task, allDepartments]) // เพิ่ม allDepartments ใน dependency array
 
   if (!task) return null
 
@@ -69,6 +88,7 @@ function EditTaskModal({ task, users, onSave, onClose, availableTasks = [] }) {
       title,
       description,
       assignees: assigneeIds,
+      assigned_department: selectedDepartment ? selectedDepartment.value : null,
       due_date: dueDate || null,
       priority: priority,
       prerequisites: prerequisiteIds,
@@ -106,7 +126,19 @@ function EditTaskModal({ task, users, onSave, onClose, availableTasks = [] }) {
               />
             </div>
             <div className='form-group'>
-              <label htmlFor='editAssignees'>Assign To</label>
+              <label htmlFor='editAssignDept'>Assign to Department</label>
+              <Select
+                id='editAssignDept'
+                options={departmentOptions}
+                isClearable
+                className='multi-select-container'
+                classNamePrefix='multi-select'
+                value={selectedDepartment}
+                onChange={setSelectedDepartment}
+              />
+            </div>
+            <div className='form-group'>
+              <label htmlFor='editAssignees'>Assign to Specific Members</label>
               <Select
                 id='editAssignees'
                 isMulti
@@ -152,8 +184,8 @@ function EditTaskModal({ task, users, onSave, onClose, availableTasks = [] }) {
                 onChange={setSelectedPrerequisites}
               />
             </div>
-            <button type='submit' className='submit-button'>
-              Save Changes
+            <button type='submit' className='submit-button' disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
           </form>
         </div>
