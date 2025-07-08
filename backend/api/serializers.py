@@ -12,6 +12,8 @@ from .models import (
 from accounts.models import User, Department
 from accounts.serializers import UserListSerializer
 
+
+
 # --- Serializers หลัก ---
 
 
@@ -157,23 +159,16 @@ class SharedFileSerializer(serializers.ModelSerializer):
 
 class TaskForAssignerSerializer(serializers.ModelSerializer):
     project_name = serializers.CharField(source="project.name", read_only=True)
-    assignees_details = UserListSerializer(
-        source="assignees", many=True, read_only=True
-    )
-    assigned_department_details = DepartmentNameSerializer(
-        source="assigned_department", read_only=True
-    )  # แก้ไขจาก team เป็น department
+    assignees_details = UserListSerializer(source="assignees", many=True, read_only=True)
+    # เปลี่ยนจาก team เป็น department
+    assigned_department_details = DepartmentNameSerializer(source="assigned_department", read_only=True)
 
     class Meta:
         model = Task
         fields = [
-            "id",
-            "title",
-            "project_name",
-            "assignees_details",
-            "assigned_department_details",  # แก้ไขจาก team เป็น department
-            "status",
-            "created_at",
+            "id", "title", "project_name", "assignees_details",
+            "assigned_department_details", # แก้ไขจาก team เป็น department
+            "status", "created_at",
         ]
 
 

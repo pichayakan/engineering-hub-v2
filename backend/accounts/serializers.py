@@ -93,23 +93,22 @@ class MemberWorkloadSerializer(serializers.ModelSerializer):
     todo_tasks = serializers.IntegerField()
     inprogress_tasks = serializers.IntegerField()
     done_tasks = serializers.IntegerField()
-    accepted_tasks = serializers.IntegerField(source="accepted_tasks_count")
-    pending_tasks = serializers.IntegerField(source="pending_tasks_count")
+    accepted_tasks = serializers.IntegerField(source='accepted_tasks_count')
+    pending_tasks = serializers.IntegerField(source='pending_tasks_count')
 
     class Meta:
         model = User
         fields = [
-            "id",
-            "username",
-            "first_name",
-            "last_name",
-            "total_tasks",
-            "todo_tasks",
-            "inprogress_tasks",
-            "done_tasks",
-            "pending_tasks",
-            "accepted_tasks",
+            'id', 'username', 'first_name', 'last_name', 
+            'total_tasks', 'todo_tasks', 'inprogress_tasks', 'done_tasks',
+            'pending_tasks', 'accepted_tasks'
         ]
+
+class DepartmentWorkloadSerializer(serializers.ModelSerializer):
+    members_workload = MemberWorkloadSerializer(source='members', many=True)
+    class Meta:
+        model = Department
+        fields = ['id', 'name', 'members_workload']
 
 
 class AssignerPerformanceSerializer(serializers.ModelSerializer):

@@ -1,57 +1,46 @@
-# accounts/models.py
+# backend/accounts/models.py
 from django.db import models
-from django.contrib.auth.models import (
-    AbstractBaseUser,
-    BaseUserManager,
-    PermissionsMixin,
-)
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.conf import settings
 
-
+# --- เพิ่ม Department Model เข้ามาในไฟล์นี้ ---
 class Department(models.Model):
     name = models.CharField(max_length=255, unique=True)
-    parent = models.ForeignKey(
-        "self", on_delete=models.CASCADE, null=True, blank=True, related_name="children"
-    )
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     manager = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="managed_departments",
+        related_name='managed_departments'
     )
-
     def __str__(self):
         return self.name
 
 class UserManager(BaseUserManager):
-    # --- ส่วนที่แก้ไข ---
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("User must have an email address")
-
-        # นำ username ออกมา ถ้าไม่มีให้ใช้ email แทน
-        extra_fields.setdefault("username", email)
-
+        extra_fields.setdefault('username', email)
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
-
         user.set_password(password)
         user.save(using=self._db)
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("is_active", True)
+        # --- ส่วนที่แก้ไข: เปลี่ยน is_superadmin เป็น is_superuser ---
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_admin', True)
+        extra_fields.setdefault('is_active', True)
 
-        if extra_fields.get("is_staff") is not True:
-            raise ValueError("Superuser must have is_staff=True.")
-        if extra_fields.get("is_superuser") is not True:
-            raise ValueError("Superuser must have is_superuser=True.")
-
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+            
         return self.create_user(email, password, **extra_fields)
-
 
 class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=50)
@@ -62,34 +51,35 @@ class User(AbstractBaseUser, PermissionsMixin):
     employee_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
     
     department = models.ForeignKey(
-        Department,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="members",
+        'Department',
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='members'
     )
-
-    # Fields สำหรับ Django Admin
+    
     date_joined = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(auto_now=True)
     is_admin = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=False)  # <-- ผู้ใช้ใหม่จะยังไม่ Active
-    is_superadmin = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)
+    
+    # --- ส่วนที่แก้ไข: ลบ is_superadmin ทิ้งไป ---
+    # is_superuser จะถูกสืบทอดมาจาก PermissionsMixin โดยอัตโนมัติ
 
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username", "first_name", "last_name"]
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     objects = UserManager()
 
     @property
     def role(self):
-        if self.is_superadmin:
+        # --- ส่วนที่แก้ไข: เปลี่ยน is_superadmin เป็น is_superuser ---
+        if self.is_superuser:
             return "Super Admin"
         if self.is_staff:
             return "Administrator"
-        # คุณสามารถเพิ่มเงื่อนไขอื่นๆ ได้ตามต้องการ
-        return "User"  # สิทธิ์พื้นฐาน
+        return "User"
 
     def __str__(self):
         return self.email
@@ -99,7 +89,3 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def has_module_perms(self, app_label):
         return True
-
-
-
-    

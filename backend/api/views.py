@@ -32,7 +32,7 @@ from .serializers import (
     ActivitySerializer,
     SharedFileSerializer,
 )
-from accounts.serializers import AssignerPerformanceSerializer, MemberWorkloadSerializer
+from accounts.serializers import AssignerPerformanceSerializer, MemberWorkloadSerializer,DepartmentWorkloadSerializer
 
 
 # --- Pagination Class ---
@@ -301,20 +301,27 @@ class MemberWorkloadView(APIView):
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request, format=None):
-        teams_with_members = Department.objects.prefetch_related(
-            "members__assigned_tasks", "members__accepted_tasks"
+        # --- Logic ใหม่ทั้งหมด ---
+        # ดึงทุก Department พร้อมกับ prefetch สมาชิกและ task ของสมาชิกเหล่านั้น
+        departments_with_members = Department.objects.prefetch_related(
+            'members__assigned_tasks',
+            'members__accepted_tasks'
         ).all()
-        for team in teams_with_members:
-            for member in team.members.all():
+
+        # คำนวณสถิติสำหรับสมาชิกแต่ละคน
+        for dept in departments_with_members:
+            for member in dept.members.all():
                 tasks = member.assigned_tasks.all()
                 accepted_count = member.accepted_tasks.filter(id__in=tasks).count()
+
                 member.total_tasks = tasks.count()
-                member.todo_tasks = tasks.filter(status="To Do").count()
-                member.inprogress_tasks = tasks.filter(status="In Progress").count()
-                member.done_tasks = tasks.filter(status="Done").count()
+                member.todo_tasks = tasks.filter(status='To Do').count()
+                member.inprogress_tasks = tasks.filter(status='In Progress').count()
+                member.done_tasks = tasks.filter(status='Done').count()
                 member.accepted_tasks_count = accepted_count
                 member.pending_tasks_count = member.total_tasks - accepted_count
-        serializer = MemberWorkloadSerializer(teams_with_members, many=True)
+
+        serializer = DepartmentWorkloadSerializer(departments_with_members, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -323,15 +330,12 @@ class AssignerPerformanceView(generics.ListAPIView):
     permission_classes = [permissions.IsAdminUser]
 
     def get_queryset(self):
-        return (
-            User.objects.filter(groups__name="Assigners")
-            .prefetch_related(
-                "created_tasks__project",
-                "created_tasks__assignees",
-                "created_tasks__assigned_department",
-            )
-            .order_by("first_name")
-        )
+        # Logic นี้ยังคงถูกต้อง คือการดึง User ที่อยู่ในกลุ่ม "Assigners"
+        return User.objects.filter(groups__name='Assigners').prefetch_related(
+            'created_tasks__project', 
+            'created_tasks__assignees',
+            'created_tasks__assigned_department'
+        ).order_by('first_name')
 
 
 # --- Notification Views ---
