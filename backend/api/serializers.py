@@ -62,10 +62,19 @@ class TaskSerializer(serializers.ModelSerializer):
 
     comment_count = serializers.IntegerField(read_only=True)
     attachment_count = serializers.IntegerField(read_only=True)
+    
+    created_by_details = UserListSerializer(source="created_by", read_only=True)
+    
+    project_name = serializers.CharField(source="project.name", read_only=True)
+    accepted_by_details = UserListSerializer(
+        source="accepted_by", many=True, read_only=True
+    )
 
     prerequisites = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Task.objects.all(), write_only=True, required=False
     )
+    
+    days_remaining = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Task
@@ -87,6 +96,10 @@ class TaskSerializer(serializers.ModelSerializer):
             "prerequisites",
             "prerequisites_details",
             "accepted_by",
+            "accepted_by_details",
+            "project_name",
+            "created_by_details",
+            "days_remaining",
         ]
         # --- ส่วนที่แก้ไข ---
         # เราจะเอา write_only ออกจาก assigned_department

@@ -2,6 +2,7 @@
 from django.db.models import Count, Q
 from django.http import FileResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import viewsets, permissions, generics, status
 from rest_framework.decorators import action
@@ -9,6 +10,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import SearchFilter
+
+from .filters import TaskFilter
 
 # --- Model Imports ---
 from .models import (
@@ -396,3 +399,27 @@ class SharedFileHistoryView(generics.ListAPIView):
     queryset = SharedFile.objects.all().order_by("-uploaded_at")
     serializer_class = SharedFileSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+class AllTasksView(generics.ListAPIView):
+    """
+    API endpoint to list all tasks with filtering capabilities.
+    """
+
+    # --- ส่วนที่แก้ไข: เพิ่มประสิทธิภาพการ Query ---
+    queryset = (
+        Task.objects.select_related(
+            "project",
+            "assigned_department",
+            "created_by",  # <-- เพิ่ม created_by
+        )
+        .prefetch_related("assignees", "accepted_by")
+        .all()
+        .order_by("-created_at")
+    )
+    serializer_class = TaskSerializer
+    permission_classes = [permissions.IsAdminUser]  # จำกัดให้เฉพาะ Admin ดูได้
+    pagination_class = StandardResultsSetPagination  # ใช้ Pagination เดิม
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = TaskFilter
+    search_fields = ["title", "project__name"]  # เพิ่มความสามารถในการค้นหา

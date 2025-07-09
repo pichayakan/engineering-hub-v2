@@ -18,6 +18,7 @@ import DepartmentManagementPage from './pages/DepartmentManagementPage.jsx'
 import TeamDetailPage from './pages/TeamDetailPage.jsx'
 import WorkloadDashboardPage from './pages/WorkloadDashboardPage.jsx'
 import AssignerPerformancePage from './pages/AssignerPerformancePage.jsx'
+import AllTasksPage from './pages/AllTasksPage.jsx'
 import './App.css'
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
               />
               <Route path='/admin/teams' element={<TeamManagementPage />} />
               <Route path='/admin/teams/:teamId' element={<TeamDetailPage />} />
+              <Route path='/tasks/all' element={<AllTasksPage />} />
             </Route>
           </Route>
         </Routes>

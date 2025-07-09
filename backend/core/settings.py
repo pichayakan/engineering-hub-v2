@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     # Local Apps
     "api",
     "accounts",
-    "rest_framework_simplejwt",
+    "rest_framework_simplejwt","django_filters"
 ]
 
 MIDDLEWARE = [

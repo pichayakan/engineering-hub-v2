@@ -17,6 +17,7 @@ from .views import (
     DashboardStatsView,  # 1. Import Dashboard views
     MemberWorkloadView,
     AssignerPerformanceView,
+    AllTasksView
 )
 
 router = routers.SimpleRouter()
@@ -66,4 +67,5 @@ urlpatterns = [
     path("", include(router.urls)),
     path("", include(projects_router.urls)),
     path("", include(tasks_router.urls)),
+    path("all-tasks/", AllTasksView.as_view(), name="all-tasks"),
 ]

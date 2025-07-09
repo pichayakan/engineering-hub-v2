@@ -38,6 +38,9 @@ function Navbar() {
             {/* --- Admin-only Links (จัดกลุ่มไว้ด้วยกัน) --- */}
             {user.is_staff && (
               <>
+                <NavLink to='/tasks/all' className='nav-link'>
+                  Task Report
+                </NavLink>
                 <NavLink to='/workload' className='nav-link'>
                   Workload
                 </NavLink>

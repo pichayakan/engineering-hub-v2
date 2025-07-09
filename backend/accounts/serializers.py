@@ -66,6 +66,7 @@ class UserSerializer(serializers.ModelSerializer):
             "is_staff",
             "department",
             "department_name",
+            "phone_number",
         ]
 
 

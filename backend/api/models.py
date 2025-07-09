@@ -4,6 +4,7 @@ from django.db import models
 from django.conf import settings
 import uuid
 from accounts.models import Department
+from datetime import date
 
 
 class Project(models.Model):
@@ -76,6 +77,14 @@ class Task(models.Model):
         null=True,
         blank=True,
     )
+    
+    @property
+    def days_remaining(self):
+        if not self.due_date:
+            return None
+        today = date.today()
+        remaining = (self.due_date - today).days
+        return remaining
 
     class Meta:
         ordering = ["created_at"]
