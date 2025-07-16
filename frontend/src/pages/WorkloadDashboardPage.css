@@ -48,6 +48,7 @@
     font-weight: 600;
     font-size: 1.1rem;
     text-align: center;
+    
 }
 
 .stat-total { color: #f5f5f5; }
@@ -57,3 +58,8 @@
 
 .stat-pending { color: #d9534f; }
 .stat-accepted { color: #5cb85c; }
+
+.member-name-cell {
+    font-weight: 600;
+    color: #f5f5f5; /* สีขาวสว่าง */
+}

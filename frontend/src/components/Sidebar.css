@@ -1,0 +1,150 @@
+/* frontend/src/components/Sidebar.css */
+.sidebar {
+    grid-area: sidebar;
+    background-color: var(--nt-dark-gray);
+    padding: 0; /* Remove default padding to have more control */
+    display: flex;
+    flex-direction: column;
+    /* For mobile: hide it off-screen to the left */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 250px;
+    height: 100%;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 40;
+}
+
+/* When the sidebar is open, slide it in */
+.sidebar.is-open {
+    transform: translateX(0);
+}
+
+/* For medium screens and up, make the sidebar static */
+@media (min-width: 768px) {
+    .sidebar {
+        position: static;
+        transform: none;
+        height: auto;
+    }
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #495057;
+    flex-shrink: 0;
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    color: var(--nt-white);
+}
+
+.sidebar-close-btn {
+    background: none;
+    border: none;
+    color: var(--nt-text-light);
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+/* Hide the mobile header and close button on larger screens */
+@media (min-width: 768px) {
+    .sidebar-header {
+        display: none;
+    }
+}
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 30;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.sidebar-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+    overflow-y: auto; /* Allow scrolling if menu is long */
+    flex-grow: 1;
+}
+
+.sidebar-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.8rem 1.5rem;
+    color: var(--nt-text-light);
+    text-decoration: none;
+    font-weight: 500;
+    border-left: 4px solid transparent;
+    transition: background-color 0.2s, border-left-color 0.2s;
+}
+
+.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-link.active {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-left-color: var(--nt-yellow);
+    color: var(--nt-white);
+    font-weight: 600;
+}
+
+.notification-badge {
+    background-color: #d9534f;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0 4px;
+}
+
+.sidebar-footer {
+    padding: 1.5rem;
+    margin-top: auto; /* Pushes the footer to the bottom */
+    border-top: 1px solid #495057;
+    flex-shrink: 0;
+}
+
+.sidebar-logout-button {
+    width: 100%;
+    background-color: #f44336; /* Red for important actions */
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+.sidebar-logout-button:hover {
+    background-color: #d32f2f; /* Darker red on hover */
+}

@@ -154,6 +154,22 @@
     border-color: #4a4a4a;
 }
 
+.task-project-link {
+    background-color: #4a4a4a; /* สีเทาเข้มขึ้นเล็กน้อย */
+    color: #e0e0e0;
+    padding: 3px 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.task-project-link:hover {
+    background-color: var(--nt-yellow); /* ใช้สีเหลืองหลักของ Theme */
+    color: var(--nt-text-dark); /* เปลี่ยนตัวหนังสือเป็นสีเข้มเพื่อให้ตัดกับพื้นหลัง */
+    text-decoration: none;
+}
+
 .task-comment-count, .task-attachment-count { /* เพิ่ม .task-attachment-count */
     display: flex;
     align-items: center;

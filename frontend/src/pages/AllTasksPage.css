@@ -46,7 +46,7 @@
   background-color: #2a2a2a;
 }
 .tasks-table tbody tr:hover {
-  background-color: #252525;
+  background-color:#beeaed;
 }
 .accepted-status {
   display: flex;
@@ -105,7 +105,7 @@
   background-color: #555;
 }
 .task-title-link {
-  color: #f5f5f5;
+  color:rgb(235, 180, 13);
   font-weight: 500;
   text-decoration: none;
 }

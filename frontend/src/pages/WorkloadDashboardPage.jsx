@@ -45,7 +45,7 @@ function WorkloadDashboardPage() {
               <tbody>
                 {team.members_workload.map((member) => (
                   <tr key={member.id}>
-                    <td>
+                    <td className='member-name-cell'>
                       {member.first_name} {member.last_name} ({member.username})
                     </td>
                     <td className='stat-cell stat-total'>

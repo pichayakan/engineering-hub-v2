@@ -42,3 +42,7 @@
     flex-direction: column;
     gap: 1rem;
 }
+
+.task-main-info {
+    color: #d32f2f
+}

@@ -1,18 +1,26 @@
 /* frontend/src/index.css */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+/* 1. Import Font ที่ดูเป็นทางการและอ่านง่าย */
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
 
+/* 2. กำหนดตัวแปรสีหลักสำหรับ Theme ใหม่ */
 :root {
+  --nt-yellow: #fed000;
+  --nt-dark-gray: #343a40; /* สีเทาเข้มสำหรับ Sidebar */
+  --nt-light-gray: #f8f9fa; /* สีเทาอ่อนสำหรับพื้นหลัง */
+  --nt-white: #ffffff;
+  --nt-text-dark: #212529;
+  --nt-text-light: #f8f9fa;
+  --nt-border-color: #dee2e6;
+}
+
+/* 3. กำหนดสไตล์พื้นฐานให้กับ body */
+body {
+  margin: 0;
+  font-family: 'Sarabun', sans-serif;
+  background-color: var(--nt-light-gray); /* เปลี่ยนพื้นหลังเป็นสีเทาอ่อน */
+  color: var(--nt-text-dark); /* เปลี่ยนสีตัวหนังสือพื้นฐานเป็นสีเข้ม */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  margin: 0;
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  background-color: #121212; /* สีพื้นหลังหลักของแอป */
-  color: rgba(255, 255, 255, 0.87);
 }

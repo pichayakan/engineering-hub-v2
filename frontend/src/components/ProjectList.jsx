@@ -22,7 +22,6 @@ function ProjectList({ projects }) {
             <Link to={`/projects/${p.id}`} className='project-link'>
               <div className='project-link-main'>
                 <span className='project-name'>{p.name}</span>
-                {/* --- ส่วนที่เพิ่มเข้ามา --- */}
                 <div className='project-task-summary'>
                   <span>
                     Tasks: {p.completed_tasks} / {p.total_tasks}
