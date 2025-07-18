@@ -24,6 +24,9 @@ function Sidebar({ isOpen, onClose }) {
         <nav className='sidebar-nav'>
           {user && (
             <>
+              <NavLink to='/' className='sidebar-link' onClick={onClose} end>
+                Home
+              </NavLink>
               <NavLink
                 to='/dashboard'
                 className='sidebar-link'
@@ -31,10 +34,15 @@ function Sidebar({ isOpen, onClose }) {
               >
                 Dashboard
               </NavLink>
-              <NavLink to='/' className='sidebar-link' onClick={onClose} end>
+
+              <NavLink
+                to='/projects'
+                className='sidebar-link'
+                onClick={onClose}
+                end
+              >
                 All Projects
               </NavLink>
-
               {/* --- ส่วนที่แก้ไข --- */}
               <NavLink
                 to='/my-tasks'

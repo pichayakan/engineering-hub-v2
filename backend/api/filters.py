@@ -1,11 +1,11 @@
 # backend/api/filters.py
 from django_filters import rest_framework as filters
-from .models import Task
+from .models import Task, Project
 from datetime import date, timedelta
 
 
 class TaskFilter(filters.FilterSet):
-    # สร้าง Filter field ใหม่ชื่อ 'date_range'
+    # --- เพิ่มส่วนที่ขาดหายไปกลับเข้ามา ---
     date_range = filters.ChoiceFilter(
         label="Date Range",
         method="filter_by_date_range",
@@ -18,9 +18,16 @@ class TaskFilter(filters.FilterSet):
         ],
     )
 
+    project = filters.ModelChoiceFilter(
+        field_name="project", queryset=Project.objects.all()
+    )
+    status = filters.ChoiceFilter(choices=Task.STATUS_CHOICES)
+    priority = filters.ChoiceFilter(choices=Task.PRIORITY_CHOICES)
+
     class Meta:
         model = Task
-        fields = ["date_range"]
+        # เพิ่มชื่อ fields ใหม่เข้าไป
+        fields = ["date_range", "project", "status", "priority"]
 
     def filter_by_date_range(self, queryset, name, value):
         today = date.today()

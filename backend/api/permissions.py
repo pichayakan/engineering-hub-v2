@@ -33,3 +33,17 @@ def user_can_assign_to(assigner: User, assignee: User) -> bool:
             authorized_department_ids.add(sub_dept.id)
 
     return assignee.department.id in authorized_department_ids
+
+
+class IsEventCreatorOrReadOnly(permissions.BasePermission):
+    """
+    Custom permission to only allow creators of an event to edit or delete it.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        # อนุญาตให้ดูข้อมูลได้เสมอ (GET, HEAD, OPTIONS)
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        # อนุญาตให้แก้ไข/ลบได้เฉพาะผู้ที่สร้าง event เท่านั้น
+        return obj.created_by == request.user

@@ -19,12 +19,16 @@ function Navbar() {
         {user && (
           <>
             {/* --- Links for All Logged-in Users --- */}
+            <NavLink to='/' className='nav-link' end>
+              Home
+            </NavLink>
             <NavLink to='/dashboard' className='nav-link'>
               Dashboard
             </NavLink>
-            <NavLink to='/' className='nav-link' end>
+            <NavLink to='/projects' className='nav-link' end>
               All Projects
             </NavLink>
+            <NavLink to='/dashboard' className='nav-link'></NavLink>
             <NavLink to='/my-tasks' className='nav-link'>
               My Tasks
               {unseenTaskCount > 0 && (

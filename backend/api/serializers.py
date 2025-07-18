@@ -8,6 +8,10 @@ from .models import (
     TaskAttachment,
     Activity,
     SharedFile,
+    Announcement,
+    CalendarEvent,
+    AnnouncementAttachment,
+    CalendarEventAttachment,
 )
 from accounts.models import User, Department
 from accounts.serializers import UserListSerializer
@@ -191,3 +195,55 @@ class AssignerPerformanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "username", "first_name", "last_name", "created_tasks_details"]
+
+
+class AnnouncementAttachmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AnnouncementAttachment
+        fields = ["id", "name", "file"]
+
+
+class CalendarEventAttachmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CalendarEventAttachment
+        fields = ["id", "name", "file"]
+
+
+class AnnouncementSerializer(serializers.ModelSerializer):
+    author_details = UserListSerializer(source="author", read_only=True)
+    attachments = AnnouncementAttachmentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Announcement
+        fields = [
+            "id",
+            "title",
+            "content",
+            "author_details",
+            "created_at",
+            "is_pinned",
+            "attachments",
+        ]
+
+
+class CalendarEventSerializer(serializers.ModelSerializer):
+    created_by_details = UserListSerializer(source="created_by", read_only=True)
+    participants_details = UserListSerializer(
+        source="participants", many=True, read_only=True
+    )
+    attachments = CalendarEventAttachmentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = CalendarEvent
+        fields = [
+            "id",
+            "title",
+            "description",
+            "start_time",
+            "end_time",
+            "created_by_details",
+            "participants",
+            "participants_details",
+            "attachments",
+        ]
+        extra_kwargs = {"participants": {"write_only": True, "required": False}}

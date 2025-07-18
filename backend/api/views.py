@@ -22,6 +22,9 @@ from .models import (
     TaskAttachment,
     Activity,
     SharedFile,
+    Announcement,
+    CalendarEvent,
+    CalendarEventAttachment
 )
 from accounts.models import User, Department
 
@@ -34,9 +37,13 @@ from .serializers import (
     TaskAttachmentSerializer,
     ActivitySerializer,
     SharedFileSerializer,
+    AnnouncementSerializer,
+    CalendarEventSerializer,
+    CalendarEventAttachmentSerializer
 )
 from accounts.serializers import AssignerPerformanceSerializer, MemberWorkloadSerializer,DepartmentWorkloadSerializer
 
+from .permissions import IsEventCreatorOrReadOnly
 
 # --- Pagination Class ---
 class StandardResultsSetPagination(PageNumberPagination):
@@ -423,3 +430,63 @@ class AllTasksView(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = TaskFilter
     search_fields = ["title", "project__name"]  # เพิ่มความสามารถในการค้นหา
+    
+    
+class AnnouncementViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only endpoint for announcements. Created/edited via Django Admin.
+    """
+
+    queryset = Announcement.objects.all()
+    serializer_class = AnnouncementSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class CalendarEventViewSet(viewsets.ModelViewSet):
+    """
+    Endpoint for managing calendar events.
+    """
+
+    serializer_class = CalendarEventSerializer
+    permission_classes = [permissions.IsAuthenticated, IsEventCreatorOrReadOnly]
+
+    def get_queryset(self):
+        # Users can only see events they created or are participating in
+        return CalendarEvent.objects.filter(
+            Q(created_by=self.request.user) | Q(participants=self.request.user)
+        ).distinct()
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+        
+class RecentlyCompletedTasksView(generics.ListAPIView):
+    """
+    API endpoint to list the 5 most recently completed tasks.
+    """
+
+    queryset = Task.objects.filter(status="Done").order_by("-updated_at")[:5]
+    serializer_class = TaskSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class RecentFilesView(generics.ListAPIView):
+    """
+    API endpoint to list the 5 most recently uploaded shared files.
+    """
+
+    queryset = SharedFile.objects.all().order_by("-uploaded_at")[:5]
+    serializer_class = SharedFileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+class CalendarEventAttachmentViewSet(viewsets.ModelViewSet):
+    queryset = CalendarEventAttachment.objects.all()
+    serializer_class = CalendarEventAttachmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # กรองไฟล์แนบตาม event_pk ที่ได้จาก URL
+        return self.queryset.filter(event_id=self.kwargs["event_pk"])
+
+    def perform_create(self, serializer):
+        event = CalendarEvent.objects.get(pk=self.kwargs["event_pk"])
+        serializer.save(event=event)

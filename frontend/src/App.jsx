@@ -8,6 +8,7 @@ import Sidebar from './components/Sidebar.jsx'
 
 // Import Page Components
 import HomePage from './pages/HomePage.jsx'
+import AllProjectsPage from './pages/AllProjectsPage.jsx'
 import ProjectDetail from './pages/ProjectDetail.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
@@ -53,6 +54,7 @@ function App() {
               {/* Routes for all authenticated users */}
               <Route path='/' element={<HomePage />} />
               <Route path='/dashboard' element={<DashboardPage />} />
+              <Route path='/projects' element={<AllProjectsPage />} />
               <Route path='/my-tasks' element={<MyTasksPage />} />
               <Route path='/share' element={<FileSharerPage />} />
               <Route path='/projects/:projectId' element={<ProjectDetail />} />

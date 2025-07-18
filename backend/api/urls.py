@@ -17,7 +17,12 @@ from .views import (
     DashboardStatsView,  # 1. Import Dashboard views
     MemberWorkloadView,
     AssignerPerformanceView,
-    AllTasksView
+    AllTasksView,
+    AnnouncementViewSet,
+    CalendarEventViewSet,
+    RecentFilesView,
+    RecentlyCompletedTasksView,
+    CalendarEventAttachmentViewSet
 )
 
 router = routers.SimpleRouter()
@@ -35,6 +40,14 @@ tasks_router.register(
     r"attachments", TaskAttachmentViewSet, basename="task-attachments"
 )
 tasks_router.register(r"activities", ActivityViewSet, basename="task-activities")
+
+router.register(r"announcements", AnnouncementViewSet, basename="announcement")
+router.register(r"events", CalendarEventViewSet, basename="event")
+
+events_router = routers.NestedSimpleRouter(router, r"events", lookup="event")
+events_router.register(
+    r"attachments", CalendarEventAttachmentViewSet, basename="event-attachments"
+)
 
 urlpatterns = [
     # --- Dashboard & User-specific URLs ---
@@ -68,4 +81,11 @@ urlpatterns = [
     path("", include(projects_router.urls)),
     path("", include(tasks_router.urls)),
     path("all-tasks/", AllTasksView.as_view(), name="all-tasks"),
+    path(
+        "recently-completed-tasks/",
+        RecentlyCompletedTasksView.as_view(),
+        name="recently-completed-tasks",
+    ),
+    path("recent-files/", RecentFilesView.as_view(), name="recent-files"),
+    path("", include(events_router.urls)),
 ]

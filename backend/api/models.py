@@ -78,6 +78,8 @@ class Task(models.Model):
         blank=True,
     )
     
+    updated_at = models.DateTimeField(auto_now=True)
+    
     @property
     def days_remaining(self):
         if not self.due_date:
@@ -157,3 +159,71 @@ class SharedFile(models.Model):
 
     def __str__(self):
         return self.title
+
+class Announcement(models.Model):
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_pinned = models.BooleanField(
+        default=False, help_text="Pinned announcements will appear at the top."
+    )
+
+    class Meta:
+        ordering = ["-is_pinned", "-created_at"]
+
+    def __str__(self):
+        return self.title
+
+
+class CalendarEvent(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="created_events",
+        on_delete=models.CASCADE,
+    )
+    participants = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="events", blank=True
+    )
+
+    def __str__(self):
+        return self.title
+
+
+# --- เพิ่ม Models สำหรับไฟล์แนบไว้ท้ายสุด ---
+
+
+class AnnouncementAttachment(models.Model):
+    announcement = models.ForeignKey(
+        "Announcement", related_name="attachments", on_delete=models.CASCADE
+    )
+    file = models.FileField(upload_to="announcement_attachments/")
+    name = models.CharField(max_length=255, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.name:
+            self.name = self.file.name.split("/")[-1]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+class CalendarEventAttachment(models.Model):
+    event = models.ForeignKey(
+        "CalendarEvent", related_name="attachments", on_delete=models.CASCADE
+    )
+    file = models.FileField(upload_to="event_attachments/")
+    name = models.CharField(max_length=255, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.name:
+            self.name = self.file.name.split("/")[-1]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name

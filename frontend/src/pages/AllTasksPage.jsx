@@ -18,21 +18,46 @@ const FILTER_OPTIONS = [
 function AllTasksPage() {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
-  const [dateFilter, setDateFilter] = useState('')
-  const [searchTerm, setSearchTerm] = useState('')
+  const [totalTasks, setTotalTasks] = useState(0)
+
+  // --- State for Filters ---
+  const [filters, setFilters] = useState({
+    date_range: '',
+    search: '',
+    project: '',
+    status: '',
+    priority: '',
+  })
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalTasks, setTotalTasks] = useState(0)
+
+  // --- State for Dropdown Data ---
+  const [projectOptions, setProjectOptions] = useState([])
   const [visiblePhoneUser, setVisiblePhoneUser] = useState(null)
 
-  const fetchAllTasks = useCallback(async (page, filter, search) => {
+  // Fetch data for dropdowns on initial load
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const projectsRes = await apiClient.get('/api/projects/')
+        setProjectOptions(projectsRes.data.results || [])
+      } catch (error) {
+        console.error('Failed to fetch filter options', error)
+      }
+    }
+    fetchFilterOptions()
+  }, [])
+
+  const fetchAllTasks = useCallback(async (page, currentFilters) => {
     setLoading(true)
     try {
-      const params = {
-        page: page,
-        date_range: filter,
-        search: search,
-      }
+      const params = { page, ...currentFilters }
+      // Remove empty filter values before sending
+      Object.keys(params).forEach((key) => {
+        if (params[key] === '' || params[key] === null) {
+          delete params[key]
+        }
+      })
       const response = await apiClient.get('/api/all-tasks/', { params })
       setTasks(response.data.results)
       setTotalTasks(response.data.count)
@@ -44,26 +69,31 @@ function AllTasksPage() {
     }
   }, [])
 
+  // Debounce filters
   useEffect(() => {
-    // Debounce search term
     const handler = setTimeout(() => {
-      setCurrentPage(1) // Reset to page 1 on new search
-      fetchAllTasks(1, dateFilter, searchTerm)
-    }, 500) // 500ms delay
+      if (currentPage !== 1) {
+        setCurrentPage(1)
+      } else {
+        fetchAllTasks(1, filters)
+      }
+    }, 500)
+    return () => clearTimeout(handler)
+  }, [filters])
 
-    return () => {
-      clearTimeout(handler)
-    }
-  }, [searchTerm, dateFilter, fetchAllTasks])
+  useEffect(() => {
+    fetchAllTasks(currentPage, filters)
+  }, [currentPage, fetchAllTasks])
 
-  const handleFilterChange = (filter) => {
-    setCurrentPage(1)
-    setDateFilter(filter)
+  const handleFilterChange = (filterName, value) => {
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      [filterName]: value,
+    }))
   }
 
   const handlePageChange = (page) => {
     setCurrentPage(page)
-    fetchAllTasks(page, dateFilter, searchTerm)
   }
 
   const togglePhoneVisibility = (user) => {
@@ -91,27 +121,65 @@ function AllTasksPage() {
 
   return (
     <div>
-      <h1 style={{ marginBottom: '0.5rem' }}>All Tasks Report</h1>
-      <p style={{ color: '#a0a0a0', marginTop: 0, marginBottom: '2rem' }}>
+      <h1>All Tasks Report</h1>
+      <p style={{ color: '#6c757d', marginTop: 0, marginBottom: '2rem' }}>
         A complete overview of all tasks in the system. Total: {totalTasks}{' '}
         tasks.
       </p>
 
       <div className='controls-wrapper'>
-        <SearchInput value={searchTerm} onChange={setSearchTerm} />
+        <SearchInput
+          value={filters.search}
+          onChange={(val) => handleFilterChange('search', val)}
+        />
         <div className='filter-bar'>
           {FILTER_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               className={`filter-button ${
-                dateFilter === opt.value ? 'active' : ''
+                filters.date_range === opt.value ? 'active' : ''
               }`}
-              onClick={() => handleFilterChange(opt.value)}
+              onClick={() => handleFilterChange('date_range', opt.value)}
             >
               {opt.label}
             </button>
           ))}
         </div>
+      </div>
+
+      <div className='advanced-filters'>
+        <select
+          className='filter-select'
+          value={filters.project}
+          onChange={(e) => handleFilterChange('project', e.target.value)}
+        >
+          <option value=''>All Projects</option>
+          {projectOptions.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className='filter-select'
+          value={filters.status}
+          onChange={(e) => handleFilterChange('status', e.target.value)}
+        >
+          <option value=''>All Statuses</option>
+          <option value='To Do'>To Do</option>
+          <option value='In Progress'>In Progress</option>
+          <option value='Done'>Done</option>
+        </select>
+        <select
+          className='filter-select'
+          value={filters.priority}
+          onChange={(e) => handleFilterChange('priority', e.target.value)}
+        >
+          <option value=''>All Priorities</option>
+          <option value='Low'>Low</option>
+          <option value='Medium'>Medium</option>
+          <option value='High'>High</option>
+        </select>
       </div>
 
       <div className='tasks-table-wrapper'>

@@ -1,157 +1,218 @@
-.filter-bar {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
+/* frontend/src/pages/AllTasksPage.css */
+
+.filter-container {
+    background-color: var(--nt-white);
+    border: 1px solid var(--nt-border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
 }
-.filter-button {
-  background-color: #3f3f3f;
-  color: #e0e0e0;
-  padding: 0.5rem 1rem;
-  border: 1px solid #555;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.2s;
+
+.controls-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--nt-border-color);
 }
-.filter-button.active {
-  background-color: #5a9eee;
-  color: white;
-  border-color: #5a9eee;
+
+@media (min-width: 768px) {
+    .controls-wrapper {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
 }
-.filter-button:hover:not(.active) {
-  background-color: #4a4a4a;
+
+.filter-bar { 
+    display: flex; 
+    gap: 0.5rem; 
+    flex-wrap: wrap; 
 }
-.tasks-table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-  border: 1px solid #363636;
-  border-radius: 8px;
+
+.filter-button { 
+    background-color: #e9ecef; 
+    color: #495057; 
+    padding: 0.5rem 1rem; 
+    border: 1px solid #dee2e6; 
+    border-radius: 20px; 
+    cursor: pointer; 
+    transition: all 0.2s; 
+    font-weight: 500;
 }
-.tasks-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
+.filter-button.active { 
+    background-color: var(--nt-yellow); 
+    color: var(--nt-text-dark); 
+    border-color: var(--nt-yellow); 
+    font-weight: 600;
 }
-.tasks-table th,
-.tasks-table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #2a2a2a;
-  vertical-align: middle;
-  white-space: nowrap;
+.filter-button:hover:not(.active) { 
+    background-color: #dee2e6; 
 }
-.tasks-table th {
-  font-size: 0.85rem;
-  color: #a0a0a0;
-  text-transform: uppercase;
-  background-color: #2a2a2a;
+
+.advanced-filters {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
-.tasks-table tbody tr:hover {
-  background-color:#beeaed;
+
+.filter-select {
+    background-color: var(--nt-white);
+    border: 1px solid var(--nt-border-color);
+    border-radius: 8px;
+    padding: 0.5rem 0.8rem;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 0.9rem;
+    color: var(--nt-text-dark);
+    min-width: 180px;
 }
-.accepted-status {
-  display: flex;
-  flex-direction: column;
-  font-size: 0.8rem;
+
+.controls-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
 }
-.accepted-status .accepted {
-  color: #5cb85c;
+
+@media (min-width: 768px) {
+    .controls-wrapper {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
 }
+
+.filter-bar { 
+    display: flex; 
+    gap: 0.5rem; 
+    flex-wrap: wrap; 
+}
+
+.filter-button { 
+    background-color: #3f3f3f; 
+    color: #e0e0e0; 
+    padding: 0.5rem 1rem; 
+    border: 1px solid #555; 
+    border-radius: 20px; 
+    cursor: pointer; 
+    transition: all 0.2s; 
+}
+.filter-button.active { 
+    background-color: var(--nt-yellow); 
+    color: var(--nt-text-dark); 
+    border-color: var(--nt-yellow); 
+    font-weight: 600;
+}
+.filter-button:hover:not(.active) { 
+    background-color: #4a4a4a; 
+}
+
+.tasks-table-wrapper { 
+    width: 100%; 
+    overflow-x: auto; 
+    border: 1px solid var(--nt-border-color); 
+    border-radius: 8px; 
+    background-color: var(--nt-white);
+}
+.tasks-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    text-align: left; 
+}
+.tasks-table th, .tasks-table td { 
+    padding: 1rem; 
+    border-bottom: 1px solid var(--nt-border-color); 
+    vertical-align: top; /* จัดชิดบนเพื่อให้สม่ำเสมอ */
+}
+.tasks-table th { 
+    font-size: 0.8rem; 
+    color: #6c757d; 
+    text-transform: uppercase; 
+    background-color: #f8f9fa; 
+    font-weight: 600;
+}
+.tasks-table tbody tr:last-child td {
+    border-bottom: none; /* เอาเส้นใต้ของแถวสุดท้ายออก */
+}
+.tasks-table tbody tr:hover { 
+    background-color: #f1f3f5; 
+}
+
+/* --- ส่วนที่แก้ไข --- */
+.accepted-status .accepted,
 .accepted-status .not-accepted {
-  color: #d9534f;
+    display: block; /* ทำให้แต่ละอันขึ้นบรรทัดใหม่ */
+    font-size: 0.85rem;
 }
 
-.assigned-to-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.assignee-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.assignee-badge,
-.team-badge {
-  padding: 0.25rem 0.6rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  line-height: 1.2;
-}
-.assignee-badge {
-  background-color: #3f3f3f;
-  color: #e0e0e0;
-}
-.team-badge {
-  background-color: #00a6a6;
-  color: white;
+.accepted-status .accepted:not(:last-child),
+.accepted-status .not-accepted:not(:last-child) {
+    margin-bottom: 0.25rem; /* สร้างระยะห่างแทน gap */
 }
 
-.accepted-status .accepted.clickable {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-  text-align: left;
+.accepted-status .accepted { 
+    color: #198754; /* สีเขียวเข้ม */
+    font-weight: 500;
 }
-.accepted-status .accepted.clickable:hover {
-  text-decoration: underline;
+.accepted-status .not-accepted { 
+    color: #dc3545; /* สีแดงเข้ม */
+    font-style: italic;
 }
-.assignee-badge.clickable {
-  cursor: pointer;
-}
-.assignee-badge.clickable:hover {
-  background-color: #555;
-}
-.task-title-link {
-  color:rgb(235, 180, 13);
-  font-weight: 500;
-  text-decoration: none;
-}
-.task-title-link:hover {
-  color: #5a9eee;
-  text-decoration: underline;
-}
-.name-button {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  text-align: left;
-}
-.name-button:hover {
-  text-decoration: underline;
-  color: #5a9eee;
-}
-.phone-tooltip {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #1e1e1e;
-  color: white;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  border: 1px solid #363636;
-  z-index: 1000;
-}
+/* --- จบส่วนที่แก้ไข --- */
 
-.text-red-500 {
-  color: #ef4444;
+.assignee-badge, .team-badge { 
+    padding: 0.25rem 0.6rem; 
+    border-radius: 12px; 
+    font-size: 0.8rem; 
+    font-weight: 500; 
+    line-height: 1.2; 
 }
-.text-yellow-500 {
-  color: #f59e0b;
+.assignee-badge { 
+    background-color: #e9ecef; 
+    color: #495057; 
 }
-.text-green-500 {
-  color: #22c55e;
+.team-badge { 
+    background-color: #0dcaf0; 
+    color: var(--nt-text-dark); 
 }
-.text-gray-500 {
-  color: #6b7280;
+.task-title-link { 
+    color: var(--nt-text-dark); 
+    font-weight: 600; 
+    text-decoration: none; 
 }
-.font-bold {
-  font-weight: 700;
+.task-title-link:hover { 
+    color: #0d6efd; 
+    text-decoration: underline; 
 }
+.name-button { 
+    background: none; 
+    border: none; 
+    padding: 0; 
+    font: inherit; 
+    color: inherit; 
+    cursor: pointer; 
+    text-align: left; 
+}
+.name-button:hover { 
+    text-decoration: underline; 
+    color: #0d6efd; 
+}
+.phone-tooltip { 
+    position: fixed; 
+    bottom: 20px; 
+    left: 50%; 
+    transform: translateX(-50%); 
+    background-color: var(--nt-dark-gray); 
+    color: white; 
+    padding: 1rem; 
+    border-radius: 8px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+    z-index: 1000; 
+}
+.text-red-500 { color: #dc3545; }
+.text-yellow-500 { color: #ffc107; }
+.text-green-500 { color: #198754; }
+.text-gray-500 { color: #6c757d; }
+.font-bold { font-weight: 700; }

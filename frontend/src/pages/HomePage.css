@@ -1,23 +1,86 @@
 /* frontend/src/pages/HomePage.css */
-.homepage-layout {
+.home-dashboard-layout {
     display: grid;
-    grid-template-columns: 1fr; /* ค่าเริ่มต้นสำหรับจอมือถือ */
-    gap: 2rem;
+    grid-template-columns: 1fr; /* 1 คอลัมน์สำหรับจอเล็ก */
+    gap: 1.5rem;
 }
 
-/* สำหรับจอที่กว้างกว่า 992px */
-@media (min-width: 992px) {
-    .homepage-layout {
-        /* แบ่ง 2 คอลัมน์: คอลัมน์แรกยืดหยุ่น, คอลัมน์สองกว้าง 400px */
-        grid-template-columns: 1fr 450px; 
-    }
-
-    .project-list-section {
-        grid-column: 1 / 2; /* รายการอยู่คอลัมน์แรก */
-    }
-
-    .add-project-section {
-        grid-column: 2 / 3; /* ฟอร์มอยู่คอลัมน์สอง */
-        grid-row: 1 / 2; /* ให้อยู่แถวแรก */
+/* สำหรับจอขนาดกลางขึ้นไป */
+@media (min-width: 768px) {
+    .home-dashboard-layout {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* สำหรับจอใหญ่ */
+@media (min-width: 1024px) {
+    .home-dashboard-layout {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: auto 1fr;
+    }
+}
+
+.widget {
+    background-color: var(--nt-white);
+    border: 1px solid var(--nt-border-color);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* ป้องกันเนื้อหาล้นขอบ */
+}
+
+.widget-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--nt-border-color);
+}
+
+.widget-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--nt-text-dark);
+}
+
+.widget-content {
+    padding: 1.5rem;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+/* Calendar Widget */
+.calendar-widget {
+    grid-column: 1 / -1; /* เต็มความกว้างในทุกขนาดจอ */
+}
+@media (min-width: 1024px) {
+    .calendar-widget {
+        grid-column: 1 / 3; /* กินพื้นที่ 2 คอลัมน์บนจอใหญ่ */
+        grid-row: 1 / 3; /* กินพื้นที่ 2 แถวบนจอใหญ่ */
+    }
+}
+.calendar-widget .widget-content {
+    padding: 0.5rem;
+    height: 75vh; /* กำหนดความสูงของปฏิทิน */
+}
+/* FullCalendar custom styles */
+.fc { font-size: 0.9rem; }
+.fc .fc-toolbar-title { font-size: 1.25rem; font-weight: 600; }
+.fc .fc-button { background-color: var(--nt-dark-gray) !important; border: none !important; opacity: 0.9; }
+.fc .fc-button:hover { opacity: 1; }
+.fc-event { border: none !important; padding: 2px 5px !important; font-size: 0.8rem; }
+.fc-event-title { white-space: normal !important; overflow: visible !important; }
+
+/* Announcement Widget */
+.announcement-list { display: flex; flex-direction: column; gap: 1.5rem; }
+.announcement-item { padding-bottom: 1.5rem; border-bottom: 1px solid var(--nt-border-color); }
+.announcement-item:last-child { border-bottom: none; padding-bottom: 0; }
+.announcement-title { font-weight: 600; color: var(--nt-text-dark); margin-bottom: 0.25rem; }
+.announcement-meta { font-size: 0.8rem; color: #6c757d; }
+.announcement-attachments { margin-top: 0.75rem; }
+.attachment-link { display: flex; align-items: center; gap: 0.5rem; color: #0d6efd; text-decoration: none; font-size: 0.9rem; }
+.attachment-link:hover { text-decoration: underline; }
+
+/* Quick Access Widget */
+.quick-access-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+.quick-access-list li a { display: block; color: #0d6efd; text-decoration: none; padding: 0.5rem; border-radius: 6px; }
+.quick-access-list li a:hover { background-color: #e9ecef; text-decoration: underline; }
