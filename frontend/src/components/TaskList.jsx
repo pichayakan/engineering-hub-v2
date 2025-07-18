@@ -19,159 +19,48 @@ function TaskList({
 
   if (!tasks || tasks.length === 0) {
     return (
-      <p style={{ color: '#a0a0a0', textAlign: 'center', marginTop: '1rem' }}>
-        No tasks found.
-      </p>
+      <div className='task-list-container'>
+        <h3>Tasks</h3>
+        <p style={{ color: '#6c757d', textAlign: 'center', marginTop: '1rem' }}>
+          No tasks found.
+        </p>
+      </div>
     )
   }
 
   const formatClassName = (text) => (text ? text.replace(/\s+/g, '-') : '')
 
   return (
-    <div className='task-list-wrapper'>
-      {tasks.map((task) => {
-        const isDirectAssignee = task.assignees_details?.some(
-          (assignee) => assignee.id === user.id
-        )
-        const isDepartmentMember =
-          user.department &&
-          task.assigned_department &&
-          user.department === task.assigned_department
-        const isRelevantToUser = isDirectAssignee || isDepartmentMember
-        const hasUserAccepted = task.accepted_by?.includes(user.id)
+    <div className='task-list-container'>
+      <h3>Tasks</h3>
+      <div className='task-list-wrapper'>
+        {tasks.map((task) => {
+          const isDirectAssignee = task.assignees_details?.some(
+            (assignee) => assignee.id === user.id
+          )
+          const isDepartmentMember =
+            user.department &&
+            task.assigned_department &&
+            user.department === task.assigned_department
+          const isRelevantToUser = isDirectAssignee || isDepartmentMember
+          const hasUserAccepted = task.accepted_by?.includes(user.id)
 
-        const isTaskAcceptedByAnyone =
-          task.accepted_by && task.accepted_by.length > 0
-
-        return (
-          <div key={task.id}>
-            {/* --- DEBUGGING BLOCK: แสดงข้อมูลดิบ --- */}
-            <details
-              style={{
-                fontSize: '10px',
-                background: '#222',
-                padding: '5px',
-                margin: '10px',
-                border: '1px solid #444',
-                color: 'lightgreen',
-              }}
+          return (
+            <div
+              key={task.id}
+              className='task-card-clickable'
+              onClick={() => onView(task)}
             >
-              <summary>Debug Info for Task: "{task.title}"</summary>
-              <pre>
-                <strong>Task Data:</strong>
-                <br />
-                {JSON.stringify(task, null, 2)}
-              </pre>
-              <pre>
-                <strong>Current User Data:</strong>
-                <br />
-                {JSON.stringify(user, null, 2)}
-              </pre>
-              <pre>
-                <strong>Logic Results:</strong>
-                <br />
-                isDirectAssignee: {String(isDirectAssignee)}
-                <br />
-                isDepartmentMember: {String(isDepartmentMember)}
-                <br />
-                isRelevantToUser: {String(isRelevantToUser)}
-                <br />
-                hasUserAccepted: {String(hasUserAccepted)}
-              </pre>
-            </details>
-            {/* --- END DEBUGGING BLOCK --- */}
-
-            <div className='task-item-clickable' onClick={() => onView(task)}>
-              <div className='task-item'>
-                <div className='task-item-content'>
-                  <div className='task-main-info'>
-                    <h4>{task.title}</h4>
-                    <div className='task-meta'>
-                      <div>
-                        <strong>Assignees:</strong>
-                        <div className='assignee-list'>
-                          {task.assignees_details?.length > 0 ? (
-                            task.assignees_details.map((assignee) => (
-                              <div key={assignee.id} className='assignee-item'>
-                                <span>
-                                  {assignee.first_name} {assignee.last_name}
-                                </span>
-                                {task.accepted_by?.includes(assignee.id) && (
-                                  <span className='accepted-badge'>
-                                    ✔ Accepted
-                                  </span>
-                                )}
-                              </div>
-                            ))
-                          ) : task.assigned_department_details ? (
-                            <span className='unclaimed-text'>
-                              Unclaimed (Dept:{' '}
-                              {task.assigned_department_details.name})
-                            </span>
-                          ) : (
-                            'Unassigned'
-                          )}
-                        </div>
-                      </div>
-                      <span>
-                        <strong>Due:</strong> {task.due_date || 'N/A'}
-                      </span>
-                      {showProjectLink && task.project && (
-                        <span>
-                          <strong>Project:</strong>{' '}
-                          <Link
-                            to={`/projects/${task.project}`}
-                            className='task-project-link'
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {task.project_name || 'View Project'}
-                          </Link>
-                        </span>
-                      )}
-                      {task.comment_count > 0 && (
-                        <span
-                          className='task-comment-count'
-                          title={`${task.comment_count} comments`}
-                        >
-                          💬 {task.comment_count}
-                        </span>
-                      )}
-                      {task.attachment_count > 0 && (
-                        <span
-                          className='task-attachment-count'
-                          title={`${task.attachment_count} attachments`}
-                        >
-                          📎 {task.attachment_count}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className='task-right-section'>
-                    {isRelevantToUser && !isTaskAcceptedByAnyone && (
-                      <button
-                        className='accept-task-button'
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onAcceptTask(task.id, task.project)
-                        }}
-                      >
-                        Accept Task
-                      </button>
-                    )}
-
-                    {/* 2. แสดงปุ่ม Un-accept ถ้าเราเป็นคนกดรับงานนั้นไป */}
-                    {hasUserAccepted && (
-                      <button
-                        className='unaccept-task-button'
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onUnacceptTask(task.id, task.project)
-                        }}
-                      >
-                        Un-accept
-                      </button>
-                    )}
-                    <div className='status-select-wrapper'>
+              <div className='task-card'>
+                <div
+                  className={`priority-indicator priority-${formatClassName(
+                    task.priority
+                  )}`}
+                ></div>
+                <div className='task-card-content'>
+                  <div className='task-card-header'>
+                    <h4 className='task-card-title'>{task.title}</h4>
+                    <div className='task-card-status'>
                       <select
                         className='status-select'
                         value={task.status}
@@ -193,51 +82,75 @@ function TaskList({
                         ))}
                       </select>
                     </div>
-                    <span
-                      className={`priority-badge priority-${formatClassName(
-                        task.priority
-                      )}`}
-                    >
-                      {task.priority}
-                    </span>
-                    <div className='task-actions'>
+                  </div>
+                  <div className='task-card-body'>
+                    <div className='task-card-meta'>
+                      <div className='meta-item' title='Assignees'>
+                        👤{' '}
+                        {task.assignees_details
+                          ?.map((a) => a.first_name)
+                          .join(', ') || 'Unassigned'}
+                      </div>
+                      {task.due_date && (
+                        <div className='meta-item' title='Due Date'>
+                          🗓️ {new Date(task.due_date).toLocaleDateString()}
+                        </div>
+                      )}
+                      {task.comment_count > 0 && (
+                        <div className='meta-item' title='Comments'>
+                          💬 {task.comment_count}
+                        </div>
+                      )}
+                      {task.attachment_count > 0 && (
+                        <div className='meta-item' title='Attachments'>
+                          📎 {task.attachment_count}
+                        </div>
+                      )}
+                    </div>
+                    <div className='task-card-actions'>
+                      {isRelevantToUser && !hasUserAccepted && (
+                        <button
+                          className='accept-task-button'
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onAcceptTask(task.id, task.project)
+                          }}
+                        >
+                          Accept
+                        </button>
+                      )}
                       {onEdit && (
                         <button
                           title='Edit Task'
-                          className='action-button edit'
+                          className='action-button'
                           onClick={(e) => {
                             e.stopPropagation()
                             onEdit(task)
                           }}
                         >
-                          ✎
+                          Edit
                         </button>
                       )}
                       {onDelete && (
                         <button
                           title='Delete Task'
-                          className='action-button delete'
+                          className='action-button'
                           onClick={(e) => {
                             e.stopPropagation()
                             onDelete(task.id)
                           }}
                         >
-                          🗑️
+                          Delete
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
-                <div
-                  className={`task-status-bar status-${formatClassName(
-                    task.status
-                  )}`}
-                ></div>
               </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }

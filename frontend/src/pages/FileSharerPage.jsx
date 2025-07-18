@@ -1,28 +1,45 @@
+// frontend/src/pages/FileSharerPage.jsx
 import React, { useState, useEffect, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { QRCodeCanvas } from 'qrcode.react'
+import Select from 'react-select'
 import apiClient from '../api'
 import './FileSharerPage.css'
+import '../components/MultiSelect.css' // Re-use styles for Select component
 
 function FileSharerPage() {
   const [uploadedFile, setUploadedFile] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
   const [title, setTitle] = useState('')
   const [fileHistory, setFileHistory] = useState([])
-  const [copiedLinkId, setCopiedLinkId] = useState(null) // State สำหรับจัดการ feedback "Copied!"
+  const [categories, setCategories] = useState([])
+  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [historyFilter, setHistoryFilter] = useState('')
+  const [copiedLinkId, setCopiedLinkId] = useState(null)
 
-  const fetchHistory = useCallback(async () => {
+  const fetchCategories = useCallback(async () => {
     try {
-      const response = await apiClient.get('/api/share/history/')
-      setFileHistory(response.data)
+      const response = await apiClient.get('/api/share/categories/')
+      setCategories(response.data)
     } catch (error) {
-      console.error('Failed to fetch history:', error)
+      console.error('Failed to fetch categories:', error)
     }
   }, [])
 
+  const fetchHistory = useCallback(async () => {
+    try {
+      const params = { category: historyFilter || undefined }
+      const response = await apiClient.get('/api/share/history/', { params })
+      setFileHistory(response.data.results || response.data) // Handle pagination if added later
+    } catch (error) {
+      console.error('Failed to fetch history:', error)
+    }
+  }, [historyFilter])
+
   useEffect(() => {
+    fetchCategories()
     fetchHistory()
-  }, [fetchHistory])
+  }, [fetchCategories, fetchHistory])
 
   const onDrop = useCallback(
     (acceptedFiles) => {
@@ -30,7 +47,7 @@ function FileSharerPage() {
         handleUpload(acceptedFiles[0])
       }
     },
-    [title]
+    [title, selectedCategory]
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -47,12 +64,18 @@ function FileSharerPage() {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('title', title)
+    if (selectedCategory) {
+      formData.append('category', selectedCategory.value)
+    }
 
     try {
-      const response = await apiClient.post('/api/share/upload/', formData)
+      const response = await apiClient.post('/api/share/upload/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
       setUploadedFile(response.data)
       fetchHistory()
       setTitle('')
+      setSelectedCategory(null)
     } catch (error) {
       console.error('Upload failed:', error)
       alert('File upload failed.')
@@ -66,15 +89,12 @@ function FileSharerPage() {
     return `${baseURL.replace('/api', '')}/download/${fileId}/`
   }
 
-  // ฟังก์ชันสำหรับ Copy Link
   const handleCopyLink = (url, id) => {
     navigator.clipboard
       .writeText(url)
       .then(() => {
-        setCopiedLinkId(id) // ตั้งค่า ID ของลิงก์ที่ถูก copy
-        setTimeout(() => {
-          setCopiedLinkId(null) // เคลียร์ค่าหลังจาก 2 วินาที
-        }, 2000)
+        setCopiedLinkId(id)
+        setTimeout(() => setCopiedLinkId(null), 2000)
       })
       .catch((err) => {
         console.error('Could not copy text: ', err)
@@ -82,11 +102,16 @@ function FileSharerPage() {
       })
   }
 
+  const categoryOptions = categories.map((c) => ({
+    value: c.id,
+    label: c.name,
+  }))
+
   return (
     <div className='file-sharer-container'>
       <h1>File Sharer & QR Code Generator</h1>
       <p
-        style={{ color: '#a0a0a0', textAlign: 'center', marginBottom: '2rem' }}
+        style={{ color: '#6c757d', textAlign: 'center', marginBottom: '2rem' }}
       >
         Add a title, then upload a file to generate a shareable link and QR
         code.
@@ -100,6 +125,26 @@ function FileSharerPage() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder='Enter a title for your file...'
+        />
+      </div>
+
+      <div className='form-group'>
+        <label htmlFor='fileCategory'>Category (Optional)</label>
+        <Select
+          id='fileCategory'
+          options={categoryOptions}
+          onChange={setSelectedCategory}
+          value={selectedCategory}
+          isClearable
+          className='multi-select-container'
+          classNamePrefix='multi-select'
+          styles={{
+            control: (base) => ({
+              ...base,
+              backgroundColor: 'var(--nt-white)',
+              borderColor: 'var(--nt-border-color)',
+            }),
+          }}
         />
       </div>
 
@@ -142,12 +187,27 @@ function FileSharerPage() {
       )}
 
       <div className='history-section'>
-        <h2>Upload History</h2>
+        <div className='history-header'>
+          <h2>Upload History</h2>
+          <select
+            className='filter-select'
+            onChange={(e) => setHistoryFilter(e.target.value)}
+            value={historyFilter}
+          >
+            <option value=''>All Categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className='history-table-wrapper'>
           <table className='history-table'>
             <thead>
               <tr>
                 <th>Topic / Title</th>
+                <th>Category</th>
                 <th>Uploaded By</th>
                 <th>Date</th>
                 <th>QR Code</th>
@@ -161,6 +221,7 @@ function FileSharerPage() {
                     <div className='history-title'>{file.title}</div>
                     <div className='history-meta'>{file.filename}</div>
                   </td>
+                  <td>{file.category_details?.name || 'N/A'}</td>
                   <td>{file.uploaded_by_details?.username || 'N/A'}</td>
                   <td>{new Date(file.uploaded_at).toLocaleDateString()}</td>
                   <td className='qr-cell'>

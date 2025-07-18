@@ -1,0 +1,18 @@
+/* frontend/src/components/TaskTemplateSelector.css */
+.template-selector-group {
+    padding: 1rem 1.5rem;
+    background-color: #fdf8e1; /* สีเหลืองอ่อน */
+    border: 1px solid #fceec4;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.template-selector-group label {
+    font-weight: 600;
+    color: #856404; /* สีน้ำตาลเข้ม */
+    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+/* เราจะใช้สไตล์จาก MultiSelect.css สำหรับ Dropdown */

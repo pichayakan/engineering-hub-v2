@@ -243,6 +243,8 @@ function ProjectDetail() {
             users={users}
             isSubmitting={isAddingTask}
             availableTasks={tasks}
+            allDepartments={allDepartments}
+            project={project} // <-- เพิ่ม prop นี้เข้าไป
           />
         </div>
       </div>

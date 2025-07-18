@@ -12,10 +12,11 @@ from .models import (
     CalendarEvent,
     AnnouncementAttachment,
     CalendarEventAttachment,
+    FileCategory,
+    TaskTemplate,
 )
 from accounts.models import User, Department
 from accounts.serializers import UserListSerializer
-
 
 
 # --- Serializers หลัก ---
@@ -66,9 +67,9 @@ class TaskSerializer(serializers.ModelSerializer):
 
     comment_count = serializers.IntegerField(read_only=True)
     attachment_count = serializers.IntegerField(read_only=True)
-    
+
     created_by_details = UserListSerializer(source="created_by", read_only=True)
-    
+
     project_name = serializers.CharField(source="project.name", read_only=True)
     accepted_by_details = UserListSerializer(
         source="accepted_by", many=True, read_only=True
@@ -77,7 +78,7 @@ class TaskSerializer(serializers.ModelSerializer):
     prerequisites = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Task.objects.all(), write_only=True, required=False
     )
-    
+
     days_remaining = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -155,8 +156,16 @@ class ActivitySerializer(serializers.ModelSerializer):
         fields = ["id", "actor_details", "verb", "created_at"]
 
 
+class FileCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FileCategory
+        fields = ["id", "name"]
+
+
 class SharedFileSerializer(serializers.ModelSerializer):
     uploaded_by_details = UserListSerializer(source="uploaded_by", read_only=True)
+
+    category_details = FileCategorySerializer(source="category", read_only=True)
 
     class Meta:
         model = SharedFile
@@ -167,6 +176,8 @@ class SharedFileSerializer(serializers.ModelSerializer):
             "filename",
             "uploaded_at",
             "uploaded_by_details",
+            "category",
+            "category_details",
         ]
         read_only_fields = ["filename", "uploaded_at", "uploaded_by_details"]
 
@@ -176,16 +187,24 @@ class SharedFileSerializer(serializers.ModelSerializer):
 
 class TaskForAssignerSerializer(serializers.ModelSerializer):
     project_name = serializers.CharField(source="project.name", read_only=True)
-    assignees_details = UserListSerializer(source="assignees", many=True, read_only=True)
+    assignees_details = UserListSerializer(
+        source="assignees", many=True, read_only=True
+    )
     # เปลี่ยนจาก team เป็น department
-    assigned_department_details = DepartmentNameSerializer(source="assigned_department", read_only=True)
+    assigned_department_details = DepartmentNameSerializer(
+        source="assigned_department", read_only=True
+    )
 
     class Meta:
         model = Task
         fields = [
-            "id", "title", "project_name", "assignees_details",
-            "assigned_department_details", # แก้ไขจาก team เป็น department
-            "status", "created_at",
+            "id",
+            "title",
+            "project_name",
+            "assignees_details",
+            "assigned_department_details",  # แก้ไขจาก team เป็น department
+            "status",
+            "created_at",
         ]
 
 
@@ -247,3 +266,9 @@ class CalendarEventSerializer(serializers.ModelSerializer):
             "attachments",
         ]
         extra_kwargs = {"participants": {"write_only": True, "required": False}}
+
+
+class TaskTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskTemplate
+        fields = ["id", "name", "subject_template", "body_template"]

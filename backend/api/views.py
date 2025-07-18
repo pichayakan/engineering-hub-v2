@@ -1,4 +1,5 @@
 # backend/api/views.py
+from time import timezone
 from django.db.models import Count, Q
 from django.http import FileResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -10,6 +11,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import SearchFilter
+
+from django.utils import timezone
 
 from .filters import TaskFilter
 
@@ -24,7 +27,9 @@ from .models import (
     SharedFile,
     Announcement,
     CalendarEvent,
-    CalendarEventAttachment
+    CalendarEventAttachment,
+    FileCategory,
+    TaskTemplate,
 )
 from accounts.models import User, Department
 
@@ -39,7 +44,9 @@ from .serializers import (
     SharedFileSerializer,
     AnnouncementSerializer,
     CalendarEventSerializer,
-    CalendarEventAttachmentSerializer
+    CalendarEventAttachmentSerializer,
+    FileCategorySerializer,
+    TaskTemplateSerializer
 )
 from accounts.serializers import AssignerPerformanceSerializer, MemberWorkloadSerializer,DepartmentWorkloadSerializer
 
@@ -375,6 +382,11 @@ class MarkTasksAsSeenView(APIView):
         ).update(is_seen=True)
         return Response({"status": "success"})
 
+class FileCategoryListView(generics.ListAPIView):
+    queryset = FileCategory.objects.all().order_by("name")
+    serializer_class = FileCategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
 
 # --- File Sharer Views ---
 class FileUploadView(generics.CreateAPIView):
@@ -406,6 +418,9 @@ class SharedFileHistoryView(generics.ListAPIView):
     queryset = SharedFile.objects.all().order_by("-uploaded_at")
     serializer_class = SharedFileSerializer
     permission_classes = [permissions.IsAuthenticated]
+    # เพิ่มความสามารถในการกรอง
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["category"]
 
 
 class AllTasksView(generics.ListAPIView):
@@ -464,7 +479,7 @@ class RecentlyCompletedTasksView(generics.ListAPIView):
     API endpoint to list the 5 most recently completed tasks.
     """
 
-    queryset = Task.objects.filter(status="Done").order_by("-updated_at")[:5]
+    queryset = Task.objects.filter(status="Done").order_by("-updated_at")[:12]
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -474,7 +489,7 @@ class RecentFilesView(generics.ListAPIView):
     API endpoint to list the 5 most recently uploaded shared files.
     """
 
-    queryset = SharedFile.objects.all().order_by("-uploaded_at")[:5]
+    queryset = SharedFile.objects.all().order_by("-uploaded_at")[:12]
     serializer_class = SharedFileSerializer
     permission_classes = [permissions.IsAuthenticated]
     
@@ -490,3 +505,57 @@ class CalendarEventAttachmentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         event = CalendarEvent.objects.get(pk=self.kwargs["event_pk"])
         serializer.save(event=event)
+        
+class TaskTemplateViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only endpoint for listing active task templates.
+    Includes a custom action to 'render' a template with dynamic data.
+    """
+
+    queryset = TaskTemplate.objects.filter(is_active=True)
+    serializer_class = TaskTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=True, methods=["post"])
+    def render(self, request, pk=None):
+        template = self.get_object()
+        project_id = request.data.get("project_id")
+        assignee_ids = request.data.get("assignee_ids", [])
+        department_id = request.data.get("department_id")
+
+        context = {
+            "assigner_name": f"{request.user.first_name} {request.user.last_name}",
+            "current_date": timezone.now().strftime("%d/%m/%Y"),
+            "project_name": "N/A",
+            "assignee_name": "N/A",
+        }
+
+        if project_id:
+            try:
+                project = Project.objects.get(id=project_id)
+                context["project_name"] = project.name
+            except Project.DoesNotExist:
+                pass
+
+        assignee_names = []
+        if assignee_ids:
+            assignees = User.objects.filter(id__in=assignee_ids)
+            assignee_names.extend([f"{u.first_name} {u.last_name}" for u in assignees])
+
+        if department_id:
+            try:
+                department = Department.objects.get(id=department_id)
+                assignee_names.append(f"แผนก {department.name}")
+            except Department.DoesNotExist:
+                pass
+
+        if assignee_names:
+            context["assignee_name"] = ", ".join(assignee_names)
+
+        rendered_subject = template.subject_template
+        rendered_body = template.body_template
+        for key, value in context.items():
+            rendered_subject = rendered_subject.replace(f"{{{{{key}}}}}", str(value))
+            rendered_body = rendered_body.replace(f"{{{{{key}}}}}", str(value))
+
+        return Response({"subject": rendered_subject, "body": rendered_body})

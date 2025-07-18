@@ -12,7 +12,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 // --- Import Components ---
 import AddEventModal from '../components/AddEventModal.jsx'
 import EventDetailModal from '../components/EventDetailModal.jsx'
-import EditEventModal from '../components/EditEventModal.jsx' // <-- เพิ่ม import ที่ขาดหายไป
+import EditEventModal from '../components/EditEventModal.jsx'
 
 // --- Import CSS for the page ---
 import './HomePage.css'
@@ -59,32 +59,167 @@ function AnnouncementsWidget({ announcements }) {
   )
 }
 
-function QuickAccessWidget({ title, items, icon, isFile = false }) {
+// --- Widget ใหม่สำหรับ Recently Completed Tasks ที่มี Slider ---
+function CompletedTasksWidget({ tasks }) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const tasksPerPage = 3
+  const totalPages = tasks ? Math.ceil(tasks.length / tasksPerPage) : 0
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev))
+  }
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev < totalPages - 1 ? prev + 1 : prev))
+  }
+
   return (
     <div className='widget'>
       <div className='widget-header'>
-        <h3 className='widget-title'>
-          {icon} {title}
-        </h3>
+        <h3 className='widget-title'>✅ Recently Completed Tasks</h3>
+        <div className='widget-header-actions'>
+          <Link to='/tasks/all'>View All</Link>
+        </div>
       </div>
       <div className='widget-content'>
-        <ul className='quick-access-list'>
-          {items && items.length > 0 ? (
-            items.map((item) => (
-              <li key={item.id}>
-                <a
-                  href={isFile ? item.file : `/projects/${item.project}`}
-                  target={isFile ? '_blank' : '_self'}
-                  rel='noopener noreferrer'
-                >
-                  {item.title || item.name}
-                </a>
-              </li>
-            ))
-          ) : (
-            <p>No items to display.</p>
+        <div className='slider-container'>
+          <div className='slider-track-wrapper'>
+            <div
+              className='slider-track'
+              style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+            >
+              {Array.from({ length: totalPages }).map((_, pageIndex) => (
+                <div key={pageIndex} className='slider-item'>
+                  <div className='file-card-group'>
+                    {tasks
+                      .slice(
+                        pageIndex * tasksPerPage,
+                        (pageIndex + 1) * tasksPerPage
+                      )
+                      .map((task) => (
+                        <div key={task.id} className='file-card'>
+                          <Link
+                            to={`/projects/${task.project}`}
+                            className='file-title'
+                          >
+                            {task.title}
+                          </Link>
+                          <p className='file-meta'>
+                            In Project: {task.project_name || 'N/A'}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {totalPages > 1 && (
+            <div className='slider-nav'>
+              <button
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+                className='slider-nav-button'
+              >
+                ‹
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={currentIndex === totalPages - 1}
+                className='slider-nav-button'
+              >
+                ›
+              </button>
+            </div>
           )}
-        </ul>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RecentFilesWidget({ files }) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const filesPerPage = 3
+  const totalPages = files ? Math.ceil(files.length / filesPerPage) : 0
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev))
+  }
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev < totalPages - 1 ? prev + 1 : prev))
+  }
+
+  return (
+    <div className='widget'>
+      <div className='widget-header'>
+        <h3 className='widget-title'>📁 Recent Shared Files</h3>
+        <div className='widget-header-actions'>
+          <Link to='/share'>View All</Link>
+        </div>
+      </div>
+      <div className='widget-content'>
+        <div className='slider-container'>
+          <div className='slider-track-wrapper'>
+            <div
+              className='slider-track'
+              style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+            >
+              {Array.from({ length: totalPages }).map((_, pageIndex) => (
+                <div key={pageIndex} className='slider-item'>
+                  <div className='file-card-group'>
+                    {files
+                      .slice(
+                        pageIndex * filesPerPage,
+                        (pageIndex + 1) * filesPerPage
+                      )
+                      .map((file) => (
+                        <div key={file.id} className='file-card'>
+                          {file.category_details && (
+                            <span className='file-category-badge'>
+                              {file.category_details.name}
+                            </span>
+                          )}
+                          <a
+                            href={file.file}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='file-title'
+                          >
+                            {file.title}
+                          </a>
+                          <p className='file-meta'>
+                            Uploaded by{' '}
+                            {file.uploaded_by_details?.username || 'N/A'} on{' '}
+                            {new Date(file.uploaded_at).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {totalPages > 1 && (
+            <div className='slider-nav'>
+              <button
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+                className='slider-nav-button'
+              >
+                ‹
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={currentIndex === totalPages - 1}
+                className='slider-nav-button'
+              >
+                ›
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -92,33 +227,28 @@ function QuickAccessWidget({ title, items, icon, isFile = false }) {
 
 function CalendarWidget({ events, tasks, onDateClick, onEventClick }) {
   const now = new Date()
-
   const calendarEvents = [
-    ...(events || []).map((e) => {
-      const isOverdue = new Date(e.end_time) < now
-      return {
-        id: `event-${e.id}`,
-        title: e.title,
-        start: e.start_time,
-        end: e.end_time,
-        backgroundColor: isOverdue ? '#6c757d' : '#d9534f', // สีเทาสำหรับ event ที่เลยกำหนด
-        borderColor: isOverdue ? '#6c757d' : '#d9534f',
-        extendedProps: { type: 'event', originalEvent: e },
-      }
-    }),
+    ...(events || []).map((e) => ({
+      id: `event-${e.id}`,
+      title: e.title,
+      start: e.start_time,
+      end: e.end_time,
+      backgroundColor: new Date(e.end_time) < now ? '#6c757d' : '#d9534f',
+      borderColor: new Date(e.end_time) < now ? '#6c757d' : '#d9534f',
+      extendedProps: { type: 'event', originalEvent: e },
+    })),
     ...(tasks || [])
       .filter((t) => t.due_date)
       .map((t) => {
-        // สร้าง object วันที่โดยไม่สนใจเวลา เพื่อการเปรียบเทียบที่แม่นยำ
         const dueDate = new Date(t.due_date)
-        dueDate.setHours(23, 59, 59, 999) // กำหนดให้ due date คือสิ้นสุดของวันนั้น
+        dueDate.setHours(23, 59, 59, 999)
         const isOverdue = dueDate < now && t.status !== 'Done'
         return {
           id: `task-${t.id}`,
           title: `Due: ${t.title}`,
           start: t.due_date,
           allDay: true,
-          backgroundColor: isOverdue ? '#8B0000' : '#f0ad4e', // สีแดงเข้มสำหรับ task ที่เลยกำหนด
+          backgroundColor: isOverdue ? '#8B0000' : '#f0ad4e',
           borderColor: isOverdue ? '#8B0000' : '#f0ad4e',
           url: `/projects/${t.project}`,
         }
@@ -176,7 +306,6 @@ function HomePage() {
   const [editingEvent, setEditingEvent] = useState(null)
 
   const fetchAllData = useCallback(async () => {
-    // We don't set loading here to allow for smoother background refreshes
     try {
       const [
         announcementsRes,
@@ -201,7 +330,7 @@ function HomePage() {
     } catch (error) {
       console.error('Failed to load dashboard hub data', error)
     } finally {
-      setLoading(false) // This will only be set to false once
+      setLoading(false)
     }
   }, [])
 
@@ -217,38 +346,13 @@ function HomePage() {
 
   const handleEventClick = (clickInfo) => {
     if (clickInfo.event.extendedProps.type === 'event') {
-      clickInfo.jsEvent.preventDefault() // Prevent navigation for task URLs
+      clickInfo.jsEvent.preventDefault()
       setViewingEvent(clickInfo.event.extendedProps.originalEvent)
     }
   }
 
-  const handleEventAdded = () => {
-    fetchAllData() // Refresh all data after adding a new event
-  }
-
-  const handleEventUpdated = async (updatedData) => {
-    try {
-      await apiClient.put(`/api/events/${editingEvent.id}/`, updatedData)
-      setEditingEvent(null)
-      fetchAllData()
-    } catch (error) {
-      console.error('Failed to update event', error)
-      alert('Could not update event.')
-    }
-  }
-
-  const handleDeleteEvent = async (eventId) => {
-    if (window.confirm('Are you sure you want to delete this event?')) {
-      try {
-        await apiClient.delete(`/api/events/${eventId}/`)
-        setViewingEvent(null)
-        setEditingEvent(null)
-        fetchAllData()
-      } catch (error) {
-        console.error('Failed to delete event', error)
-        alert('Could not delete event.')
-      }
-    }
+  const handleEventChange = () => {
+    fetchAllData()
   }
 
   if (loading) return <div>Loading Home Hub...</div>
@@ -263,23 +367,14 @@ function HomePage() {
           onEventClick={handleEventClick}
         />
         <AnnouncementsWidget announcements={data.announcements} />
-        <QuickAccessWidget
-          title='Recently Completed Tasks'
-          items={data.completedTasks}
-          icon='✅'
-        />
-        <QuickAccessWidget
-          title='Recent Shared Files'
-          items={data.recentFiles}
-          icon='📁'
-          isFile={true}
-        />
+        <CompletedTasksWidget tasks={data.completedTasks} />
+        <RecentFilesWidget files={data.recentFiles} />
       </div>
 
       <AddEventModal
         isOpen={isAddEventModalOpen}
         onClose={() => setIsAddEventModalOpen(false)}
-        onEventAdded={handleEventAdded}
+        onEventAdded={handleEventChange}
         initialDate={selectedDate}
       />
       <EventDetailModal
@@ -289,14 +384,14 @@ function HomePage() {
           setViewingEvent(null)
           setEditingEvent(eventToEdit)
         }}
-        onDelete={handleDeleteEvent}
+        onDelete={handleEventChange}
       />
       <EditEventModal
         isOpen={!!editingEvent}
         event={editingEvent}
         onClose={() => setEditingEvent(null)}
-        onEventUpdated={handleEventUpdated}
-        onDeleteEvent={handleDeleteEvent}
+        onEventUpdated={handleEventChange}
+        onDeleteEvent={handleEventChange}
       />
     </>
   )

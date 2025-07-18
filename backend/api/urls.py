@@ -22,7 +22,9 @@ from .views import (
     CalendarEventViewSet,
     RecentFilesView,
     RecentlyCompletedTasksView,
-    CalendarEventAttachmentViewSet
+    CalendarEventAttachmentViewSet,
+    FileCategoryListView,
+    TaskTemplateViewSet
 )
 
 router = routers.SimpleRouter()
@@ -43,6 +45,8 @@ tasks_router.register(r"activities", ActivityViewSet, basename="task-activities"
 
 router.register(r"announcements", AnnouncementViewSet, basename="announcement")
 router.register(r"events", CalendarEventViewSet, basename="event")
+
+router.register(r"task-templates", TaskTemplateViewSet, basename="task-template")
 
 events_router = routers.NestedSimpleRouter(router, r"events", lookup="event")
 events_router.register(
@@ -88,4 +92,7 @@ urlpatterns = [
     ),
     path("recent-files/", RecentFilesView.as_view(), name="recent-files"),
     path("", include(events_router.urls)),
+    path(
+        "share/categories/", FileCategoryListView.as_view(), name="file-category-list"
+    ),
 ]

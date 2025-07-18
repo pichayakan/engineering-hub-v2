@@ -1,16 +1,18 @@
 // frontend/src/components/AddTask.jsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Select from 'react-select'
 import apiClient from '../api'
+import TaskTemplateSelector from './TaskTemplateSelector.jsx'
 import './AddProject.css'
 import './MultiSelect.css'
 
 function AddTask({
   onTaskAdded,
-  users,
+  users = [],
   isSubmitting,
-  availableTasks,
+  availableTasks = [],
   project,
+  allDepartments = [],
 }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -18,38 +20,57 @@ function AddTask({
   const [selectedDepartment, setSelectedDepartment] = useState(null)
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState('Medium')
-  const [prerequisites, setPrerequisites] = useState([]) // State สำหรับเก็บ Prerequisites
-  const [departments, setDepartments] = useState([])
-
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      try {
-        const response = await apiClient.get('/api/auth/departments/')
-        setDepartments(response.data)
-      } catch (error) {
-        console.error('Failed to fetch departments', error)
-      }
-    }
-    fetchDepartments()
-  }, [])
+  const [prerequisites, setPrerequisites] = useState([])
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null)
 
   const userOptions = users.map((user) => ({
     value: user.id,
     label: `${user.first_name} ${user.last_name} (${user.username})`,
   }))
-  const departmentOptions = departments.map((dept) => ({
+
+  const departmentOptions = allDepartments.map((dept) => ({
     value: dept.id,
     label: `${dept.name} (${dept.member_count} members)`,
   }))
+
   const taskOptions = availableTasks.map((task) => ({
     value: task.id,
     label: task.title,
   }))
+
   const priorityOptions = [
     { value: 'Low', label: 'Low' },
     { value: 'Medium', label: 'Medium' },
     { value: 'High', label: 'High' },
   ]
+
+  // ฟังก์ชันสำหรับ Render Template
+  const renderTemplate = useCallback(async () => {
+    if (!selectedTemplateId) return
+
+    const assigneeIds = selectedAssignees.map((opt) => opt.value)
+    const departmentId = selectedDepartment ? selectedDepartment.value : null
+
+    try {
+      const response = await apiClient.post(
+        `/api/task-templates/${selectedTemplateId}/render/`,
+        {
+          project_id: project?.id,
+          assignee_ids: assigneeIds,
+          department_id: departmentId,
+        }
+      )
+      setTitle(response.data.subject)
+      setDescription(response.data.body)
+    } catch (error) {
+      console.error('Failed to render template', error)
+    }
+  }, [selectedTemplateId, selectedAssignees, selectedDepartment, project])
+
+  // Re-render Template ทุกครั้งที่ข้อมูลที่เกี่ยวข้องเปลี่ยนแปลง
+  useEffect(() => {
+    renderTemplate()
+  }, [renderTemplate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -68,6 +89,7 @@ function AddTask({
       prerequisites: prerequisiteIds,
     })
 
+    // เคลียร์ฟอร์ม
     setTitle('')
     setDescription('')
     setSelectedAssignees([])
@@ -75,34 +97,39 @@ function AddTask({
     setDueDate('')
     setPriority('Medium')
     setPrerequisites([])
+    // เราไม่เคลียร์ selectedTemplateId เพื่อให้ผู้ใช้สามารถสร้างงานจาก template เดิมซ้ำได้ง่ายๆ
   }
 
   return (
     <div className='form-card'>
       <form onSubmit={handleSubmit}>
         <h2>Add New Task</h2>
+
+        <TaskTemplateSelector onTemplateChange={setSelectedTemplateId} />
+
         <div className='form-group'>
-          <label htmlFor='taskTitle'>Task Title</label>
+          <label htmlFor='taskTitle'>Task Title (เรื่อง)</label>
           <input
             id='taskTitle'
             type='text'
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            placeholder='e.g., Configure new firewall'
           />
         </div>
         <div className='form-group'>
-          <label htmlFor='taskDescription'>Description (Optional)</label>
+          <label htmlFor='taskDescription'>Description (รายละเอียด)</label>
           <textarea
             id='taskDescription'
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder='Details about the task...'
+            style={{ minHeight: '150px' }}
           />
         </div>
         <div className='form-group'>
-          <label htmlFor='assignDept'>Assign to Department (Optional)</label>
+          <label htmlFor='assignDept'>
+            Assign to Department (for Task Pool)
+          </label>
           <Select
             id='assignDept'
             options={departmentOptions}
@@ -115,9 +142,7 @@ function AddTask({
           />
         </div>
         <div className='form-group'>
-          <label htmlFor='assignees'>
-            Assign to Specific Members (Optional)
-          </label>
+          <label htmlFor='assignees'>Assign to Specific Members</label>
           <Select
             id='assignees'
             isMulti
@@ -152,19 +177,16 @@ function AddTask({
             ))}
           </select>
         </div>
-        {/* --- ส่วนที่แก้ไข: แยก Prerequisites ออกมาเป็น form-group ของตัวเอง --- */}
         <div className='form-group'>
-          <label htmlFor='prerequisites'>
-            Prerequisites (Tasks to be done before this)
-          </label>
+          <label htmlFor='prerequisites'>Prerequisites</label>
           <Select
             id='prerequisites'
             isMulti
             options={taskOptions}
             className='multi-select-container'
             classNamePrefix='multi-select'
-            value={prerequisites} // แก้ไขให้ใช้ state ที่ถูกต้อง
-            onChange={setPrerequisites} // แก้ไขให้ใช้ state ที่ถูกต้อง
+            value={prerequisites}
+            onChange={setPrerequisites}
             placeholder='Select prerequisite tasks...'
           />
         </div>

@@ -12,7 +12,10 @@ from .models import (
     CalendarEvent,  # 1. Import Models ใหม่
     AnnouncementAttachment,
     CalendarEventAttachment,
+    FileCategory,
+    TaskTemplate,
 )
+
 
 # --- สร้าง Inline classes ---
 class AnnouncementAttachmentInline(admin.TabularInline):
@@ -38,6 +41,28 @@ class CalendarEventAdmin(admin.ModelAdmin):
     inlines = [CalendarEventAttachmentInline]
     filter_horizontal = ("participants",)
 
+
+@admin.register(FileCategory)
+class FileCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "description")
+
+
+@admin.register(TaskTemplate)
+class TaskTemplateAdmin(admin.ModelAdmin):
+    """
+    Admin View for Task Templates.
+    """
+
+    list_display = ("name", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name", "subject_template", "body_template")
+
+
+# คุณสามารถเพิ่ม category เข้าไปในหน้า admin ของ SharedFile ได้ด้วย
+# @admin.register(SharedFile)
+# class SharedFileAdmin(admin.ModelAdmin):
+#     list_display = ('title', 'category', 'uploaded_by', 'uploaded_at')
+#     list_filter = ('category', 'uploaded_by')
 
 # หมายเหตุ: คุณสามารถลงทะเบียน Model อื่นๆ ที่นี่ได้เช่นกันถ้าต้องการ
 # admin.site.register(Project)

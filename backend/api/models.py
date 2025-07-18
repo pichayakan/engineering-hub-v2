@@ -7,6 +7,16 @@ from accounts.models import Department
 from datetime import date
 
 
+class FileCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        verbose_name_plural = "File Categories"
+
+    def __str__(self):
+        return self.name
+
 class Project(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -156,6 +166,13 @@ class SharedFile(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
     )
     filename = models.CharField(max_length=255)
+    category = models.ForeignKey(
+        FileCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="files",
+    )
 
     def __str__(self):
         return self.title
@@ -224,6 +241,19 @@ class CalendarEventAttachment(models.Model):
         if not self.name:
             self.name = self.file.name.split("/")[-1]
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+    
+class TaskTemplate(models.Model):
+    name = models.CharField(
+        max_length=255, unique=True, help_text="ชื่อของเทมเพลต เช่น 'หนังสือสั่งการด่วน'"
+    )
+    subject_template = models.CharField(
+        max_length=255, help_text="เทมเพลตสำหรับหัวข้อ Task (เรื่อง)"
+    )
+    body_template = models.TextField(help_text="เทมเพลตสำหรับเนื้อหา Task (รายละเอียด)")
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
