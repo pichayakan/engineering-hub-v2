@@ -1,0 +1,85 @@
+/* frontend/src/pages/ProcurementDetailPage.css */
+.procurement-detail-container {
+    max-width: 1000px;
+    margin: 2rem auto;
+}
+
+.detail-header {
+    background-color: var(--nt-white);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid var(--nt-border-color);
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+}
+.detail-header h1 { margin: 0 0 0.5rem 0; font-size: 2rem; }
+.detail-header p { margin: 0; color: #6c757d; }
+
+.approval-section {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+@media (min-width: 992px) {
+    .approval-section {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+.history-card, .action-card {
+    background-color: var(--nt-white);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid var(--nt-border-color);
+}
+.history-card h2, .action-card h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    border-bottom: 1px solid var(--nt-border-color);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.history-timeline {
+    position: relative;
+    padding-left: 1.5rem;
+    border-left: 2px solid var(--nt-border-color);
+}
+.history-item {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+.history-item::before {
+    content: '✔';
+    position: absolute;
+    left: -2.2rem;
+    top: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #198754;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+.history-step-name { font-weight: 600; }
+.history-meta { font-size: 0.9rem; color: #6c757d; }
+
+.action-card .form-group { margin-bottom: 1rem; }
+.action-card .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+.action-card textarea { width: 100%; border: 1px solid var(--nt-border-color); border-radius: 8px; padding: 0.5rem; }
+.approve-button {
+    width: 100%;
+    background-color: #198754;
+    color: white;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.approve-button:disabled { background-color: #6c757d; cursor: not-allowed; }

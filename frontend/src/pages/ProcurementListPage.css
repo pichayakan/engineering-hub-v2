@@ -1,0 +1,31 @@
+/* frontend/src/pages/ProcurementListPage.css */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    margin: 0;
+}
+
+.create-request-btn {
+    background-color: var(--nt-yellow);
+    color: var(--nt-text-dark);
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: 1px solid var(--nt-yellow);
+}
+
+.create-request-btn:hover {
+    background-color: #e6b800;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* ใช้สไตล์ตารางร่วมกับ AllTasksPage.css */
+/* คุณสามารถ copy สไตล์ .tasks-table-wrapper และ .tasks-table มาไว้ที่นี่ได้ */
+/* หรือ import './AllTasksPage.css'; ที่ด้านบนของ ProcurementListPage.jsx */

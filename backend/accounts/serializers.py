@@ -50,6 +50,7 @@ class UserSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(
         source="department.name", read_only=True, allow_null=True
     )
+    groups = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = User
@@ -67,6 +68,7 @@ class UserSerializer(serializers.ModelSerializer):
             "department",
             "department_name",
             "phone_number",
+            "groups",
         ]
 
 

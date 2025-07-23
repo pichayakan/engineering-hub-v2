@@ -21,6 +21,9 @@ import TeamDetailPage from './pages/TeamDetailPage.jsx' // This might be refacto
 import FileSharerPage from './pages/FileSharerPage.jsx'
 import KanbanPage from './pages/KanbanPage.jsx'
 import AllTasksPage from './pages/AllTasksPage.jsx'
+import ProcurementListPage from './pages/ProcurementListPage.jsx'
+import CreateProcurementPage from './pages/CreateProcurementPage.jsx'
+import ProcurementDetailPage from './pages/ProcurementDetailPage.jsx'
 
 // Import Route Guards
 import ProtectedRoute from './utils/ProtectedRoute.jsx'
@@ -65,6 +68,15 @@ function App() {
               <Route
                 path='/admin/departments'
                 element={<DepartmentManagementPage />}
+              />
+              <Route path='/procurement' element={<ProcurementListPage />} />
+              <Route
+                path='/procurement/new'
+                element={<CreateProcurementPage />}
+              />
+              <Route
+                path='/procurement/requests/:requestId'
+                element={<ProcurementDetailPage />}
               />
               <Route path='/admin/teams/:teamId' element={<TeamDetailPage />} />{' '}
               {/* Note: This might be deprecated */}

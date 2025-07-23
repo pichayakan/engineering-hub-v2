@@ -1,0 +1,75 @@
+/* frontend/src/components/ProcessStepper.css */
+.stepper-container {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin: 2rem 0 3rem 0;
+}
+
+.stepper-line {
+    position: absolute;
+    top: 20px; /* Adjust to center with the circle */
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: var(--nt-border-color);
+    z-index: 1;
+}
+
+.stepper-progress {
+    position: absolute;
+    top: 20px;
+    left: 0;
+    height: 4px;
+    background-color: #198754; /* Green for completed steps */
+    z-index: 2;
+    transition: width 0.5s ease-in-out;
+}
+
+.step {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    width: 120px; /* Give some width to each step label */
+}
+
+.step-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: var(--nt-white);
+    border: 4px solid var(--nt-border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.75rem auto;
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+.step-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #6c757d;
+}
+
+/* Step Statuses */
+.step.completed .step-circle {
+    background-color: #198754;
+    border-color: #198754;
+    color: var(--nt-white);
+}
+.step.completed .step-label {
+    color: var(--nt-text-dark);
+}
+
+.step.current .step-circle {
+    background-color: var(--nt-yellow);
+    border-color: var(--nt-yellow);
+    color: var(--nt-text-dark);
+    transform: scale(1.1);
+}
+.step.current .step-label {
+    color: var(--nt-text-dark);
+    font-weight: 700;
+}

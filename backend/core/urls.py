@@ -22,6 +22,7 @@ urlpatterns = [
     # 2. Endpoint สำหรับขอ token ใหม่ด้วย refresh token
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("download/<uuid:pk>/", FileDownloadView.as_view(), name="file-download"),
+    path("api/procurement/", include("procurement.urls")),
 ]
 
 if settings.DEBUG:

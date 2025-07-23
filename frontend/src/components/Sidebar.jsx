@@ -43,6 +43,13 @@ function Sidebar({ isOpen, onClose }) {
               >
                 All Projects
               </NavLink>
+              <NavLink
+                to='/procurement'
+                className='sidebar-link'
+                onClick={onClose}
+              >
+                Procurement
+              </NavLink>
               {/* --- ส่วนที่แก้ไข --- */}
               <NavLink
                 to='/my-tasks'
