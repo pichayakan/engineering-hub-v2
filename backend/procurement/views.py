@@ -2,7 +2,15 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import WorkflowTemplate, Step, ProcurementRequest, RequestHistory
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
+from .models import (
+    WorkflowTemplate,
+    Step,
+    ProcurementRequest,
+    RequestHistory,
+    ProcurementAttachment,
+)
 from .serializers import WorkflowTemplateSerializer, ProcurementRequestSerializer
 
 
@@ -22,18 +30,19 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
     API endpoint for creating and managing procurement requests.
     """
 
+    queryset = ProcurementRequest.objects.all().order_by("-created_at")
     serializer_class = ProcurementRequestSerializer
     permission_classes = [permissions.IsAuthenticated]
+    # Allow both JSON (for create) and multipart (for advance-step)
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
-        # ผู้ใช้จะเห็นเฉพาะเรื่องที่ตัวเองสร้าง หรือเรื่องที่ตัวเองมีสิทธิ์อนุมัติในขั้นตอนปัจจุบัน
-        user = self.request.user
-        # This can be complex, for now, let's allow users to see all requests.
-        # We will add row-level permissions later if needed.
+        # In a real-world scenario, you might filter this based on user roles
+        # For now, authenticated users can see all requests.
         return ProcurementRequest.objects.all().order_by("-created_at")
 
     def perform_create(self, serializer):
-        # เมื่อสร้างเรื่องใหม่ ให้กำหนดขั้นตอนแรกโดยอัตโนมัติ
+        # Automatically set the first step when a new request is created
         workflow = serializer.validated_data.get("workflow_template")
         first_step = workflow.steps.order_by("order").first()
         serializer.save(created_by=self.request.user, current_step=first_step)
@@ -43,8 +52,9 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
         procurement_request = self.get_object()
         user = request.user
         notes = request.data.get("notes", "")
+        files = request.FILES.getlist("files")
 
-        # ตรวจสอบว่าเรื่องนี้เสร็จสิ้นไปแล้วหรือยัง
+        # Check if the request is already completed
         if procurement_request.is_completed:
             return Response(
                 {"error": "This request is already completed."},
@@ -58,7 +68,7 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # ตรวจสอบสิทธิ์: ผู้ใช้ต้องอยู่ในกลุ่มที่รับผิดชอบขั้นตอนนี้
+        # Check if the user is in the responsible group for the current step
         if (
             current_step.responsible_group
             and not user.groups.filter(pk=current_step.responsible_group.pk).exists()
@@ -68,15 +78,25 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # บันทึกประวัติการอนุมัติ
-        RequestHistory.objects.create(
+        # Create the history record for the approval
+        history_entry = RequestHistory.objects.create(
             procurement_request=procurement_request,
             step=current_step,
             approved_by=user,
             notes=notes,
         )
 
-        # หาขั้นตอนถัดไป
+        # Save any attached files linked to this history entry
+        for file in files:
+            ProcurementAttachment.objects.create(
+                procurement_request=procurement_request,
+                history_entry=history_entry,
+                file=file,
+                uploaded_by=user,
+                name=file.name,
+            )
+
+        # Find the next step in the workflow
         next_step = (
             Step.objects.filter(
                 workflow_template=procurement_request.workflow_template,
@@ -87,11 +107,11 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
         )
 
         if next_step:
-            # ถ้ามีขั้นตอนถัดไป ให้อัปเดต
+            # If there is a next step, update the request
             procurement_request.current_step = next_step
             procurement_request.save()
         else:
-            # ถ้าไม่มีแล้ว ให้ถือว่ากระบวนการเสร็จสิ้น
+            # If there are no more steps, mark the request as completed
             procurement_request.current_step = None
             procurement_request.is_completed = True
             procurement_request.save()

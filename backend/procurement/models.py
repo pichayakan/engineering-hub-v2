@@ -38,10 +38,7 @@ class Step(models.Model):
 
     class Meta:
         ordering = ["workflow_template", "order"]
-        unique_together = (
-            "workflow_template",
-            "order",
-        )  # ป้องกันลำดับซ้ำใน template เดียวกัน
+        unique_together = ("workflow_template", "order")
 
     def __str__(self):
         return f"{self.workflow_template.name} - Step {self.order}: {self.name}"
@@ -90,3 +87,24 @@ class RequestHistory(models.Model):
 
     def __str__(self):
         return f"'{self.procurement_request.title}' approved at step '{self.step.name}' by {self.approved_by.username}"
+
+
+class ProcurementAttachment(models.Model):
+    procurement_request = models.ForeignKey(
+        ProcurementRequest, related_name="attachments", on_delete=models.CASCADE
+    )
+    history_entry = models.ForeignKey(
+        RequestHistory, related_name="attachments", on_delete=models.CASCADE
+    )
+    file = models.FileField(upload_to="procurement_attachments/")
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    name = models.CharField(max_length=255, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.name:
+            self.name = self.file.name.split("/")[-1]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name

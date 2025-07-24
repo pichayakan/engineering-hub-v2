@@ -11,12 +11,13 @@ function ProcurementDetailPage() {
   const [workflow, setWorkflow] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notes, setNotes] = useState('')
+  const [filesToUpload, setFilesToUpload] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { requestId } = useParams()
   const { user } = useAuth()
 
   const fetchRequestDetails = useCallback(async () => {
-    setLoading(true)
+    // No setLoading here for smoother background refreshes
     try {
       const reqRes = await apiClient.get(
         `/api/procurement/requests/${requestId}/`
@@ -37,18 +38,31 @@ function ProcurementDetailPage() {
   }, [requestId])
 
   useEffect(() => {
+    setLoading(true)
     fetchRequestDetails()
   }, [fetchRequestDetails])
 
   const handleApprove = async () => {
+    if (isSubmitting) return
     setIsSubmitting(true)
+
+    const formData = new FormData()
+    formData.append('notes', notes)
+    filesToUpload.forEach((file) => {
+      formData.append('files', file)
+    })
+
     try {
       await apiClient.post(
         `/api/procurement/requests/${requestId}/advance-step/`,
-        { notes }
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        }
       )
       setNotes('')
-      fetchRequestDetails() // Refresh data
+      setFilesToUpload([])
+      fetchRequestDetails()
     } catch (error) {
       console.error('Failed to approve step', error)
       alert(error.response?.data?.error || 'Could not approve step.')
@@ -57,10 +71,24 @@ function ProcurementDetailPage() {
     }
   }
 
+  const handleFileChange = (e) => {
+    if (e.target.files) {
+      setFilesToUpload((prevFiles) => [
+        ...prevFiles,
+        ...Array.from(e.target.files),
+      ])
+    }
+  }
+
+  const handleRemoveFile = (fileNameToRemove) => {
+    setFilesToUpload((prevFiles) =>
+      prevFiles.filter((file) => file.name !== fileNameToRemove)
+    )
+  }
+
   if (loading) return <div>Loading details...</div>
   if (!request || !workflow) return <div>Could not load data.</div>
 
-  // --- ส่วนที่แก้ไข: เพิ่มการตรวจสอบที่ปลอดภัย ---
   const canApprove = user?.groups?.includes(
     request.current_step_details?.responsible_group
   )
@@ -88,10 +116,39 @@ function ProcurementDetailPage() {
             {request.history.map((h) => (
               <div key={h.id} className='history-item'>
                 <p className='history-step-name'>{h.step.name}</p>
-                <p className='history-meta'>
-                  Approved by {h.approved_by_details.username} on{' '}
-                  {new Date(h.timestamp).toLocaleString()}
-                </p>
+                <div className='history-meta'>
+                  Approved by
+                  <strong>
+                    {' '}
+                    {h.approved_by_details.first_name}{' '}
+                    {h.approved_by_details.last_name}{' '}
+                  </strong>
+                  on {new Date(h.timestamp).toLocaleString()}
+                </div>
+                <div className='approver-details'>
+                  <span>
+                    Dept: {h.approved_by_details.department_name || 'N/A'}
+                  </span>
+                  {h.approved_by_details.groups.map((g) => (
+                    <span key={g.id} className='group-badge'>
+                      {g.name}
+                    </span>
+                  ))}
+                </div>
+                {h.notes && <p className='history-notes'>{h.notes}</p>}
+                <div className='history-attachments'>
+                  {h.attachments.map((att) => (
+                    <a
+                      key={att.id}
+                      href={att.file}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='attachment-link'
+                    >
+                      📎 {att.name}
+                    </a>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -103,34 +160,73 @@ function ProcurementDetailPage() {
           {request.is_completed ? (
             <p>This request is fully completed.</p>
           ) : (
-            <div className='form-group'>
-              <label htmlFor='notes'>Approval Notes (Optional)</label>
-              <textarea
-                id='notes'
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows='4'
-              ></textarea>
+            <div>
+              <div className='form-group'>
+                <label htmlFor='notes'>Approval Notes (Optional)</label>
+                <textarea
+                  id='notes'
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows='3'
+                ></textarea>
+              </div>
+              <div className='form-group'>
+                <label htmlFor='attachments'>Attach Files</label>
+                <input
+                  type='file'
+                  id='attachments'
+                  multiple
+                  onChange={handleFileChange}
+                  className='upload-input'
+                />
+              </div>
+
+              {filesToUpload.length > 0 && (
+                <div className='file-preview-list'>
+                  {filesToUpload.map((file, index) => (
+                    <div key={index} className='file-preview-item'>
+                      <span className='file-preview-name'>{file.name}</span>
+                      <button
+                        onClick={() => handleRemoveFile(file.name)}
+                        className='remove-file-btn'
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <button
                 onClick={handleApprove}
                 className='approve-button'
                 disabled={!canApprove || isSubmitting}
               >
-                {isSubmitting
-                  ? 'Submitting...'
-                  : 'Approve & Advance to Next Step'}
+                {isSubmitting ? 'Submitting...' : 'Approve & Advance'}
               </button>
-              {!canApprove && (
-                <p
-                  style={{
-                    color: '#dc3545',
-                    fontSize: '0.9rem',
-                    marginTop: '0.5rem',
-                  }}
-                >
-                  You do not have permission to approve this step.
-                </p>
-              )}
+              {!canApprove &&
+                request.current_step_details?.responsible_group_details && (
+                  <details className='potential-approvers'>
+                    <summary>
+                      Requires approval from "
+                      {
+                        request.current_step_details.responsible_group_details
+                          .name
+                      }
+                      "
+                    </summary>
+                    <ul>
+                      {request.current_step_details.responsible_group_details.members?.map(
+                        (member) => (
+                          <li key={member.id}>
+                            - {member.first_name} {member.last_name} (
+                            {member.username})
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </details>
+                )}
             </div>
           )}
         </div>

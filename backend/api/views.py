@@ -14,6 +14,8 @@ from rest_framework.filters import SearchFilter
 
 from django.utils import timezone
 
+from urllib.parse import quote
+
 from .filters import TaskFilter
 
 # --- Model Imports ---
@@ -46,9 +48,10 @@ from .serializers import (
     CalendarEventSerializer,
     CalendarEventAttachmentSerializer,
     FileCategorySerializer,
-    TaskTemplateSerializer
+    TaskTemplateSerializer,
+    AssignerPerformanceSerializer,
 )
-from accounts.serializers import AssignerPerformanceSerializer, MemberWorkloadSerializer,DepartmentWorkloadSerializer
+from accounts.serializers import MemberWorkloadSerializer,DepartmentWorkloadSerializer
 
 from .permissions import IsEventCreatorOrReadOnly
 
@@ -409,9 +412,14 @@ class FileDownloadView(generics.RetrieveAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        return FileResponse(
-            instance.file.open("rb"), as_attachment=True, filename=instance.filename
+        response = FileResponse(instance.file.open("rb"), as_attachment=True)
+        # 3. เข้ารหัสชื่อไฟล์ให้เป็น UTF-8 และกำหนดใน Header
+        #    นี่คือวิธีมาตรฐานสากลที่ทำให้เบราว์เซอร์ทุกตัวเข้าใจชื่อไฟล์ภาษาไทย
+        response["Content-Disposition"] = (
+            f"attachment; filename*=UTF-8''{quote(instance.filename)}"
         )
+
+        return response
 
 
 class SharedFileHistoryView(generics.ListAPIView):

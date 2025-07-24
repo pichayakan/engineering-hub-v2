@@ -3,14 +3,18 @@ import React from 'react'
 import './ProcessStepper.css'
 
 function ProcessStepper({ steps, currentStepId, history }) {
+  if (!steps || steps.length === 0) {
+    return null
+  }
+
   const currentStepIndex = steps.findIndex((step) => step.id === currentStepId)
   const historyStepIds = history.map((h) => h.step.id)
 
   // Calculate progress bar width
   let progressPercentage = 0
-  if (currentStepIndex > 0) {
+  if (currentStepIndex >= 0) {
     progressPercentage = (currentStepIndex / (steps.length - 1)) * 100
-  } else if (history.length === steps.length) {
+  } else if (history.length >= steps.length) {
     // Completed
     progressPercentage = 100
   }

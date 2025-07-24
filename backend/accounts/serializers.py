@@ -1,8 +1,9 @@
 # backend/accounts/serializers.py
 from rest_framework import serializers
-from .models import User, Department  # แก้ไข import
+from django.contrib.auth.models import Group
+from .models import User, Department
 
-# --- Serializers สำหรับ User ---
+# --- Serializers for User Management ---
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -33,20 +34,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             )
         return attrs
 
-    # --- ส่วนที่แก้ไข ---
     def create(self, validated_data):
-        # นำ password และ password2 ออกจาก dict
         validated_data.pop("password2")
         password = validated_data.pop("password")
-
-        # สร้าง user โดยส่ง password แยกต่างหาก
         user = User.objects.create_user(password=password, **validated_data)
         return user
 
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.CharField(read_only=True)
-    # เพิ่มฟิลด์นี้เพื่อส่งชื่อ Department ไปด้วย
     department_name = serializers.CharField(
         source="department.name", read_only=True, allow_null=True
     )
@@ -54,7 +50,6 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        # ตรวจสอบให้แน่ใจว่ามี 'department' และ 'department_name' อยู่ใน fields
         fields = [
             "id",
             "email",
@@ -67,7 +62,6 @@ class UserSerializer(serializers.ModelSerializer):
             "is_staff",
             "department",
             "department_name",
-            "phone_number",
             "groups",
         ]
 
@@ -75,20 +69,41 @@ class UserSerializer(serializers.ModelSerializer):
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "first_name", "last_name","phone_number"]
+        fields = ["id", "username", "first_name", "last_name", "phone_number"]
 
 
-# --- Serializer สำหรับ Department ---
+# --- Serializer for Department Management ---
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
     member_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Department
         fields = ["id", "name", "parent", "manager", "member_count"]
 
 
-# --- Serializer สำหรับ Dashboard ---
+# --- Serializers for Dashboards & Detailed Views ---
+
+
+class GroupSerializer(serializers.ModelSerializer):
+    members = UserListSerializer(source="user_set", many=True, read_only=True)
+
+    class Meta:
+        model = Group
+        # เพิ่ม 'members' เข้าไปในรายการ fields
+        fields = ["id", "name", "members"]
+
+
+class UserDetailForHistorySerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(
+        source="department.name", read_only=True, allow_null=True
+    )
+    groups = GroupSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "first_name", "last_name", "department_name", "groups"]
 
 
 class MemberWorkloadSerializer(serializers.ModelSerializer):
@@ -96,27 +111,28 @@ class MemberWorkloadSerializer(serializers.ModelSerializer):
     todo_tasks = serializers.IntegerField()
     inprogress_tasks = serializers.IntegerField()
     done_tasks = serializers.IntegerField()
-    accepted_tasks = serializers.IntegerField(source='accepted_tasks_count')
-    pending_tasks = serializers.IntegerField(source='pending_tasks_count')
+    accepted_tasks = serializers.IntegerField(source="accepted_tasks_count")
+    pending_tasks = serializers.IntegerField(source="pending_tasks_count")
 
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'first_name', 'last_name', 
-            'total_tasks', 'todo_tasks', 'inprogress_tasks', 'done_tasks',
-            'pending_tasks', 'accepted_tasks'
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "total_tasks",
+            "todo_tasks",
+            "inprogress_tasks",
+            "done_tasks",
+            "pending_tasks",
+            "accepted_tasks",
         ]
 
+
 class DepartmentWorkloadSerializer(serializers.ModelSerializer):
-    members_workload = MemberWorkloadSerializer(source='members', many=True)
+    members_workload = MemberWorkloadSerializer(source="members", many=True)
+
     class Meta:
         model = Department
-        fields = ['id', 'name', 'members_workload']
-
-
-class AssignerPerformanceSerializer(serializers.ModelSerializer):
-    # เราจะย้ายคำจำกัดความนี้ไปที่ api/serializers.py เพื่อหลีกเลี่ยง Circular Import
-    # created_tasks_details = TaskForAssignerSerializer(source='created_tasks', many=True)
-    class Meta:
-        model = User
-        fields = ["id", "username", "first_name", "last_name"]  # Simplified for now
+        fields = ["id", "name", "members_workload"]
