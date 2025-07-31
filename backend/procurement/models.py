@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import Group
 from api.models import Project
+from datetime import timedelta
 
 
 class WorkflowTemplate(models.Model):
@@ -35,6 +36,9 @@ class Step(models.Model):
         blank=True,
         help_text="กลุ่มผู้ใช้ที่มีสิทธิ์อนุมัติขั้นตอนนี้",
     )
+    duration_days = models.PositiveIntegerField(
+        default=7, help_text="กรอบเวลาสำหรับขั้นตอนนี้ (วัน)"
+    )
 
     class Meta:
         ordering = ["workflow_template", "order"]
@@ -64,6 +68,20 @@ class ProcurementRequest(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     is_completed = models.BooleanField(default=False)
+    
+    @property
+    def current_step_due_date(self):
+        if self.is_completed or not self.current_step:
+            return None
+
+        # หาเวลาเริ่มต้นของขั้นตอนปัจจุบัน
+        last_approval = self.history.order_by("-timestamp").first()
+        start_date = (
+            last_approval.timestamp.date() if last_approval else self.created_at.date()
+        )
+
+        # คำนวณวันครบกำหนด
+        return start_date + timedelta(days=self.current_step.duration_days)
 
     def __str__(self):
         return self.title

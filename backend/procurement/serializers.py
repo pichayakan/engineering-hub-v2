@@ -95,6 +95,7 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
     project_name = serializers.CharField(
         source="project.name", read_only=True, allow_null=True
     )
+    current_step_due_date = serializers.DateField(read_only=True)
 
     class Meta:
         model = ProcurementRequest
@@ -110,5 +111,8 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
             "created_at",
             "is_completed",
             "history",
+            "is_completed",
+            "history",
+            "current_step_due_date",
         ]
         read_only_fields = ["current_step", "created_by"]

@@ -86,12 +86,39 @@ function ProcurementDetailPage() {
     )
   }
 
+  const calculateSLA = (dueDateStr) => {
+    if (!dueDateStr) return { text: 'Not set', className: '' }
+
+    const today = new Date()
+    const dueDate = new Date(dueDateStr)
+    // Reset time to compare dates only
+    today.setHours(0, 0, 0, 0)
+
+    const diffTime = dueDate.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays < 0) {
+      return {
+        text: `Overdue by ${Math.abs(diffDays)} days`,
+        className: 'overdue',
+      }
+    }
+    if (diffDays === 0) {
+      return { text: 'Due today', className: 'due-soon' }
+    }
+    if (diffDays <= 7) {
+      return { text: `${diffDays} days left`, className: 'due-soon' }
+    }
+    return { text: `${diffDays} days left`, className: 'on-time' }
+  }
+
   if (loading) return <div>Loading details...</div>
   if (!request || !workflow) return <div>Could not load data.</div>
 
   const canApprove = user?.groups?.includes(
     request.current_step_details?.responsible_group
   )
+  const sla = calculateSLA(request.current_step_due_date)
 
   return (
     <div className='procurement-detail-container'>
@@ -161,6 +188,17 @@ function ProcurementDetailPage() {
             <p>This request is fully completed.</p>
           ) : (
             <div>
+              <div className='sla-info'>
+                <p className='sla-title'>Step Due Date</p>
+                <p className='sla-date'>
+                  {request.current_step_due_date
+                    ? new Date(
+                        request.current_step_due_date
+                      ).toLocaleDateString('en-GB')
+                    : 'N/A'}
+                </p>
+                <p className={`sla-remaining ${sla.className}`}>{sla.text}</p>
+              </div>
               <div className='form-group'>
                 <label htmlFor='notes'>Approval Notes (Optional)</label>
                 <textarea

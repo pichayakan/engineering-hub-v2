@@ -41,6 +41,44 @@
     margin-bottom: 1.5rem;
 }
 
+.sla-info {
+    background-color: #f8f9fa;
+    border: 1px solid var(--nt-border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.sla-info .sla-title {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin: 0 0 0.25rem 0;
+}
+
+.sla-info .sla-date {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--nt-text-dark);
+    margin: 0 0 0.5rem 0;
+}
+
+.sla-info .sla-remaining {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+/* สีสำหรับสถานะต่างๆ */
+.sla-remaining.overdue {
+    color: #dc3545; /* Red */
+}
+.sla-remaining.due-soon {
+    color: #ffc107; /* Yellow */
+}
+.sla-remaining.on-time {
+    color: #198754; /* Green */
+}
+
 .history-timeline {
     position: relative;
     padding-left: 1.5rem;
