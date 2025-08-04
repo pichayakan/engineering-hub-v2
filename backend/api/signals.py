@@ -63,7 +63,8 @@ def create_comment_activity(sender, instance, created, **kwargs):
     """
     if created:
         verb = f'commented: "{instance.text[:50]}..."'
-        Activity.objects.create(task=instance.task, actor=instance.author, verb=verb)
+        Activity.objects.create(
+            task=instance.task, actor=instance.author, verb=verb)
 
 
 @receiver(post_save, sender=TaskAttachment)
@@ -77,7 +78,8 @@ def create_attachment_activity(sender, instance, created, **kwargs):
         Activity.objects.create(
             task=instance.task, actor=instance.uploaded_by, verb=verb
         )
-        
+
+
 @receiver(m2m_changed, sender=Task.accepted_by.through)
 def log_acceptance_activity(sender, instance, action, pk_set, **kwargs):
     """

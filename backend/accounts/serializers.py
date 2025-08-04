@@ -7,7 +7,8 @@ from .models import User, Department
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    password2 = serializers.CharField(style={"input_type": "password"}, write_only=True)
+    password2 = serializers.CharField(
+        style={"input_type": "password"}, write_only=True)
     department = serializers.PrimaryKeyRelatedField(
         queryset=Department.objects.all(), required=False, allow_null=True
     )
