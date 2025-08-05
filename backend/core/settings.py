@@ -28,14 +28,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://202.139.196.7:5173",
-    "http://192.168.17.2:5173",
-]
-
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -175,12 +167,18 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- การตั้งค่าที่สำคัญทั้งหมด ---
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Port ของ Vite
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://202.139.196.7:5173",
+    "http://192.168.17.2:5173",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://202.139.196.7:5173",
+    "http://192.168.17.2:5173",
 ]
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
