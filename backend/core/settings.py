@@ -171,6 +171,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://202.139.196.7:5173",
     "http://192.168.17.2:5173",
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://202.139.196.7",
+    "http://192.168.17.2",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -179,6 +183,10 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://202.139.196.7:5173",
     "http://192.168.17.2:5173",
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://202.139.196.7",
+    "http://192.168.17.2",
 ]
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
