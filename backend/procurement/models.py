@@ -28,7 +28,8 @@ class Step(models.Model):
         WorkflowTemplate, related_name="steps", on_delete=models.CASCADE
     )
     name = models.CharField(max_length=255)
-    order = models.PositiveIntegerField(help_text="ลำดับของขั้นตอน เช่น 1, 2, 3...")
+    order = models.PositiveIntegerField(
+        help_text="ลำดับของขั้นตอน เช่น 1, 2, 3...")
     responsible_group = models.ForeignKey(
         Group,
         on_delete=models.SET_NULL,
@@ -61,14 +62,16 @@ class ProcurementRequest(models.Model):
         blank=True,
         related_name="procurement_requests",
     )
-    workflow_template = models.ForeignKey(WorkflowTemplate, on_delete=models.PROTECT)
+    workflow_template = models.ForeignKey(
+        WorkflowTemplate, on_delete=models.PROTECT)
     current_step = models.ForeignKey(
         Step, on_delete=models.SET_NULL, null=True, blank=True
     )
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     is_completed = models.BooleanField(default=False)
-    
+
     @property
     def current_step_due_date(self):
         if self.is_completed or not self.current_step:
@@ -81,7 +84,10 @@ class ProcurementRequest(models.Model):
         )
 
         # คำนวณวันครบกำหนด
-        return start_date + timedelta(days=self.current_step.duration_days)
+        # คำนวณวันครบกำหนด
+        duration = self.current_step.duration_days if self.current_step.duration_days is not None else 7
+        return start_date + timedelta(days=duration)
+        # return start_date + timedelta(days=self.current_step.duration_days)
 
     def __str__(self):
         return self.title
@@ -96,7 +102,8 @@ class RequestHistory(models.Model):
         ProcurementRequest, related_name="history", on_delete=models.CASCADE
     )
     step = models.ForeignKey(Step, on_delete=models.CASCADE)
-    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True, null=True)
 
@@ -115,7 +122,8 @@ class ProcurementAttachment(models.Model):
         RequestHistory, related_name="attachments", on_delete=models.CASCADE
     )
     file = models.FileField(upload_to="procurement_attachments/")
-    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=255, blank=True)
 

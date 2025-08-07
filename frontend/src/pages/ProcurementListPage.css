@@ -1,29 +1,69 @@
 /* frontend/src/pages/ProcurementListPage.css */
 .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
 }
 
 .page-header h1 {
-    margin: 0;
+  margin: 0;
 }
 
 .create-request-btn {
-    background-color: var(--nt-yellow);
-    color: var(--nt-text-dark);
-    padding: 0.6rem 1.2rem;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    border: 1px solid var(--nt-yellow);
+  background-color: var(--nt-yellow);
+  color: var(--nt-text-dark);
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: 1px solid var(--nt-yellow);
 }
 
 .create-request-btn:hover {
-    background-color: #e6b800;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  background-color: #e6b800;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tasks-table tr.is-completed {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+.tasks-table tr.is-completed .task-title-link {
+  color: #6c757d;
+  text-decoration: line-through;
+}
+
+.status-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-completed {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.status-inprogress {
+  background-color: #fff3cd;
+  color: #664d03;
+}
+
+.sla-text {
+  font-weight: 600;
+}
+.sla-overdue {
+  color: #dc3545;
+}
+.sla-due-soon {
+  color: #ffc107;
+}
+.sla-on-time {
+  color: #198754;
 }
 
 /* ใช้สไตล์ตารางร่วมกับ AllTasksPage.css */

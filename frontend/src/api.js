@@ -3,6 +3,7 @@ import axios from "axios";
 // สร้าง apiClient instance พื้นฐาน
 const apiClient = axios.create({
   baseURL: "http://202.139.196.7:8000",
+  //baseURL: "http://localhostAAAAS:8000",
 });
 
 // Interceptor 1: สำหรับ "ขาไป" (Request)

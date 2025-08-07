@@ -54,7 +54,8 @@ class WorkflowTemplateSerializer(serializers.ModelSerializer):
 
 
 class ProcurementAttachmentSerializer(serializers.ModelSerializer):
-    uploaded_by_details = UserListSerializer(source="uploaded_by", read_only=True)
+    uploaded_by_details = UserListSerializer(
+        source="uploaded_by", read_only=True)
 
     class Meta:
         model = ProcurementAttachment
@@ -89,8 +90,10 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
     Serializer for individual procurement requests.
     """
 
-    created_by_details = UserListSerializer(source="created_by", read_only=True)
-    current_step_details = StepSerializer(source="current_step", read_only=True)
+    created_by_details = UserListSerializer(
+        source="created_by", read_only=True)
+    current_step_details = StepSerializer(
+        source="current_step", read_only=True)
     history = RequestHistorySerializer(many=True, read_only=True)
     project_name = serializers.CharField(
         source="project.name", read_only=True, allow_null=True
