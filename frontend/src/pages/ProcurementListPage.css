@@ -26,6 +26,31 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+.list-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.list-controls .search-container {
+  flex-grow: 1;
+  margin-bottom: 0;
+}
+
+.sort-select {
+  background-color: var(--nt-white);
+  border: 1px solid var(--nt-border-color);
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  font-family: "Sarabun", sans-serif;
+  font-size: 0.9rem;
+  color: var(--nt-text-dark);
+  min-width: 220px;
+}
+
 .tasks-table tr.is-completed {
   background-color: #f8f9fa;
   color: #6c757d;

@@ -2,30 +2,51 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import apiClient from "../api";
+import SearchInput from "../components/SearchInput.jsx";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "./AllTasksPage.css";
 import "./ProcurementListPage.css";
 
 function ProcurementListPage() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [ordering, setOrdering] = useState("-created_at");
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/api/procurement/requests/");
+      const params = {
+        search: searchTerm,
+        ordering: ordering,
+      };
+      const response = await apiClient.get("/api/procurement/requests/", {
+        params,
+      });
       setRequests(response.data.results || response.data);
     } catch (error) {
       console.error("Failed to fetch procurement requests", error);
+      toast.error(
+        "Failed to fetch requests: " +
+          (error.response?.data?.error || error.message)
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchTerm, ordering]);
 
   useEffect(() => {
-    fetchRequests();
+    const handler = setTimeout(() => {
+      fetchRequests();
+    }, 300);
+    return () => clearTimeout(handler);
   }, [fetchRequests]);
 
-  // --- ฟังก์ชัน Helper สำหรับจัดการ SLA ---
+  const handleSearchChange = useCallback((value) => {
+    setSearchTerm(value);
+  }, []);
+
   const calculateSLA = (dueDateStr) => {
     if (!dueDateStr) return { text: "-", className: "" };
     const today = new Date();
@@ -52,6 +73,19 @@ function ProcurementListPage() {
         <Link to="/procurement/new" className="create-request-btn">
           + Create New Request
         </Link>
+      </div>
+      <div className="list-controls">
+        <SearchInput value={searchTerm} onChange={handleSearchChange} />
+        <select
+          className="sort-select"
+          value={ordering}
+          onChange={(e) => setOrdering(e.target.value)}
+        >
+          <option value="-created_at">Sort by: Newest First</option>
+          <option value="created_at">Sort by: Oldest First</option>
+          <option value="title">Sort by: Title (A-Z)</option>
+          <option value="-title">Sort by: Title (Z-A)</option>
+        </select>
       </div>
       <div className="tasks-table-wrapper">
         <table className="tasks-table">
@@ -124,6 +158,7 @@ function ProcurementListPage() {
           </tbody>
         </table>
       </div>
+      <ToastContainer />
     </div>
   );
 }

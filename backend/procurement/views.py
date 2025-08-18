@@ -3,6 +3,8 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import (
     WorkflowTemplate,
@@ -35,6 +37,16 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     # Allow both JSON (for create) and multipart (for advance-step)
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    # --- 2. เพิ่มการตั้งค่าสำหรับ Filter Backends ---
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+
+    # --- 3. กำหนดฟิลด์ที่จะใช้ในการค้นหา ---
+    search_fields = ['title', 'project__name', 'created_by__username']
+
+    # --- 4. กำหนดฟิลด์ที่จะใช้ในการจัดเรียง ---
+    ordering_fields = ['created_at', 'title']
+    ordering = ['-created_at']  # กำหนดการเรียงลำดับเริ่มต้น
 
     def get_queryset(self):
         # In a real-world scenario, you might filter this based on user roles
