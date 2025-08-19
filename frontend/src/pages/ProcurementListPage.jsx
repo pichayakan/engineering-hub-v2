@@ -13,12 +13,9 @@ function ProcurementListPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [ordering, setOrdering] = useState("-created_at");
-
-  // --- ✅ ADDED: State for categories and filter ---
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(""); // Empty string for 'All'
+  const [selectedCategory, setSelectedCategory] = useState("");
 
-  // --- ✅ ADDED: Fetch categories for the filter dropdown ---
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -39,7 +36,6 @@ function ProcurementListPage() {
         search: searchTerm,
         ordering: ordering,
       };
-      // --- ✅ ADDED: Include category in API request if selected ---
       if (selectedCategory) {
         params.category = selectedCategory;
       }
@@ -56,7 +52,7 @@ function ProcurementListPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, ordering, selectedCategory]); // ✅ ADDED selectedCategory dependency
+  }, [searchTerm, ordering, selectedCategory]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -99,7 +95,6 @@ function ProcurementListPage() {
       </div>
       <div className="list-controls">
         <SearchInput value={searchTerm} onChange={handleSearchChange} />
-        {/* --- ✅ ADDED: Category Filter Dropdown --- */}
         <select
           className="sort-select"
           value={selectedCategory}
@@ -129,7 +124,7 @@ function ProcurementListPage() {
             <tr>
               <th>Title</th>
               <th>Project</th>
-              <th>Category</th> {/* ✅ ADDED */}
+              <th>Category</th>
               <th>Current Step</th>
               <th>SLA</th>
               <th>Created By</th>
@@ -146,7 +141,8 @@ function ProcurementListPage() {
                     key={req.id}
                     className={req.is_completed ? "is-completed" : ""}
                   >
-                    <td>
+                    {/* --- ✅ ADDED: data-label to all <td> tags --- */}
+                    <td data-label="Title">
                       <Link
                         to={`/procurement/requests/${req.id}`}
                         className="task-title-link"
@@ -154,14 +150,13 @@ function ProcurementListPage() {
                         {req.title}
                       </Link>
                     </td>
-                    <td>{req.project_name || "N/A"}</td>
-                    {/* --- ✅ ADDED: Category data cell --- */}
-                    <td>
+                    <td data-label="Project">{req.project_name || "N/A"}</td>
+                    <td data-label="Category">
                       <span className="category-badge">
                         {req.category_details?.name || "N/A"}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Current Step">
                       <span
                         className={`status-badge status-${
                           req.current_step_details?.name.replace(/\s+/g, "-") ||
@@ -171,10 +166,19 @@ function ProcurementListPage() {
                         {req.current_step_details?.name || "N/A"}
                       </span>
                     </td>
-                    <td className={`sla-text ${sla.className}`}>{sla.text}</td>
-                    <td>{req.created_by_details?.username || "N/A"}</td>
-                    <td>{new Date(req.created_at).toLocaleDateString()}</td>
-                    <td>
+                    <td
+                      data-label="SLA"
+                      className={`sla-text ${sla.className}`}
+                    >
+                      {sla.text}
+                    </td>
+                    <td data-label="Created By">
+                      {req.created_by_details?.username || "N/A"}
+                    </td>
+                    <td data-label="Date Created">
+                      {new Date(req.created_at).toLocaleDateString()}
+                    </td>
+                    <td data-label="Status">
                       <span
                         className={`status-badge ${
                           req.is_completed
@@ -191,7 +195,7 @@ function ProcurementListPage() {
             ) : (
               <tr>
                 <td
-                  colSpan="8" // ✅ CHANGED from 7 to 8
+                  colSpan="8"
                   style={{ textAlign: "center", padding: "2rem" }}
                 >
                   No procurement requests found.

@@ -23,7 +23,9 @@ urlpatterns = [
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("download/<uuid:pk>/", FileDownloadView.as_view(), name="file-download"),
     path("api/procurement/", include("procurement.urls")),
+    path('api/workflows/', include('workflows.urls')),
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)

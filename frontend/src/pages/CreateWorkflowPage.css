@@ -1,0 +1,101 @@
+/* frontend/src/pages/CreateWorkflowPage.css */
+
+.create-workflow-container {
+  max-width: 800px;
+  margin: 2rem auto;
+}
+
+.create-workflow-form .form-card {
+  background-color: var(--nt-white);
+  padding: 2.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--nt-border-color);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.create-workflow-form .form-group {
+  margin-bottom: 2rem;
+}
+
+.create-workflow-form .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.create-workflow-form label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: var(--nt-text-dark);
+}
+
+/* --- ✅ This is the core styling for inputs and dropdowns --- */
+.create-workflow-form input[type="text"]::placeholder {
+  color: #6c757d; /* A standard, visible gray color */
+  opacity: 1; /* Ensures the color is not faded by the browser */
+}
+.create-workflow-form select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--nt-border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: "Sarabun", sans-serif;
+  background-color: var(--nt-white);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.create-workflow-form input[type="text"]:focus,
+.create-workflow-form select:focus {
+  outline: none;
+  border-color: var(--nt-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25);
+}
+
+/* --- ✅ Styling for the action buttons --- */
+.create-workflow-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.create-workflow-form .btn {
+  padding: 0.7rem 1.5rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.create-workflow-form .btn-primary {
+  background-color: var(--nt-yellow);
+  color: var(--nt-text-dark);
+  border-color: var(--nt-yellow);
+}
+.create-workflow-form .btn-primary:hover {
+  background-color: #e6b800;
+  border-color: #e6b800;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.create-workflow-form .btn-primary:disabled {
+  background-color: #e9ecef;
+  border-color: #dee2e6;
+  color: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.create-workflow-form .btn-secondary {
+  background-color: var(--nt-white);
+  color: var(--nt-text-dark);
+  border-color: var(--nt-border-color);
+}
+.create-workflow-form .btn-secondary:hover {
+  background-color: #f8f9fa;
+  border-color: #6c757d;
+}

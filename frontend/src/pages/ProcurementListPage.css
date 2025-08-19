@@ -102,6 +102,68 @@
   border: 1px solid #dee2e6;
 }
 
+/* --- ✅ ADDED: Responsive Styles for Mobile --- */
+@media screen and (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .list-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* ซ่อนหัวตารางในจอมือถือ */
+  .tasks-table thead {
+    display: none;
+  }
+
+  /* ทำให้แถวกลายเป็นการ์ด */
+  .tasks-table tr {
+    display: block;
+    border: 1px solid var(--nt-border-color);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .tasks-table tr.is-completed {
+    background-color: #f8f9fa;
+  }
+
+  /* ทำให้ช่องข้อมูลเรียงจากบนลงล่าง */
+  .tasks-table td {
+    display: flex;
+    justify-content: space-between; /* จัดให้ label และ value อยู่คนละฝั่ง */
+    align-items: center;
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid #f1f1f1;
+    text-align: right; /* จัดข้อมูลชิดขวา */
+  }
+
+  .tasks-table td:last-child {
+    border-bottom: none;
+  }
+
+  /* สร้าง Label ขึ้นมาจาก data-label ที่เราใส่ไว้ใน JSX */
+  .tasks-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    text-align: left; /* จัด Label ชิดซ้าย */
+    margin-right: 1rem;
+    color: var(--nt-text-dark);
+  }
+
+  /* จัดการกับลิงก์ในช่องแรกให้สวยงาม */
+  .tasks-table td[data-label="Title"] a {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+}
+
 /* ใช้สไตล์ตารางร่วมกับ AllTasksPage.css */
 /* คุณสามารถ copy สไตล์ .tasks-table-wrapper และ .tasks-table มาไว้ที่นี่ได้ */
 /* หรือ import './AllTasksPage.css'; ที่ด้านบนของ ProcurementListPage.jsx */

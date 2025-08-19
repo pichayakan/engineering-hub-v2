@@ -1,0 +1,108 @@
+/* frontend/src/components/workflows/components/UpdateStepStatusForm.css */
+
+.update-status-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.update-status-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* --- ✅ Consistent styling for form elements --- */
+.update-status-form select,
+.update-status-form textarea,
+.update-status-form input[type="file"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: "Sarabun", sans-serif;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.update-status-form select:focus,
+.update-status-form textarea:focus {
+  outline: none;
+  border-color: var(--nt-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25);
+}
+
+.update-status-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+/* --- ✅ Consistent button styles --- */
+.update-status-form .btn {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.update-status-form .btn-primary {
+  background-color: #198754; /* Green for "Save" */
+  color: white;
+}
+.update-status-form .btn-primary:hover {
+  background-color: #157347;
+}
+
+.update-status-form .btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+.update-status-form .btn-secondary:hover {
+  background-color: #5c636a;
+}
+
+/* Attachment list styles from previous step */
+.existing-attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+.existing-attachments-list a {
+  color: #0d6efd;
+  text-decoration: none;
+}
+.existing-attachments-list a:hover {
+  text-decoration: underline;
+}
+.file-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: -0.5rem;
+  margin-bottom: 1.5rem;
+}
+.file-preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #e9ecef;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+.file-preview-item button {
+  background: none;
+  border: none;
+  color: #dc3545;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+}

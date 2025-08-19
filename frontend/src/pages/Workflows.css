@@ -1,0 +1,114 @@
+/* frontend/src/pages/Workflows.css */
+
+/* --- Status Badge Styles --- */
+.status-badge-wf {
+  padding: 0.3rem 0.7rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-block;
+  text-transform: capitalize;
+  border: 1px solid transparent;
+}
+
+.status-badge-wf.status-PENDING {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border-color: #dee2e6;
+}
+
+.status-badge-wf.status-IN_PROGRESS {
+  background-color: #cff4fc;
+  color: #055160;
+  border-color: #9eeaf9;
+}
+
+.status-badge-wf.status-COMPLETED {
+  background-color: #d1e7dd;
+  color: #0f5132;
+  border-color: #a3cfbb;
+}
+
+.status-badge-wf.status-SKIPPED {
+  background-color: #e2e3e5;
+  color: #41464b;
+  border-color: #d3d6d8;
+}
+
+/* This is in frontend/src/pages/Workflows.css */
+
+/* --- FINAL FIX for Table Alignment --- */
+/* This rule forces each cell back to its natural table behavior
+   and then aligns its content to the top, overriding any
+   conflicting styles (like display:flex) from other CSS files. */
+.tasks-table tbody td {
+  display: table-cell !important;
+  vertical-align: top !important;
+  padding: 1rem 0.5rem;
+}
+
+/* --- Row Styles --- */
+.status-row-COMPLETED {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+
+/* --- Update Button Style (inside the cell) --- */
+.action-button-link {
+  background: none;
+  border: none;
+  color: #0d6efd;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.8rem;
+  margin-left: 0.75rem;
+  font-weight: 500;
+  display: inline-block;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.tasks-table tr:hover .action-button-link {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* --- Attachments Cell Styles --- */
+.attachments-cell {
+  /* This ensures the links stack vertically within their cell */
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.attachments-cell a {
+  color: #0d6efd;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px; /* Prevents very long filenames from breaking layout */
+}
+
+.attachments-cell a:hover {
+  text-decoration: underline;
+}
+
+/* --- SLA Text Styles --- */
+.sla-text {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.sla-pending {
+  color: #6c757d;
+}
+.sla-overdue {
+  color: #dc3545;
+}
+.sla-due-soon {
+  color: #ffc107;
+}
+.sla-on-time {
+  color: #198754;
+}

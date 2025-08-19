@@ -24,6 +24,9 @@ import AllTasksPage from "./pages/AllTasksPage.jsx";
 import ProcurementListPage from "./pages/ProcurementListPage.jsx";
 import CreateProcurementPage from "./pages/CreateProcurementPage.jsx";
 import ProcurementDetailPage from "./pages/ProcurementDetailPage.jsx";
+import ProjectWorkflowListPage from "./pages/ProjectWorkflowListPage";
+import ProjectWorkflowDetailPage from "./pages/ProjectWorkflowDetailPage";
+import CreateWorkflowPage from "./pages/CreateWorkflowPage";
 
 // Import Route Guards
 import ProtectedRoute from "./utils/ProtectedRoute.jsx";
@@ -49,7 +52,6 @@ function App() {
             {/* เส้นทางที่ทุกคนสามารถเข้าถึงได้โดยไม่ต้อง Login */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-
             {/* --- Protected Routes --- */}
             {/* เส้นทางทั้งหมดที่อยู่ข้างในนี้ จะต้องทำการ Login ก่อน */}
             <Route element={<ProtectedRoute />}>
@@ -89,7 +91,13 @@ function App() {
                 />
                 <Route path="/tasks/all" element={<AllTasksPage />} />
               </Route>
+              <Route path="/workflows" element={<ProjectWorkflowListPage />} />
+              <Route
+                path="/workflows/:workflowId"
+                element={<ProjectWorkflowDetailPage />}
+              />
             </Route>
+            <Route path="/workflows/new" element={<CreateWorkflowPage />} />{" "}
           </Routes>
         </main>
       </div>
