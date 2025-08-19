@@ -1,100 +1,63 @@
-/* 2. Updated File: frontend/src/components/Header.css */
-
+/* frontend/src/components/Header.css */
 .header {
-    grid-area: header;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 1rem;
-    background-color: var(--nt-yellow);
-    color: var(--nt-text-dark);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  grid-area: header;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1.5rem;
+  /* --- ✅ CHANGED THIS LINE --- */
+  background-color: var(--nt-yellow); 
+  border-bottom: 1px solid #e6b800; /* Adjusted border for better contrast */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+.header-left, .header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.hamburger-btn {
-    background: none;
-    border: none;
-    color: var(--nt-text-dark);
-    font-size: 1.8rem;
-    cursor: pointer;
-    padding: 0.5rem;
+.menu-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--nt-text-dark);
 }
 
-.header-logo h1 {
-    font-size: 1.2rem;
-    font-weight: 700;
-    margin: 0;
+.header-logo-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
 }
 
-.header-user-info {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+.header-logo {
+  height: 35px;
+  width: auto;
+  display: block;
 }
 
-.header-user-info .user-details {
+.header-title {
+  font-size: 1.25rem;
+  margin: 0;
+  font-weight: 600;
+  color: var(--nt-text-dark);
+}
+
+@media (max-width: 768px) {
+  .header-title {
     display: none;
+  }
 }
 
-.header-user-info .logout-button {
-    background-color: var(--nt-dark-gray);
-    color: var(--nt-white);
-    border: none;
-    padding: 0.4rem 0.8rem;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 0.8rem;
-    transition: background-color 0.2s;
+.user-info {
+  font-size: 0.9rem;
+  /* --- ✅ CHANGED THIS LINE for better readability on yellow bg --- */
+  color: var(--nt-text-dark); 
 }
-
-.header-user-info .logout-button:hover {
-    background-color: #23272b;
-}
-
-
-/* --- Responsive for Medium screens and up (md: 768px) --- */
-@media (min-width: 768px) {
-    .header {
-        padding: 0 2rem;
-    }
-
-    /* --- ส่วนที่แก้ไข: เราไม่จำเป็นต้องซ่อนปุ่มด้วย CSS อีกต่อไป --- */
-    /* เพราะ Tailwind จะจัดการให้ใน JSX โดยตรง */
-    /* .hamburger-btn {
-        display: none;
-    }
-    */
-
-    .header-logo h1 {
-        font-size: 1.5rem;
-    }
-
-    .header-user-info .user-details {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        line-height: 1.2;
-    }
-
-    .header-user-info .user-fullname {
-        font-weight: 600;
-        font-size: 0.95rem;
-    }
-
-    .header-user-info .user-role {
-        font-size: 0.8rem;
-        opacity: 0.8;
-    }
-
-    .header-user-info .logout-button {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-    }
+.user-info strong {
+  /* This remains the same, but will look good on the new background */
+  color: var(--nt-text-dark);
 }
