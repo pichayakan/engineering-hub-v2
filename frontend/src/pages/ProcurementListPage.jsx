@@ -14,6 +14,24 @@ function ProcurementListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [ordering, setOrdering] = useState("-created_at");
 
+  // --- ✅ ADDED: State for categories and filter ---
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(""); // Empty string for 'All'
+
+  // --- ✅ ADDED: Fetch categories for the filter dropdown ---
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await apiClient.get("/api/procurement/categories/");
+        setCategories(response.data.results || response.data);
+      } catch (error) {
+        console.error("Failed to fetch categories", error);
+        toast.error("Could not load categories for filtering.");
+      }
+    };
+    fetchCategories();
+  }, []);
+
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
@@ -21,6 +39,10 @@ function ProcurementListPage() {
         search: searchTerm,
         ordering: ordering,
       };
+      // --- ✅ ADDED: Include category in API request if selected ---
+      if (selectedCategory) {
+        params.category = selectedCategory;
+      }
       const response = await apiClient.get("/api/procurement/requests/", {
         params,
       });
@@ -34,7 +56,7 @@ function ProcurementListPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, ordering]);
+  }, [searchTerm, ordering, selectedCategory]); // ✅ ADDED selectedCategory dependency
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -64,7 +86,8 @@ function ProcurementListPage() {
     return { text: `${diffDays}d left`, className: "sla-on-time" };
   };
 
-  if (loading) return <div>Loading procurement requests...</div>;
+  if (loading && requests.length === 0)
+    return <div>Loading procurement requests...</div>;
 
   return (
     <div>
@@ -76,6 +99,19 @@ function ProcurementListPage() {
       </div>
       <div className="list-controls">
         <SearchInput value={searchTerm} onChange={handleSearchChange} />
+        {/* --- ✅ ADDED: Category Filter Dropdown --- */}
+        <select
+          className="sort-select"
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+        >
+          <option value="">Filter by: All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
         <select
           className="sort-select"
           value={ordering}
@@ -93,6 +129,7 @@ function ProcurementListPage() {
             <tr>
               <th>Title</th>
               <th>Project</th>
+              <th>Category</th> {/* ✅ ADDED */}
               <th>Current Step</th>
               <th>SLA</th>
               <th>Created By</th>
@@ -118,6 +155,12 @@ function ProcurementListPage() {
                       </Link>
                     </td>
                     <td>{req.project_name || "N/A"}</td>
+                    {/* --- ✅ ADDED: Category data cell --- */}
+                    <td>
+                      <span className="category-badge">
+                        {req.category_details?.name || "N/A"}
+                      </span>
+                    </td>
                     <td>
                       <span
                         className={`status-badge status-${
@@ -148,7 +191,7 @@ function ProcurementListPage() {
             ) : (
               <tr>
                 <td
-                  colSpan="7"
+                  colSpan="8" // ✅ CHANGED from 7 to 8
                   style={{ textAlign: "center", padding: "2rem" }}
                 >
                   No procurement requests found.

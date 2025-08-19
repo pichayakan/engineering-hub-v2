@@ -7,8 +7,21 @@ from .models import (
     ProcurementRequest,
     RequestHistory,
     ProcurementAttachment,
+    ProcurementCategory,  # ✅ IMPORTED
 )
 from accounts.serializers import UserListSerializer, UserDetailForHistorySerializer
+
+# --- ✅ ADDED THIS NEW SERIALIZER ---
+
+
+class ProcurementCategorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for the ProcurementCategory model.
+    """
+    class Meta:
+        model = ProcurementCategory
+        fields = ["id", "name"]
+
 
 # --- Serializer for supporting models ---
 
@@ -100,6 +113,11 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
     )
     current_step_due_date = serializers.DateField(read_only=True)
 
+    # --- ✅ ADDED THIS LINE ---
+    category_details = ProcurementCategorySerializer(
+        source="category", read_only=True
+    )
+
     class Meta:
         model = ProcurementRequest
         fields = [
@@ -107,13 +125,13 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
             "title",
             "project",
             "project_name",
+            "category",  # ✅ ADDED THIS
+            "category_details",  # ✅ ADDED THIS
             "workflow_template",
             "current_step",
             "current_step_details",
             "created_by_details",
             "created_at",
-            "is_completed",
-            "history",
             "is_completed",
             "history",
             "current_step_due_date",

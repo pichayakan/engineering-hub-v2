@@ -12,8 +12,24 @@ from .models import (
     ProcurementRequest,
     RequestHistory,
     ProcurementAttachment,
+    ProcurementCategory,  # ✅ IMPORTED
 )
-from .serializers import WorkflowTemplateSerializer, ProcurementRequestSerializer
+from .serializers import (
+    WorkflowTemplateSerializer,
+    ProcurementRequestSerializer,
+    ProcurementCategorySerializer,  # ✅ IMPORTED
+)
+
+
+# --- ✅ ADDED THIS NEW VIEWSET ---
+class ProcurementCategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint for listing available procurement categories.
+    (Managed via Django Admin)
+    """
+    queryset = ProcurementCategory.objects.all()
+    serializer_class = ProcurementCategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class WorkflowTemplateViewSet(viewsets.ReadOnlyModelViewSet):
@@ -42,7 +58,8 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     # --- 3. กำหนดฟิลด์ที่จะใช้ในการค้นหา ---
-    search_fields = ['title', 'project__name', 'created_by__username']
+    search_fields = ['title', 'project__name', 'created_by__username',
+                     'category__name']  # ✅ ADDED CATEGORY SEARCH
 
     # --- 4. กำหนดฟิลด์ที่จะใช้ในการจัดเรียง ---
     ordering_fields = ['created_at', 'title']

@@ -91,6 +91,17 @@
   color: #198754;
 }
 
+.category-badge {
+  background-color: #e9ecef;
+  color: #495057;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-block;
+  border: 1px solid #dee2e6;
+}
+
 /* ใช้สไตล์ตารางร่วมกับ AllTasksPage.css */
 /* คุณสามารถ copy สไตล์ .tasks-table-wrapper และ .tasks-table มาไว้ที่นี่ได้ */
 /* หรือ import './AllTasksPage.css'; ที่ด้านบนของ ProcurementListPage.jsx */

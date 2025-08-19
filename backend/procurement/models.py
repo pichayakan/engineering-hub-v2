@@ -6,6 +6,22 @@ from api.models import Project
 from datetime import timedelta
 
 
+class ProcurementCategory(models.Model):
+    """
+    เก็บหมวดหมู่ของเรื่องการจัดหา เช่น งานจ้าง, งานซื้อ, เช่า
+    """
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Procurement Category"
+        verbose_name_plural = "Procurement Categories"
+
+    def __str__(self):
+        return self.name
+
+
 class WorkflowTemplate(models.Model):
     """
     แม่แบบของกระบวนการทำงาน เช่น "จัดหาพัสดุไม่เกิน 5 แสนบาท"
@@ -57,6 +73,14 @@ class ProcurementRequest(models.Model):
     title = models.CharField(max_length=255)
     project = models.ForeignKey(
         Project,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="procurement_requests",
+    )
+    # --- ✅ ADDED THIS LINE ---
+    category = models.ForeignKey(
+        ProcurementCategory,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
