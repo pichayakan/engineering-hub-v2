@@ -4,17 +4,59 @@ import { useParams, Link } from "react-router-dom";
 import apiClient from "../api";
 import Modal from "../components/Modal";
 import UpdateStepStatusForm from "../components/workflows/UpdateStepStatusForm";
+import EditWorkflowForm from "../components/workflows/EditWorkflowForm";
 import "./Workflows.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+// --- ✅ IMPORT ICONS ---
+import { FiSearch, FiMinusCircle } from "react-icons/fi";
+
+// Helper component to display main workflow details neatly
+const WorkflowDetails = ({ workflow }) => {
+  const formattedBudget = workflow.budget_amount
+    ? parseFloat(workflow.budget_amount).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    : "---";
+
+  return (
+    <div className="workflow-details-grid">
+      <div>
+        <span>PR Number</span>
+        <strong>{workflow.pr_number || "---"}</strong>
+      </div>
+      <div>
+        <span>Budget Amount</span>
+        <strong>{formattedBudget}</strong>
+      </div>
+      <div>
+        <span>Fiscal Year</span>
+        <strong>{workflow.fiscal_year || "---"}</strong>
+      </div>
+      <div>
+        <span>Created By</span>
+        <strong>{workflow.created_by_details.username}</strong>
+      </div>
+    </div>
+  );
+};
 
 function ProjectWorkflowDetailPage() {
   const [workflow, setWorkflow] = useState(null);
   const [loading, setLoading] = useState(true);
   const { workflowId } = useParams();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // State for the "Update Step" modal
+  const [isStepModalOpen, setIsStepModalOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(null);
+
+  // State for the "Edit Workflow" modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // --- State to manage visibility of the details section ---
+  const [isDetailsVisible, setIsDetailsVisible] = useState(false);
 
   const fetchWorkflowDetails = async () => {
     try {
@@ -35,17 +77,16 @@ function ProjectWorkflowDetailPage() {
     fetchWorkflowDetails();
   }, [workflowId]);
 
-  const handleOpenModal = (stepStatus) => {
+  // Handlers for the "Update Step" Modal
+  const handleOpenStepModal = (stepStatus) => {
     setCurrentStep(stepStatus);
-    setIsModalOpen(true);
+    setIsStepModalOpen(true);
   };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleCloseStepModal = () => {
+    setIsStepModalOpen(false);
     setCurrentStep(null);
   };
-
-  const handleUpdateSubmit = async (formData) => {
+  const handleUpdateStepSubmit = async (formData) => {
     if (!currentStep) return;
     try {
       const response = await apiClient.post(
@@ -60,10 +101,36 @@ function ProjectWorkflowDetailPage() {
         ),
       }));
       toast.success(`Step "${response.data.step.name}" updated successfully!`);
-      handleCloseModal();
+      handleCloseStepModal();
     } catch (error) {
       console.error("Failed to update step status", error);
       toast.error(error.response?.data?.detail || "Failed to update status.");
+    }
+  };
+
+  // Handlers for the "Edit Workflow" Modal
+  const handleOpenEditModal = () => setIsEditModalOpen(true);
+  const handleCloseEditModal = () => setIsEditModalOpen(false);
+
+  const handleEditWorkflowSubmit = async (updatedData) => {
+    try {
+      const response = await apiClient.patch(
+        `/api/workflows/projects/${workflowId}/`,
+        updatedData
+      );
+
+      // --- ✅ THIS IS THE FIX ---
+      // Merge the old state with the partial update from the API response
+      setWorkflow((prevWorkflow) => ({
+        ...prevWorkflow,
+        ...response.data,
+      }));
+
+      toast.success("Workflow details updated successfully!");
+      handleCloseEditModal();
+    } catch (error) {
+      console.error("Failed to update workflow", error);
+      toast.error(error.response?.data?.detail || "Failed to update workflow.");
     }
   };
 
@@ -120,12 +187,30 @@ function ProjectWorkflowDetailPage() {
     <div>
       <div className="page-header">
         <div>
-          <h1>{workflow.title}</h1>
-          <p>
-            Created by {workflow.created_by_details.username} on{" "}
-            {new Date(workflow.created_at).toLocaleDateString()}
-          </p>
+          <div className="title-with-toggle">
+            <h1>{workflow.title}</h1>
+            {/* --- ✅ UPDATED: Button with Icon --- */}
+            <button
+              className="toggle-details-btn"
+              onClick={() => setIsDetailsVisible(!isDetailsVisible)}
+            >
+              {isDetailsVisible ? (
+                <>
+                  <FiMinusCircle className="toggle-icon" /> ซ่อนรายละเอียด
+                </>
+              ) : (
+                <>
+                  <FiSearch className="toggle-icon" /> แสดงรายละเอียด
+                </>
+              )}
+            </button>
+          </div>
+
+          {isDetailsVisible && <WorkflowDetails workflow={workflow} />}
         </div>
+        <button className="edit-workflow-btn" onClick={handleOpenEditModal}>
+          Edit Workflow
+        </button>
       </div>
 
       <div className="tasks-table-wrapper">
@@ -152,7 +237,7 @@ function ProjectWorkflowDetailPage() {
                     {status.step.name}
                     <button
                       className="action-button-link"
-                      onClick={() => handleOpenModal(status)}
+                      onClick={() => handleOpenStepModal(status)}
                     >
                       Update
                     </button>
@@ -190,6 +275,7 @@ function ProjectWorkflowDetailPage() {
           </tbody>
         </table>
       </div>
+
       <div style={{ marginTop: "2rem" }}>
         <Link to="/workflows" className="nav-link">
           ← Back to Workflow List
@@ -197,18 +283,33 @@ function ProjectWorkflowDetailPage() {
       </div>
 
       <Modal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        isOpen={isStepModalOpen}
+        onClose={handleCloseStepModal}
         title={`Update Step: ${currentStep?.step.name}`}
       >
         {currentStep && (
           <UpdateStepStatusForm
             stepStatus={currentStep}
-            onSubmit={handleUpdateSubmit}
-            onCancel={handleCloseModal}
+            onSubmit={handleUpdateStepSubmit}
+            onCancel={handleCloseStepModal}
           />
         )}
       </Modal>
+
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        title="Edit Workflow Details"
+      >
+        {workflow && (
+          <EditWorkflowForm
+            workflow={workflow}
+            onSubmit={handleEditWorkflowSubmit}
+            onCancel={handleCloseEditModal}
+          />
+        )}
+      </Modal>
+
       <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );

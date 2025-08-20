@@ -112,3 +112,73 @@
 .sla-on-time {
   color: #198754;
 }
+
+.workflow-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--nt-border-color);
+}
+
+.workflow-details-grid > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.workflow-details-grid span {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.workflow-details-grid strong {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--nt-text-dark);
+}
+
+.edit-workflow-btn {
+  background-color: var(--nt-white);
+  color: var(--nt-text-dark);
+  border: 1px solid var(--nt-border-color);
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start; /* Aligns button to the top of the header */
+}
+
+.edit-workflow-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #6c757d;
+}
+
+.title-with-toggle {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap; /* Allows button to wrap on small screens */
+}
+
+.toggle-details-btn {
+  background: none;
+  border: none;
+  color: #0d6efd;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  align-self: center; /* Aligns with the title's vertical center */
+}
+
+.toggle-details-btn:hover {
+  text-decoration: underline;
+}
+
+.toggle-icon {
+  margin-right: 0.5rem;
+  vertical-align: middle; /* Adjust vertical alignment of the icon */
+}

@@ -8,6 +8,10 @@ import "./CreateWorkflowPage.css";
 function CreateWorkflowPage() {
   const [title, setTitle] = useState("");
   const [templateId, setTemplateId] = useState("");
+
+  const [prNumber, setPrNumber] = useState("");
+  const [budgetAmount, setBudgetAmount] = useState("");
+  const [fiscalYear, setFiscalYear] = useState(new Date().getFullYear() + 1); // Default to next year
   const [templates, setTemplates] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -37,6 +41,9 @@ function CreateWorkflowPage() {
       const payload = {
         title: title,
         template: templateId,
+        pr_number: prNumber, // ✅ Add to payload
+        budget_amount: budgetAmount || null, // ✅ Add to payload, send null if empty
+        fiscal_year: fiscalYear || null, // ✅ Add to payload, send null if empty
       };
       const response = await apiClient.post(
         "/api/workflows/projects/",
@@ -88,6 +95,35 @@ function CreateWorkflowPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="pr_number">PR Number (Optional)</label>
+            <input
+              type="text"
+              id="pr_number"
+              value={prNumber}
+              onChange={(e) => setPrNumber(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="budget_amount">Budget Amount (Optional)</label>
+            <input
+              type="number"
+              step="0.01"
+              id="budget_amount"
+              value={budgetAmount}
+              onChange={(e) => setBudgetAmount(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="fiscal_year">Fiscal Year (Optional)</label>
+            <input
+              type="number"
+              id="fiscal_year"
+              value={fiscalYear}
+              onChange={(e) => setFiscalYear(e.target.value)}
+            />
           </div>
         </div>
 

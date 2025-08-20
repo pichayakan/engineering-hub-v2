@@ -15,6 +15,26 @@ class ProjectWorkflow(models.Model):
         on_delete=models.PROTECT,
         help_text="แม่แบบที่โปรเจกต์นี้จะใช้"
     )
+
+    pr_number = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="เลขที่ PR"
+    )
+    budget_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="วงเงินงบประมาณ"
+    )
+    fiscal_year = models.IntegerField(
+        blank=True,
+        null=True,
+        verbose_name="ปีงบประมาณ"
+    )
+
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)

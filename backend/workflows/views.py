@@ -8,7 +8,8 @@ from .serializers import (
     ProjectWorkflowListSerializer,
     ProjectWorkflowDetailSerializer,
     ProjectWorkflowCreateSerializer,  # ✅ IMPORT THE NEW SERIALIZER
-    StepStatusSerializer
+    StepStatusSerializer,
+    ProjectWorkflowUpdateSerializer,
 )
 import datetime
 
@@ -23,6 +24,8 @@ class ProjectWorkflowViewSet(viewsets.ModelViewSet):
             return ProjectWorkflowListSerializer
         if self.action == 'create':  # Add this condition
             return ProjectWorkflowCreateSerializer
+        if self.action in ['update', 'partial_update']:
+            return ProjectWorkflowUpdateSerializer
         # This remains the default for retrieve, update, etc.
         return ProjectWorkflowDetailSerializer
 

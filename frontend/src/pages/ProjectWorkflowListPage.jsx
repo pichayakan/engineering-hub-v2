@@ -39,6 +39,8 @@ function ProjectWorkflowListPage() {
           <thead>
             <tr>
               <th>Title</th>
+              <th>PR Number</th>
+              <th>Fiscal Year</th>
               <th>Date Created</th>
               <th>Status</th>
             </tr>
@@ -55,6 +57,8 @@ function ProjectWorkflowListPage() {
                       {flow.title}
                     </Link>
                   </td>
+                  <td>{flow.pr_number || "---"}</td>
+                  <td>{flow.fiscal_year || "---"}</td>
                   <td>{new Date(flow.created_at).toLocaleDateString()}</td>
                   <td>
                     <span

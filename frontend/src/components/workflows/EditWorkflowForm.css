@@ -1,0 +1,58 @@
+/* frontend/src/pages/workflows/components/EditWorkflowForm.css */
+.edit-workflow-form {
+  /* This form shares styles with other forms */
+}
+
+.edit-workflow-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.edit-workflow-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.edit-workflow-form input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: "Sarabun", sans-serif;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.edit-workflow-form input:focus {
+  outline: none;
+  border-color: var(--nt-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25);
+}
+
+.edit-workflow-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.edit-workflow-form .btn {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.edit-workflow-form .btn-primary {
+  background-color: var(--nt-yellow);
+  color: var(--nt-text-dark);
+}
+
+.edit-workflow-form .btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}

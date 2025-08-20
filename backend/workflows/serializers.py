@@ -43,13 +43,24 @@ class StepStatusSerializer(serializers.ModelSerializer):
 class ProjectWorkflowCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectWorkflow
-        fields = ['id', 'title', 'template']
+        fields = ['id', 'title', 'template',
+                  'pr_number', 'budget_amount', 'fiscal_year']
+
+
+class ProjectWorkflowUpdateSerializer(serializers.ModelSerializer):
+    """Serializer specifically for updating an existing workflow's details."""
+    class Meta:
+        model = ProjectWorkflow
+        # Only include fields that are editable after creation. Template is excluded.
+        fields = ['title', 'pr_number', 'budget_amount',
+                  'fiscal_year', 'is_completed']
 
 
 class ProjectWorkflowListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectWorkflow
-        fields = ['id', 'title', 'template', 'created_at', 'is_completed']
+        fields = ['id', 'title', 'template', 'pr_number',
+                  'budget_amount', 'fiscal_year', 'created_at', 'is_completed']
 
 
 class ProjectWorkflowDetailSerializer(serializers.ModelSerializer):
