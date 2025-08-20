@@ -57,10 +57,21 @@ class ProjectWorkflowUpdateSerializer(serializers.ModelSerializer):
 
 
 class ProjectWorkflowListSerializer(serializers.ModelSerializer):
+    """Serializer for list view, now includes progress data."""
+    # --- ✅ ADD THESE TWO FIELDS ---
+    completed_step_count = serializers.IntegerField(read_only=True)
+    total_step_count = serializers.IntegerField(read_only=True)
+    # Use the StepStatusSerializer to get details of the current step
+    current_step = StepStatusSerializer(read_only=True)
+
     class Meta:
         model = ProjectWorkflow
-        fields = ['id', 'title', 'template', 'pr_number',
-                  'budget_amount', 'fiscal_year', 'created_at', 'is_completed']
+        fields = [
+            'id', 'title', 'template', 'pr_number', 'budget_amount',
+            'fiscal_year', 'created_at', 'is_completed',
+            'completed_step_count',  # ✅ ADDED
+            'total_step_count', 'current_step'
+        ]
 
 
 class ProjectWorkflowDetailSerializer(serializers.ModelSerializer):

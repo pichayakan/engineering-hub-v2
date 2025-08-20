@@ -1,0 +1,23 @@
+/* frontend/src/components/ProgressBar.css */
+.progress-bar-container {
+  width: 100%;
+}
+.progress-bar-track {
+  background-color: #e9ecef;
+  border-radius: 10px;
+  height: 10px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  background-color: var(--nt-yellow);
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.5s ease-in-out;
+}
+.progress-bar-text {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6c757d;
+  margin-top: 0.25rem;
+  text-align: right;
+}

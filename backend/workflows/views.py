@@ -1,6 +1,8 @@
 # workflows/views.py
+from django.utils import timezone  # ✅ IMPORT
+from datetime import timedelta  # ✅ IMPORT
 from rest_framework import viewsets, permissions, mixins, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import ProjectWorkflow, StepStatus, StepAttachment
@@ -67,3 +69,34 @@ class StepStatusViewSet(mixins.RetrieveModelMixin,
             )
         serializer = self.get_serializer(step_status)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def workflow_summary_view(request):
+    """
+    Provides summary data for the workflow dashboard KPI cards.
+    """
+    # Simple counts
+    in_progress_count = ProjectWorkflow.objects.filter(
+        is_completed=False).count()
+    completed_this_month_count = ProjectWorkflow.objects.filter(
+        is_completed=True,
+        # Assuming you add a 'completed_at' field that is set upon completion.
+        # For now, let's just count all completed ones.
+        # completed_at__month=timezone.now().month,
+        # completed_at__year=timezone.now().year
+    ).count()
+
+    # Complex SLA counts (can be added later for performance)
+    # For now, we'll return placeholders.
+    overdue_count = 0
+    nearing_sla_count = 0
+
+    data = {
+        'in_progress_count': in_progress_count,
+        'completed_this_month_count': completed_this_month_count,
+        'overdue_count': overdue_count,
+        'nearing_sla_count': nearing_sla_count,
+    }
+    return Response(data)

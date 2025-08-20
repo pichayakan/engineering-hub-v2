@@ -1,0 +1,26 @@
+/* frontend/src/components/EmptyState.css */
+.empty-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  background-color: var(--nt-white);
+  border-radius: 12px;
+  border: 1px dashed var(--nt-border-color);
+  margin: 1rem 0;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  color: #adb5bd; /* A muted gray */
+  margin-bottom: 1rem;
+}
+
+.empty-state-message {
+  font-size: 1.1rem;
+  color: #6c757d; /* A slightly darker gray for text */
+  font-weight: 500;
+  margin: 0;
+}

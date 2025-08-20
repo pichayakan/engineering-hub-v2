@@ -40,6 +40,37 @@ class ProjectWorkflow(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_completed = models.BooleanField(default=False)
 
+    @property
+    def total_step_count(self):
+        """Returns the total number of steps in this workflow's template."""
+        return self.template.steps.count()
+
+    @property
+    def completed_step_count(self):
+        """Returns the number of completed steps for this workflow."""
+        return self.step_statuses.filter(status='COMPLETED').count()
+
+    @property
+    def current_step(self):
+        """
+        Determines the current step based on status and order.
+        Priority: 1st IN_PROGRESS, then 1st PENDING.
+        """
+        # First, look for the earliest step that is "In Progress"
+        in_progress_step = self.step_statuses.filter(
+            status='IN_PROGRESS').order_by('step__order').first()
+        if in_progress_step:
+            return in_progress_step
+
+        # If no step is "In Progress", look for the earliest "Pending" step
+        pending_step = self.step_statuses.filter(
+            status='PENDING').order_by('step__order').first()
+        if pending_step:
+            return pending_step
+
+        # If no steps are in progress or pending, there is no current step
+        return None
+
     def __str__(self):
         return self.title
 
