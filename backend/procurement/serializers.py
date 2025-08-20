@@ -40,7 +40,7 @@ class StepSerializer(serializers.ModelSerializer):
     """
 
     responsible_group_details = GroupSerializer(
-        source="responsible_group", read_only=True
+        source="responsible_groups", many=True, read_only=True
     )
 
     class Meta:
@@ -49,7 +49,7 @@ class StepSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "order",
-            "responsible_group",
+            "responsible_groups",
             "responsible_group_details",
         ]
 

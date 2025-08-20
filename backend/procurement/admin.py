@@ -25,7 +25,8 @@ class StepInline(admin.TabularInline):
     """
     model = Step
     extra = 1  # Show 1 empty slot for a new step by default
-    fields = ("order", "name", "responsible_group", "duration_days")
+    fields = ("order", "name", "responsible_groups", "duration_days")
+    filter_horizontal = ("responsible_groups",)
 
 
 @admin.register(WorkflowTemplate)

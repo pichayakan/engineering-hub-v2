@@ -46,10 +46,8 @@ class Step(models.Model):
     name = models.CharField(max_length=255)
     order = models.PositiveIntegerField(
         help_text="ลำดับของขั้นตอน เช่น 1, 2, 3...")
-    responsible_group = models.ForeignKey(
+    responsible_groups = models.ManyToManyField(
         Group,
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
         help_text="กลุ่มผู้ใช้ที่มีสิทธิ์อนุมัติขั้นตอนนี้",
     )

@@ -98,9 +98,11 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             )
 
         # Check if the user is in the responsible group for the current step
+        responsible_pks = current_step.responsible_groups.values_list(
+            'pk', flat=True)
         if (
-            current_step.responsible_group
-            and not user.groups.filter(pk=current_step.responsible_group.pk).exists()
+            responsible_pks.exists()
+            and not user.groups.filter(pk__in=responsible_pks).exists()
         ):
             return Response(
                 {"error": "You do not have permission to approve this step."},

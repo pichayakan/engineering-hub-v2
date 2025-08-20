@@ -243,7 +243,13 @@ function ProjectWorkflowDetailPage() {
                     </button>
                   </td>
                   <td>
-                    {status.step.responsible_group_details?.name || "---"}
+                    {status.step.responsible_group_details?.length > 0
+                      ? status.step.responsible_group_details.map((group) => (
+                          <span key={group.id} className="group-tag">
+                            {group.name}
+                          </span>
+                        ))
+                      : "---"}
                   </td>
                   <td className={`sla-text ${sla.className}`}>{sla.text}</td>
                   <td>

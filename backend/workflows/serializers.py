@@ -21,7 +21,7 @@ class StepStatusSerializer(serializers.ModelSerializer):
     # Explicitly define step serializer to ensure all fields are present
     class StepDetailSerializer(serializers.ModelSerializer):
         responsible_group_details = GroupSerializer(
-            source="responsible_group", read_only=True)
+            source="responsible_groups", many=True, read_only=True)
 
         class Meta:
             model = StepSerializer.Meta.model
