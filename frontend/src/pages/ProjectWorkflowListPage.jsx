@@ -84,6 +84,7 @@ function ProjectWorkflowListPage() {
               <tr>
                 <th>Title</th>
                 <th>PR Number</th>
+                <th>Start Date</th>
                 <th>Current Step</th>
                 <th style={{ width: "20%" }}>Progress</th>
                 <th>Status</th>
@@ -105,6 +106,7 @@ function ProjectWorkflowListPage() {
                       </Link>
                     </td>
                     <td>{flow.pr_number || "---"}</td>
+                    <td>{flow.start_date ? new Date(flow.start_date).toLocaleDateString() : '---'}</td>
                     <td>
                       {flow.is_completed ? (
                         <span style={{ color: "#198754", fontWeight: 500 }}>
@@ -135,7 +137,7 @@ function ProjectWorkflowListPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5">
+                  <td colSpan="6">
                     <EmptyState message="No workflows found. Create a new one to get started!" />
                   </td>
                 </tr>

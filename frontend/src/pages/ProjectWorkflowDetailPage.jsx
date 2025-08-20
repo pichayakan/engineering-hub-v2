@@ -8,8 +8,6 @@ import EditWorkflowForm from "../components/workflows/EditWorkflowForm";
 import "./Workflows.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-// --- ✅ IMPORT ICONS ---
 import { FiSearch, FiMinusCircle } from "react-icons/fi";
 
 // Helper component to display main workflow details neatly
@@ -39,6 +37,10 @@ const WorkflowDetails = ({ workflow }) => {
         <span>Created By</span>
         <strong>{workflow.created_by_details.username}</strong>
       </div>
+      <div>
+        <span>Start Date</span>
+        <strong>{workflow.start_date ? new Date(workflow.start_date).toLocaleDateString() : '---'}</strong>
+      </div>
     </div>
   );
 };
@@ -54,8 +56,6 @@ function ProjectWorkflowDetailPage() {
 
   // State for the "Edit Workflow" modal
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
-  // --- State to manage visibility of the details section ---
   const [isDetailsVisible, setIsDetailsVisible] = useState(false);
 
   const fetchWorkflowDetails = async () => {
@@ -118,14 +118,10 @@ function ProjectWorkflowDetailPage() {
         `/api/workflows/projects/${workflowId}/`,
         updatedData
       );
-
-      // --- ✅ THIS IS THE FIX ---
-      // Merge the old state with the partial update from the API response
       setWorkflow((prevWorkflow) => ({
         ...prevWorkflow,
         ...response.data,
       }));
-
       toast.success("Workflow details updated successfully!");
       handleCloseEditModal();
     } catch (error) {
@@ -134,43 +130,19 @@ function ProjectWorkflowDetailPage() {
     }
   };
 
-  const calculateSLA = (currentStepStatus, allStatuses) => {
-    const stepOrder = currentStepStatus.step.order;
-    const duration = currentStepStatus.step.duration_days;
-    if (duration === null || duration === undefined) return { text: "No SLA" };
-
-    let startDate;
-    if (stepOrder === 1) {
-      startDate = new Date(workflow.created_at);
-    } else {
-      const prevStep = allStatuses.find((s) => s.step.order === stepOrder - 1);
-      if (
-        prevStep &&
-        prevStep.status === "COMPLETED" &&
-        prevStep.completed_at
-      ) {
-        startDate = new Date(prevStep.completed_at);
-      } else {
-        return { text: "Pending", className: "sla-pending" };
-      }
-    }
-
-    const dueDate = new Date(startDate);
-    dueDate.setDate(dueDate.getDate() + duration);
-
+  const getSlaStatus = (dueDateStr) => {
+    if (!dueDateStr) return { text: "No SLA", className: "sla-pending" };
+    const dueDate = new Date(dueDateStr);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const diffTime = dueDate.getTime() - today.getTime();
+    const inclusiveDueDate = new Date(dueDate);
+    inclusiveDueDate.setDate(inclusiveDueDate.getDate() + 1);
+    const diffTime = inclusiveDueDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0)
-      return {
-        text: `Overdue ${Math.abs(diffDays)}d`,
-        className: "sla-overdue",
-      };
+    if (diffDays < 0) return { text: `Overdue ${Math.abs(diffDays)}d`, className: "sla-overdue" };
     if (diffDays === 0) return { text: "Due Today", className: "sla-due-soon" };
     return { text: `${diffDays}d left`, className: "sla-on-time" };
-  };
+  }
 
   if (loading) return <div>Loading workflow details...</div>;
   if (!workflow) return <div>Could not load workflow data.</div>;
@@ -189,30 +161,24 @@ function ProjectWorkflowDetailPage() {
         <div>
           <div className="title-with-toggle">
             <h1>{workflow.title}</h1>
-            {/* --- ✅ UPDATED: Button with Icon --- */}
             <button
               className="toggle-details-btn"
               onClick={() => setIsDetailsVisible(!isDetailsVisible)}
             >
               {isDetailsVisible ? (
-                <>
-                  <FiMinusCircle className="toggle-icon" /> ซ่อนรายละเอียด
-                </>
+                <><FiMinusCircle className="toggle-icon" /> Hide Details</>
               ) : (
-                <>
-                  <FiSearch className="toggle-icon" /> แสดงรายละเอียด
-                </>
+                <><FiSearch className="toggle-icon" /> Show Details</>
               )}
             </button>
           </div>
-
           {isDetailsVisible && <WorkflowDetails workflow={workflow} />}
         </div>
         <button className="edit-workflow-btn" onClick={handleOpenEditModal}>
           Edit Workflow
         </button>
       </div>
-
+      
       <div className="tasks-table-wrapper">
         <table className="tasks-table">
           <thead>
@@ -220,7 +186,7 @@ function ProjectWorkflowDetailPage() {
               <th style={{ width: "3%" }}>#</th>
               <th style={{ width: "27%" }}>Step Name</th>
               <th style={{ width: "15%" }}>Responsible Group</th>
-              <th style={{ width: "10%" }}>SLA</th>
+              <th style={{ width: "10%" }}>Due Date (SLA)</th>
               <th style={{ width: "10%" }}>Status</th>
               <th style={{ width: "10%" }}>Completed By</th>
               <th style={{ width: "10%" }}>Completed At</th>
@@ -229,7 +195,7 @@ function ProjectWorkflowDetailPage() {
           </thead>
           <tbody>
             {workflow.step_statuses.map((status) => {
-              const sla = calculateSLA(status, workflow.step_statuses);
+              const sla = getSlaStatus(status.due_date);
               return (
                 <tr key={status.id} className={`status-row-${status.status}`}>
                   <td>{status.step.order}</td>
@@ -243,37 +209,46 @@ function ProjectWorkflowDetailPage() {
                     </button>
                   </td>
                   <td>
-                    {status.step.responsible_group_details?.length > 0
-                      ? status.step.responsible_group_details.map((group) => (
+                    {status.step.responsible_groups?.length > 0
+                      ? status.step.responsible_groups.map((group) => (
                           <span key={group.id} className="group-tag">
                             {group.name}
                           </span>
                         ))
                       : "---"}
                   </td>
-                  <td className={`sla-text ${sla.className}`}>{sla.text}</td>
-                  <td>
-                    <StatusBadge status={status.status} />
+                  <td className={`sla-text ${sla.className}`}>
+                    <div className="cell-content-wrapper">
+                      {status.due_date ? (
+                        <>
+                          <span>{new Date(status.due_date).toLocaleDateString()}</span>
+                          <small>{sla.text}</small>
+                        </>
+                      ) : 'N/A'}
+                    </div>
                   </td>
+                  <td><StatusBadge status={status.status} /></td>
                   <td>{status.completed_by_details?.username || "---"}</td>
                   <td>
                     {status.completed_at
                       ? new Date(status.completed_at).toLocaleDateString()
                       : "---"}
                   </td>
-                  <td className="attachments-cell">
-                    {status.attachments.length > 0
-                      ? status.attachments.map((att) => (
-                          <a
-                            key={att.id}
-                            href={att.file}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            📎 {att.name}
-                          </a>
-                        ))
-                      : "No files"}
+                  <td>
+                    <div className="cell-content-wrapper attachments-cell">
+                      {status.attachments.length > 0
+                        ? status.attachments.map((att) => (
+                            <a
+                              key={att.id}
+                              href={att.file}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              📎 {att.name}
+                            </a>
+                          ))
+                        : "No files"}
+                    </div>
                   </td>
                 </tr>
               );
@@ -287,32 +262,20 @@ function ProjectWorkflowDetailPage() {
           ← Back to Workflow List
         </Link>
       </div>
-
-      <Modal
-        isOpen={isStepModalOpen}
-        onClose={handleCloseStepModal}
-        title={`Update Step: ${currentStep?.step.name}`}
-      >
+      
+      <Modal isOpen={isStepModalOpen} onClose={handleCloseStepModal} title={`Update Step: ${currentStep?.step.name}`}>
         {currentStep && (
-          <UpdateStepStatusForm
-            stepStatus={currentStep}
-            onSubmit={handleUpdateStepSubmit}
-            onCancel={handleCloseStepModal}
-          />
+          <UpdateStepStatusForm stepStatus={currentStep} onSubmit={handleUpdateStepSubmit} onCancel={handleCloseStepModal} />
         )}
       </Modal>
 
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={handleCloseEditModal}
-        title="Edit Workflow Details"
-      >
+      <Modal isOpen={isEditModalOpen} onClose={handleCloseEditModal} title="Edit Workflow Details">
         {workflow && (
-          <EditWorkflowForm
-            workflow={workflow}
-            onSubmit={handleEditWorkflowSubmit}
-            onCancel={handleCloseEditModal}
-          />
+            <EditWorkflowForm
+                workflow={workflow}
+                onSubmit={handleEditWorkflowSubmit}
+                onCancel={handleCloseEditModal}
+            />
         )}
       </Modal>
 
