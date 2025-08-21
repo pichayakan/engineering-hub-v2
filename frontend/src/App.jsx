@@ -29,6 +29,8 @@ import ProjectWorkflowDetailPage from "./pages/ProjectWorkflowDetailPage";
 import CreateWorkflowPage from "./pages/CreateWorkflowPage";
 import UserProfilePage from "./pages/UserProfilePage";
 
+import HelpButton from "./components/HelpButton.jsx";
+
 // Import Route Guards
 import ProtectedRoute from "./utils/ProtectedRoute.jsx";
 import AdminRoute from "./utils/AdminRoute.jsx";
@@ -102,6 +104,7 @@ function App() {
             <Route path="/profile/:userId" element={<UserProfilePage />} />
           </Routes>
         </main>
+        <HelpButton />
       </div>
     </div>
   );
