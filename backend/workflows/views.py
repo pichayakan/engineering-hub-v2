@@ -48,6 +48,18 @@ class StepStatusViewSet(mixins.RetrieveModelMixin,
         # ... (no changes in this method)
         step_status = self.get_object()
         user = request.user
+
+        responsible_groups = step_status.step.responsible_groups.all()
+        # If there are groups assigned to this step...
+        if responsible_groups.exists():
+            # ...check if the user is a member of any of them.
+            # user.is_staff is a check for admin/superuser
+            if not user.is_staff and not user.groups.filter(pk__in=responsible_groups.values_list('pk', flat=True)).exists():
+                return Response(
+                    {'error': 'You do not have permission to update this step.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
         new_status = request.data.get('status')
         if new_status and new_status != step_status.status:
             step_status.status = new_status

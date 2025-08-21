@@ -16,15 +16,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "email",
-            "username",
-            "first_name",
-            "last_name",
-            "phone_number",
-            "employee_id",
-            "department",
-            "password",
-            "password2",
+            "email", "username", "first_name", "last_name", "phone_number",
+            "employee_id", "department", "password", "password2",
         ]
         extra_kwargs = {"password": {"write_only": True}}
 
@@ -52,18 +45,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "id",
-            "email",
-            "username",
-            "first_name",
-            "last_name",
-            "phone_number",
-            "employee_id",
-            "role",
-            "is_staff",
-            "department",
-            "department_name",
-            "groups",
+            "id", "email", "username", "first_name", "last_name", "phone_number",
+            "employee_id", "role", "is_staff", "department", "department_name", "groups",
         ]
 
 
@@ -71,7 +54,6 @@ class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "username", "first_name", "last_name", "phone_number"]
-
 
 # --- Serializer for Department Management ---
 
@@ -83,7 +65,6 @@ class DepartmentSerializer(serializers.ModelSerializer):
         model = Department
         fields = ["id", "name", "parent", "manager", "member_count"]
 
-
 # --- Serializers for Dashboards & Detailed Views ---
 
 
@@ -92,7 +73,6 @@ class GroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Group
-        # เพิ่ม 'members' เข้าไปในรายการ fields
         fields = ["id", "name", "members"]
 
 
@@ -106,6 +86,28 @@ class UserDetailForHistorySerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "first_name", "last_name", "department_name", "groups"]
 
+# --- ✅ ADD THIS NEW SERIALIZER FOR THE PROFILE PAGE ---
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the new user profile page.
+    """
+    groups = GroupSerializer(many=True, read_only=True)
+    department_name = serializers.CharField(
+        source='department.name', read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'first_name', 'last_name', 'email',
+            'is_staff', 'role', 'department_name', 'groups',
+            'employee_id',  # ADDED
+            'phone_number',  # ADDED
+        ]
+
+# --- (MemberWorkloadSerializer & DepartmentWorkloadSerializer remain unchanged) ---
+
 
 class MemberWorkloadSerializer(serializers.ModelSerializer):
     total_tasks = serializers.IntegerField()
@@ -118,16 +120,8 @@ class MemberWorkloadSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "id",
-            "username",
-            "first_name",
-            "last_name",
-            "total_tasks",
-            "todo_tasks",
-            "inprogress_tasks",
-            "done_tasks",
-            "pending_tasks",
-            "accepted_tasks",
+            "id", "username", "first_name", "last_name", "total_tasks", "todo_tasks",
+            "inprogress_tasks", "done_tasks", "pending_tasks", "accepted_tasks",
         ]
 
 

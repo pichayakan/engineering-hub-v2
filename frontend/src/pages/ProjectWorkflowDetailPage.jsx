@@ -9,6 +9,7 @@ import "./Workflows.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FiSearch, FiMinusCircle } from "react-icons/fi";
+import { useAuth } from "../context/AuthContext";
 
 // Helper component to display main workflow details neatly
 const WorkflowDetails = ({ workflow }) => {
@@ -35,17 +36,27 @@ const WorkflowDetails = ({ workflow }) => {
       </div>
       <div>
         <span>Created By</span>
-        <strong>{workflow.created_by_details.username}</strong>
+        <strong>
+          <Link to={`/profile/${workflow.created_by}`} className="profile-link">
+            {workflow.created_by_details.first_name}{" "}
+            {workflow.created_by_details.last_name}
+          </Link>
+        </strong>
       </div>
       <div>
         <span>Start Date</span>
-        <strong>{workflow.start_date ? new Date(workflow.start_date).toLocaleDateString() : '---'}</strong>
+        <strong>
+          {workflow.start_date
+            ? new Date(workflow.start_date).toLocaleDateString()
+            : "---"}
+        </strong>
       </div>
     </div>
   );
 };
 
 function ProjectWorkflowDetailPage() {
+  const { user } = useAuth();
   const [workflow, setWorkflow] = useState(null);
   const [loading, setLoading] = useState(true);
   const { workflowId } = useParams();
@@ -139,10 +150,14 @@ function ProjectWorkflowDetailPage() {
     inclusiveDueDate.setDate(inclusiveDueDate.getDate() + 1);
     const diffTime = inclusiveDueDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return { text: `Overdue ${Math.abs(diffDays)}d`, className: "sla-overdue" };
+    if (diffDays < 0)
+      return {
+        text: `Overdue ${Math.abs(diffDays)}d`,
+        className: "sla-overdue",
+      };
     if (diffDays === 0) return { text: "Due Today", className: "sla-due-soon" };
     return { text: `${diffDays}d left`, className: "sla-on-time" };
-  }
+  };
 
   if (loading) return <div>Loading workflow details...</div>;
   if (!workflow) return <div>Could not load workflow data.</div>;
@@ -166,9 +181,13 @@ function ProjectWorkflowDetailPage() {
               onClick={() => setIsDetailsVisible(!isDetailsVisible)}
             >
               {isDetailsVisible ? (
-                <><FiMinusCircle className="toggle-icon" /> Hide Details</>
+                <>
+                  <FiMinusCircle className="toggle-icon" /> Hide Details
+                </>
               ) : (
-                <><FiSearch className="toggle-icon" /> Show Details</>
+                <>
+                  <FiSearch className="toggle-icon" /> Show Details
+                </>
               )}
             </button>
           </div>
@@ -178,7 +197,7 @@ function ProjectWorkflowDetailPage() {
           Edit Workflow
         </button>
       </div>
-      
+
       <div className="tasks-table-wrapper">
         <table className="tasks-table">
           <thead>
@@ -196,21 +215,42 @@ function ProjectWorkflowDetailPage() {
           <tbody>
             {workflow.step_statuses.map((status) => {
               const sla = getSlaStatus(status.due_date);
+
+              const checkUserPermission = () => {
+                if (user?.is_staff) return true;
+
+                const responsibleGroupIds = status.step.responsible_groups;
+                if (!responsibleGroupIds || responsibleGroupIds.length === 0) {
+                  return true;
+                }
+
+                // user.groups is already an array of IDs, so we use it directly.
+                const userGroupIds = user?.groups || [];
+
+                return userGroupIds.some((userGroupId) =>
+                  responsibleGroupIds.includes(userGroupId)
+                );
+              };
+              const canUpdate = checkUserPermission();
+
               return (
                 <tr key={status.id} className={`status-row-${status.status}`}>
                   <td>{status.step.order}</td>
                   <td>
                     {status.step.name}
-                    <button
-                      className="action-button-link"
-                      onClick={() => handleOpenStepModal(status)}
-                    >
-                      Update
-                    </button>
+                    {canUpdate && (
+                      <button
+                        className="action-button-link"
+                        onClick={() => handleOpenStepModal(status)}
+                        disabled={status.status === "COMPLETED"}
+                      >
+                        Update
+                      </button>
+                    )}
                   </td>
                   <td>
-                    {status.step.responsible_groups?.length > 0
-                      ? status.step.responsible_groups.map((group) => (
+                    {status.step.responsible_group_details?.length > 0
+                      ? status.step.responsible_group_details.map((group) => (
                           <span key={group.id} className="group-tag">
                             {group.name}
                           </span>
@@ -221,13 +261,19 @@ function ProjectWorkflowDetailPage() {
                     <div className="cell-content-wrapper">
                       {status.due_date ? (
                         <>
-                          <span>{new Date(status.due_date).toLocaleDateString()}</span>
+                          <span>
+                            {new Date(status.due_date).toLocaleDateString()}
+                          </span>
                           <small>{sla.text}</small>
                         </>
-                      ) : 'N/A'}
+                      ) : (
+                        "N/A"
+                      )}
                     </div>
                   </td>
-                  <td><StatusBadge status={status.status} /></td>
+                  <td>
+                    <StatusBadge status={status.status} />
+                  </td>
                   <td>{status.completed_by_details?.username || "---"}</td>
                   <td>
                     {status.completed_at
@@ -262,20 +308,32 @@ function ProjectWorkflowDetailPage() {
           ← Back to Workflow List
         </Link>
       </div>
-      
-      <Modal isOpen={isStepModalOpen} onClose={handleCloseStepModal} title={`Update Step: ${currentStep?.step.name}`}>
+
+      <Modal
+        isOpen={isStepModalOpen}
+        onClose={handleCloseStepModal}
+        title={`Update Step: ${currentStep?.step.name}`}
+      >
         {currentStep && (
-          <UpdateStepStatusForm stepStatus={currentStep} onSubmit={handleUpdateStepSubmit} onCancel={handleCloseStepModal} />
+          <UpdateStepStatusForm
+            stepStatus={currentStep}
+            onSubmit={handleUpdateStepSubmit}
+            onCancel={handleCloseStepModal}
+          />
         )}
       </Modal>
 
-      <Modal isOpen={isEditModalOpen} onClose={handleCloseEditModal} title="Edit Workflow Details">
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        title="Edit Workflow Details"
+      >
         {workflow && (
-            <EditWorkflowForm
-                workflow={workflow}
-                onSubmit={handleEditWorkflowSubmit}
-                onCancel={handleCloseEditModal}
-            />
+          <EditWorkflowForm
+            workflow={workflow}
+            onSubmit={handleEditWorkflowSubmit}
+            onCancel={handleCloseEditModal}
+          />
         )}
       </Modal>
 

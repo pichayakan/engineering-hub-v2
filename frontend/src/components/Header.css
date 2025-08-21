@@ -5,13 +5,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 1.5rem;
-  /* --- ✅ CHANGED THIS LINE --- */
-  background-color: var(--nt-yellow); 
-  border-bottom: 1px solid #e6b800; /* Adjusted border for better contrast */
+  background-color: var(--nt-yellow);
+  border-bottom: 1px solid #e6b800;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  height: 60px; /* Set a fixed height for consistency */
 }
 
-.header-left, .header-right {
+.header-left,
+.header-right {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -52,12 +53,37 @@
   }
 }
 
-.user-info {
+.user-info-link {
   font-size: 0.9rem;
-  /* --- ✅ CHANGED THIS LINE for better readability on yellow bg --- */
-  color: var(--nt-text-dark); 
-}
-.user-info strong {
-  /* This remains the same, but will look good on the new background */
   color: var(--nt-text-dark);
+  text-decoration: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 5px;
+  transition: background-color 0.2s ease;
+}
+
+.user-info-link:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.user-info-link strong {
+  color: var(--nt-text-dark);
+}
+
+/* --- ✅ ADDED: Styles for the Logout Button --- */
+.logout-button {
+  background-color: rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--nt-text-dark);
+  color: var(--nt-text-dark);
+  padding: 0.4rem 0.8rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.logout-button:hover {
+  background-color: var(--nt-text-dark);
+  color: var(--nt-white);
 }

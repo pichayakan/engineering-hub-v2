@@ -1,0 +1,111 @@
+/* frontend/src/pages/UserProfilePage.css */
+.profile-container {
+  max-width: 900px;
+  margin: 2rem auto;
+}
+
+.profile-header {
+  background-color: var(--nt-white);
+  padding: 2rem 2.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--nt-border-color);
+  margin-bottom: 2.5rem;
+}
+
+.profile-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 2rem;
+}
+
+.profile-username {
+  margin: 0 0 1.5rem;
+  color: #6c757d;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--nt-border-color);
+}
+
+.profile-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+/* --- ✅ THIS IS THE KEY CHANGE --- */
+.meta-item {
+  background-color: #f8f9fa; /* Light gray background */
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #dee2e6;
+}
+
+.meta-item h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem; /* Make label smaller */
+  color: #6c757d;
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.meta-content {
+  font-size: 1rem; /* Adjust value font size */
+  font-weight: 500;
+  color: var(--nt-text-dark);
+  margin: 0;
+  word-wrap: break-word; /* Helps with long department names */
+}
+
+.meta-content-subtle {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin: 0;
+}
+
+.profile-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.group-tag {
+  display: inline-block;
+  background-color: #e9ecef;
+  color: #495057;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  border: 1px solid #d3d6d8;
+}
+
+/* --- (Work list styles remain the same) --- */
+.profile-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--nt-border-color);
+  padding-bottom: 0.75rem;
+}
+.work-list .work-item {
+  background-color: var(--nt-white);
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--nt-border-color);
+  margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.work-list a {
+  color: var(--nt-text-dark);
+  font-weight: 600;
+  text-decoration: none;
+}
+.work-list a:hover {
+  text-decoration: underline;
+}
+.work-date {
+  font-size: 0.9rem;
+  color: #6c757d;
+}

@@ -27,6 +27,7 @@ import ProcurementDetailPage from "./pages/ProcurementDetailPage.jsx";
 import ProjectWorkflowListPage from "./pages/ProjectWorkflowListPage";
 import ProjectWorkflowDetailPage from "./pages/ProjectWorkflowDetailPage";
 import CreateWorkflowPage from "./pages/CreateWorkflowPage";
+import UserProfilePage from "./pages/UserProfilePage";
 
 // Import Route Guards
 import ProtectedRoute from "./utils/ProtectedRoute.jsx";
@@ -98,6 +99,7 @@ function App() {
               />
             </Route>
             <Route path="/workflows/new" element={<CreateWorkflowPage />} />{" "}
+            <Route path="/profile/:userId" element={<UserProfilePage />} />
           </Routes>
         </main>
       </div>
