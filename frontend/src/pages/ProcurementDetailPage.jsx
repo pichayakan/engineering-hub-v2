@@ -17,13 +17,11 @@ function ProcurementDetailPage() {
   const { user } = useAuth();
 
   const fetchRequestDetails = useCallback(async () => {
-    // No setLoading here for smoother background refreshes
     try {
       const reqRes = await apiClient.get(
         `/api/procurement/requests/${requestId}/`
       );
       setRequest(reqRes.data);
-
       if (reqRes.data.workflow_template) {
         const wfRes = await apiClient.get(
           `/api/procurement/templates/${reqRes.data.workflow_template}/`
@@ -45,13 +43,11 @@ function ProcurementDetailPage() {
   const handleApprove = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-
     const formData = new FormData();
     formData.append("notes", notes);
     filesToUpload.forEach((file) => {
       formData.append("files", file);
     });
-
     try {
       await apiClient.post(
         `/api/procurement/requests/${requestId}/advance-step/`,
@@ -75,7 +71,7 @@ function ProcurementDetailPage() {
     if (e.target.files) {
       setFilesToUpload((prevFiles) => [
         ...prevFiles,
-        ...Array.from(e.targe.files),
+        ...Array.from(e.target.files),
       ]);
     }
   };
@@ -88,51 +84,55 @@ function ProcurementDetailPage() {
 
   const calculateSLA = (dueDateStr) => {
     if (!dueDateStr) return { text: "Not set", className: "" };
-
     const today = new Date();
     const dueDate = new Date(dueDateStr);
-    // Reset time to compare dates only
     today.setHours(0, 0, 0, 0);
-
     const diffTime = dueDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
+    if (diffDays < 0)
       return {
         text: `Overdue by ${Math.abs(diffDays)} days`,
         className: "overdue",
       };
-    }
-    if (diffDays === 0) {
-      return { text: "Due today", className: "due-soon" };
-    }
-    if (diffDays <= 7) {
-      return { text: `${diffDays} days left`, className: "due-soon" };
-    }
+    if (diffDays === 0) return { text: "Due today", className: "due-soon" };
     return { text: `${diffDays} days left`, className: "on-time" };
   };
 
   if (loading) return <div>Loading details...</div>;
   if (!request || !workflow) return <div>Could not load data.</div>;
 
-  const canApprove = user?.groups?.includes(
-    request.current_step_details?.responsible_group
-  );
+  const checkUserPermission = () => {
+    if (request.is_completed) return false;
+    if (user?.is_staff) return true;
+
+    const responsibleGroupIds =
+      request.current_step_details?.responsible_groups || [];
+    if (responsibleGroupIds.length === 0) {
+      return true;
+    }
+
+    // --- ✅ THIS IS THE FIX ---
+    // user.groups is already a simple array of IDs, so we use it directly.
+    const userGroupIds = user?.groups || [];
+
+    return userGroupIds.some((userGroupId) =>
+      responsibleGroupIds.includes(userGroupId)
+    );
+  };
+  const canApprove = checkUserPermission();
   const sla = calculateSLA(request.current_step_due_date);
+
+  const responsibleGroupNames =
+    request.current_step_details?.responsible_group_details
+      ?.map((g) => g.name)
+      .join(", ") || "";
 
   return (
     <div className="procurement-detail-container">
       <div className="detail-header">
-        {/* --- ✅ ADDED: Category Badge --- */}
-        {request.category_details && (
-          <p className="category-badge-detail">
-            {request.category_details.name}
-          </p>
-        )}
         <h1>{request.title}</h1>
         <p>
-          Project: {request.project_name || "N/A"} | Created by:{" "}
-          {request.created_by_details.username} on{" "}
+          Created by: {request.created_by_details.username} on{" "}
           {new Date(request.created_at).toLocaleDateString()}
         </p>
       </div>
@@ -143,7 +143,6 @@ function ProcurementDetailPage() {
         history={request.history}
       />
 
-      {/* ... The rest of the component remains the same ... */}
       <div className="approval-section">
         <div className="history-card">
           <h2>Approval History</h2>
@@ -152,12 +151,12 @@ function ProcurementDetailPage() {
               <div key={h.id} className="history-item">
                 <p className="history-step-name">{h.step.name}</p>
                 <div className="history-meta">
-                  Approved by
+                  Approved by{" "}
                   <strong>
                     {" "}
                     {h.approved_by_details.first_name}{" "}
                     {h.approved_by_details.last_name}{" "}
-                  </strong>
+                  </strong>{" "}
                   on {new Date(h.timestamp).toLocaleString()}
                 </div>
                 <div className="approver-details">
@@ -188,6 +187,7 @@ function ProcurementDetailPage() {
             ))}
           </div>
         </div>
+
         <div className="action-card">
           <h2>
             Current Step: {request.current_step_details?.name || "Completed"}
@@ -226,7 +226,6 @@ function ProcurementDetailPage() {
                   className="upload-input"
                 />
               </div>
-
               {filesToUpload.length > 0 && (
                 <div className="file-preview-list">
                   {filesToUpload.map((file, index) => (
@@ -242,7 +241,6 @@ function ProcurementDetailPage() {
                   ))}
                 </div>
               )}
-
               <button
                 onClick={handleApprove}
                 className="approve-button"
@@ -254,23 +252,23 @@ function ProcurementDetailPage() {
                 request.current_step_details?.responsible_group_details && (
                   <details className="potential-approvers">
                     <summary>
-                      Requires approval from "
-                      {
-                        request.current_step_details.responsible_group_details
-                          .name
-                      }
-                      "
+                      Requires approval from "{responsibleGroupNames}"
                     </summary>
-                    <ul>
-                      {request.current_step_details.responsible_group_details.members?.map(
-                        (member) => (
-                          <li key={member.id}>
-                            - {member.first_name} {member.last_name} (
-                            {member.username})
-                          </li>
-                        )
-                      )}
-                    </ul>
+                    {request.current_step_details.responsible_group_details.map(
+                      (group) => (
+                        <div key={group.id}>
+                          <strong>{group.name}:</strong>
+                          <ul>
+                            {group.members?.map((member) => (
+                              <li key={member.id}>
+                                - {member.first_name} {member.last_name} (
+                                {member.username})
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )
+                    )}
                   </details>
                 )}
             </div>
