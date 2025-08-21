@@ -1,6 +1,6 @@
 // frontend/src/pages/workflows/components/EditWorkflowForm.jsx
 import React, { useState, useEffect } from "react";
-import "./EditWorkflowForm.css"; // We'll create this file next
+import "./EditWorkflowForm.css";
 
 function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
@@ -8,9 +8,9 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
     pr_number: "",
     budget_amount: "",
     fiscal_year: "",
+    start_date: "", // ✅ ADDED
   });
 
-  // When the workflow prop is available, populate the form state
   useEffect(() => {
     if (workflow) {
       setFormData({
@@ -18,6 +18,10 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
         pr_number: workflow.pr_number || "",
         budget_amount: workflow.budget_amount || "",
         fiscal_year: workflow.fiscal_year || "",
+        // ✅ ADDED: Format date for the input field
+        start_date: workflow.start_date
+          ? new Date(workflow.start_date).toISOString().split("T")[0]
+          : "",
       });
     }
   }, [workflow]);
@@ -49,6 +53,19 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
           required
         />
       </div>
+
+      {/* --- ✅ ADDED: Start Date input --- */}
+      <div className="form-group">
+        <label htmlFor="start_date">Workflow Start Date</label>
+        <input
+          type="date"
+          name="start_date"
+          value={formData.start_date}
+          onChange={handleChange}
+          required
+        />
+      </div>
+
       <div className="form-group">
         <label htmlFor="pr_number">PR Number</label>
         <input

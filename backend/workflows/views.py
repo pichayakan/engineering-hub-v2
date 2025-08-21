@@ -1,6 +1,6 @@
 # workflows/views.py
 from django.utils import timezone  # ✅ IMPORT
-from datetime import timedelta  # ✅ IMPORT
+from datetime import date, timedelta  # ✅ IMPORT
 from rest_framework import viewsets, permissions, mixins, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -14,11 +14,23 @@ from .serializers import (
     ProjectWorkflowUpdateSerializer,
 )
 import datetime
+from rest_framework.pagination import PageNumberPagination
+from django_filters.rest_framework import DjangoFilterBackend
+
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 
 class ProjectWorkflowViewSet(viewsets.ModelViewSet):
     queryset = ProjectWorkflow.objects.all().order_by('-created_at')
     permission_classes = [permissions.IsAuthenticated]
+
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['fiscal_year']
 
     # --- ✅ MODIFY THIS METHOD ---
     def get_serializer_class(self):
@@ -89,21 +101,68 @@ def workflow_summary_view(request):
     """
     Provides summary data for the workflow dashboard KPI cards.
     """
-    # Simple counts
-    in_progress_count = ProjectWorkflow.objects.filter(
-        is_completed=False).count()
-    completed_this_month_count = ProjectWorkflow.objects.filter(
-        is_completed=True,
-        # Assuming you add a 'completed_at' field that is set upon completion.
-        # For now, let's just count all completed ones.
-        # completed_at__month=timezone.now().month,
-        # completed_at__year=timezone.now().year
-    ).count()
+    fiscal_year = request.query_params.get('fiscal_year', None)
 
-    # Complex SLA counts (can be added later for performance)
-    # For now, we'll return placeholders.
-    overdue_count = 0
-    nearing_sla_count = 0
+    # Start with a base queryset for workflows
+    workflow_queryset = ProjectWorkflow.objects.all()
+    # Apply filter if a year is provided
+    if fiscal_year:
+        workflow_queryset = workflow_queryset.filter(fiscal_year=fiscal_year)
+
+    today = date.today()
+    seven_days_from_now = today + timedelta(days=7)
+
+    # --- Calculation for Overdue Workflows ---
+    # Find the primary keys of all workflows that have at least one overdue step.
+    overdue_workflows_pks = StepStatus.objects.filter(
+        workflow__is_completed=False,      # Only active workflows
+        status__in=['PENDING', 'IN_PROGRESS'],  # Only active steps
+        due_date__isnull=False,            # The step must have a due date
+        due_date__lt=today                 # The due date must be in the past
+    ).values_list('workflow__pk', flat=True).distinct()
+
+    overdue_count = len(overdue_workflows_pks)
+
+    # --- Calculation for Nearing SLA Workflows ---
+    # Find workflows with steps due in the next 7 days.
+    nearing_sla_workflows_pks = StepStatus.objects.filter(
+        workflow__is_completed=False,
+        status__in=['PENDING', 'IN_PROGRESS'],
+        due_date__isnull=False,
+        due_date__gte=today,                     # Due date is today or in the future
+        due_date__lte=seven_days_from_now      # And is within the next 7 days
+    ).values_list('workflow__pk', flat=True).distinct()
+
+    # Exclude any workflows that are already counted as overdue.
+    nearing_sla_count = nearing_sla_workflows_pks.exclude(
+        pk__in=overdue_workflows_pks).count()
+
+    # --- Other Simple Counts ---
+    in_progress_count = workflow_queryset.filter(is_completed=False).count()
+    completed_this_month_count = workflow_queryset.filter(
+        is_completed=True).count()  # Simplified for now
+
+    # Find overdue steps ONLY within the filtered workflows
+    overdue_workflows_pks = StepStatus.objects.filter(
+        workflow__in=workflow_queryset.filter(
+            is_completed=False),  # Use filtered queryset
+        status__in=['PENDING', 'IN_PROGRESS'],
+        due_date__isnull=False,
+        due_date__lt=today
+    ).values_list('workflow__pk', flat=True).distinct()
+    overdue_count = len(overdue_workflows_pks)
+
+    # Find nearing SLA steps ONLY within the filtered workflows
+    nearing_sla_workflows_pks = StepStatus.objects.filter(
+        workflow__in=workflow_queryset.filter(
+            is_completed=False),  # Use filtered queryset
+        status__in=['PENDING', 'IN_PROGRESS'],
+        due_date__isnull=False,
+        due_date__gte=today,
+        due_date__lte=seven_days_from_now
+    ).values_list('workflow__pk', flat=True).distinct()
+    nearing_sla_count = nearing_sla_workflows_pks.exclude(
+        pk__in=overdue_workflows_pks).count()
 
     data = {
         'in_progress_count': in_progress_count,

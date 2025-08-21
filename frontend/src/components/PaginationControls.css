@@ -1,0 +1,22 @@
+/* frontend/src/components/PaginationControls.css */
+.pagination-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+.pagination-controls button {
+  background-color: var(--nt-white);
+  border: 1px solid var(--nt-border-color);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.pagination-controls button:hover:not(:disabled) {
+  background-color: #f8f9fa;
+}
+.pagination-controls button:disabled {
+  color: #adb5bd;
+  cursor: not-allowed;
+}

@@ -8,8 +8,11 @@ import EditWorkflowForm from "../components/workflows/EditWorkflowForm";
 import "./Workflows.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FiSearch, FiMinusCircle } from "react-icons/fi";
+
+import { FiSearch, FiMinusCircle, FiMessageSquare } from "react-icons/fi";
+
 import { useAuth } from "../context/AuthContext";
+import { formatDate } from "../utils/formatDate";
 
 // Helper component to display main workflow details neatly
 const WorkflowDetails = ({ workflow }) => {
@@ -45,11 +48,7 @@ const WorkflowDetails = ({ workflow }) => {
       </div>
       <div>
         <span>Start Date</span>
-        <strong>
-          {workflow.start_date
-            ? new Date(workflow.start_date).toLocaleDateString()
-            : "---"}
-        </strong>
+        <strong>{formatDate(workflow.start_date)}</strong>
       </div>
     </div>
   );
@@ -143,19 +142,26 @@ function ProjectWorkflowDetailPage() {
 
   const getSlaStatus = (dueDateStr) => {
     if (!dueDateStr) return { text: "No SLA", className: "sla-pending" };
+
+    // Set both dates to midnight to compare the dates only, ignoring time
     const dueDate = new Date(dueDateStr);
+    dueDate.setHours(0, 0, 0, 0);
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const inclusiveDueDate = new Date(dueDate);
-    inclusiveDueDate.setDate(inclusiveDueDate.getDate() + 1);
-    const diffTime = inclusiveDueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays < 0)
+
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
       return {
         text: `Overdue ${Math.abs(diffDays)}d`,
         className: "sla-overdue",
       };
-    if (diffDays === 0) return { text: "Due Today", className: "sla-due-soon" };
+    }
+    if (diffDays === 0) {
+      return { text: "Due Today", className: "sla-due-soon" };
+    }
     return { text: `${diffDays}d left`, className: "sla-on-time" };
   };
 
@@ -203,13 +209,14 @@ function ProjectWorkflowDetailPage() {
           <thead>
             <tr>
               <th style={{ width: "3%" }}>#</th>
-              <th style={{ width: "27%" }}>Step Name</th>
+              <th style={{ width: "25%" }}>Step Name</th>
               <th style={{ width: "15%" }}>Responsible Group</th>
               <th style={{ width: "10%" }}>Due Date (SLA)</th>
               <th style={{ width: "10%" }}>Status</th>
+              <th style={{ width: "5%" }}>Notes</th> {/* ✅ ADDED */}
               <th style={{ width: "10%" }}>Completed By</th>
               <th style={{ width: "10%" }}>Completed At</th>
-              <th style={{ width: "15%" }}>Attachments</th>
+              <th style={{ width: "12%" }}>Attachments</th>
             </tr>
           </thead>
           <tbody>
@@ -261,9 +268,7 @@ function ProjectWorkflowDetailPage() {
                     <div className="cell-content-wrapper">
                       {status.due_date ? (
                         <>
-                          <span>
-                            {new Date(status.due_date).toLocaleDateString()}
-                          </span>
+                          <span>{formatDate(status.due_date)}</span>
                           <small>{sla.text}</small>
                         </>
                       ) : (
@@ -274,12 +279,22 @@ function ProjectWorkflowDetailPage() {
                   <td>
                     <StatusBadge status={status.status} />
                   </td>
-                  <td>{status.completed_by_details?.username || "---"}</td>
-                  <td>
-                    {status.completed_at
-                      ? new Date(status.completed_at).toLocaleDateString()
-                      : "---"}
+                  <td className="notes-cell">
+                    {/* --- ✅ THIS IS THE FIX --- */}
+                    {status.notes && (
+                      <span
+                        onClick={() => handleOpenStepModal(status)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        <FiMessageSquare
+                          className="notes-icon"
+                          title={status.notes}
+                        />
+                      </span>
+                    )}
                   </td>
+                  <td>{status.completed_by_details?.username || "---"}</td>
+                  <td>{formatDate(status.completed_at)}</td>
                   <td>
                     <div className="cell-content-wrapper attachments-cell">
                       {status.attachments.length > 0
@@ -319,6 +334,7 @@ function ProjectWorkflowDetailPage() {
             stepStatus={currentStep}
             onSubmit={handleUpdateStepSubmit}
             onCancel={handleCloseStepModal}
+            readOnly={currentStep.status === "COMPLETED"}
           />
         )}
       </Modal>

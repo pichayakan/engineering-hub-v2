@@ -197,3 +197,13 @@
 .profile-link:hover {
   text-decoration: underline;
 }
+
+.notes-cell {
+  text-align: center; /* Center the icon in the column */
+}
+
+.notes-icon {
+  font-size: 1.25rem;
+  color: #6c757d; /* Muted gray color */
+  cursor: pointer;
+}
