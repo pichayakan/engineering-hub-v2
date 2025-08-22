@@ -282,3 +282,200 @@
   /* ✅ ADDED: to prevent badge from pushing title down */
   padding-top: 0;
 }
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.view-pdf-btn {
+  background-color: #e9ecef;
+  border: 1px solid #dee2e6;
+  color: #495057;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+.view-pdf-btn:hover {
+  background-color: #dee2e6;
+}
+
+.close-viewer-btn {
+  background-color: #f8d7da;
+  border: 1px solid #f5c2c7;
+  color: #842029;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.sign-document-btn {
+  background-color: var(--nt-yellow);
+  color: var(--nt-text-dark);
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: 1px solid var(--nt-yellow);
+  cursor: pointer;
+  margin-right: 0.5rem; /* Space between buttons */
+}
+
+.document-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  background-color: var(--nt-white);
+  z-index: 20;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.pdf-viewer-wrapper {
+  position: relative; /* This is crucial for positioning the signature */
+}
+
+.signature-container {
+  position: absolute;
+  z-index: 10;
+  cursor: grab;
+  transform-origin: top left;
+  /* Let the ResizableBox control the actual size */
+  width: auto;
+  height: auto;
+}
+
+.signature-resizable-box {
+  border: 2px dashed #0d6efd;
+  box-sizing: border-box;
+}
+
+.signature-resizable-box img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.signature-overlay {
+  position: absolute;
+  top: 50px; /* Initial position, will be draggable later */
+  left: 50px;
+  z-index: 10;
+  cursor: move;
+  border: 2px dashed #0d6efd;
+  width: 200px; /* Set a width for the container */
+}
+
+.signature-overlay img {
+  display: block;
+  width: 100%; /* Image fills the container */
+  height: auto;
+}
+
+.apply-signature-btn {
+  background-color: #198754; /* Green */
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+
+.apply-signature-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.signature-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  cursor: grab;
+  transform-origin: top left;
+}
+
+.signature-resizable-overlay {
+  position: absolute; /* Important for ResizableBox positioning within Draggable /
+border: 2px dashed #0d6efd;
+box-sizing: border-box; / Ensure border is inside width/height */
+}
+
+.signature-resizable-overlay img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Ensures the image fits within the resizable area */
+}
+
+.react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: rgba(0, 123, 255, 0.5);
+  border: 1px solid #007bff;
+  z-index: 11;
+}
+.react-resizable-handle-se {
+  bottom: -10px;
+  right: -10px;
+  cursor: se-resize;
+}
+.react-resizable-handle-sw {
+  bottom: -10px;
+  left: -10px;
+  cursor: sw-resize;
+}
+.react-resizable-handle-nw {
+  top: -10px;
+  left: -10px;
+  cursor: nw-resize;
+}
+.react-resizable-handle-ne {
+  top: -10px;
+  right: -10px;
+  cursor: ne-resize;
+}
+
+.react-resizable-handle-n,
+.react-resizable-handle-s {
+  width: 100%;
+  height: 10px;
+  left: 0;
+  cursor: ns-resize;
+}
+
+.react-resizable-handle-n {
+  top: -5px;
+}
+
+.react-resizable-handle-s {
+  bottom: -5px;
+}
+
+.react-resizable-handle-e,
+.react-resizable-handle-w {
+  height: 100%;
+  width: 10px;
+  top: 0;
+  cursor: ew-resize;
+}
+
+.react-resizable-handle-e {
+  right: -5px;
+}
+
+.react-resizable-handle-w {
+  left: -5px;
+}

@@ -118,6 +118,8 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
         source="category", read_only=True
     )
 
+    attachments = ProcurementAttachmentSerializer(many=True, read_only=True)
+
     class Meta:
         model = ProcurementRequest
         fields = [
@@ -135,5 +137,6 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
             "is_completed",
             "history",
             "current_step_due_date",
+            "attachments",
         ]
         read_only_fields = ["current_step", "created_by"]

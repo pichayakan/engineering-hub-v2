@@ -1,0 +1,43 @@
+/* frontend/src/components/SignatureModal.css */
+.signature-pad-container {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.signature-canvas {
+  width: 100%;
+  height: 200px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.signature-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.signature-actions button {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.signature-actions .btn-clear {
+  background-color: #6c757d;
+  color: white;
+}
+
+.signature-actions {
+  justify-content: space-between; /* Align items to opposite ends */
+  align-items: center;
+}
+
+.btn-upload {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  color: #495057;
+}
