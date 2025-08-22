@@ -14,6 +14,10 @@ import Draggable from "react-draggable";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
 import { PDFDocument } from "pdf-lib";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { FiZoomIn, FiZoomOut, FiRefreshCw } from 'react-icons/fi';
+
 
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 
@@ -39,6 +43,7 @@ function ProcurementDetailPage() {
   // PDF & Signature State
   const [numPages, setNumPages] = useState(null);
   const [selectedPdfUrl, setSelectedPdfUrl] = useState(null);
+  const [canSignCurrentPdf, setCanSignCurrentPdf] = useState(false);
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [signatureSize, setSignatureSize] = useState({
     width: 200,
@@ -52,6 +57,8 @@ function ProcurementDetailPage() {
   const signatureRef = useRef(null);
   const pdfWrapperRef = useRef(null);
   const pdfContainerRef = useRef(null);
+
+  const [pdfScale, setPdfScale] = useState(1.0);
 
   const fetchRequestDetails = useCallback(async () => {
     try {
@@ -110,17 +117,12 @@ function ProcurementDetailPage() {
         height: initialWidth * aspectRatio,
       });
     };
-
-    // --- ✅ THIS IS THE PART THAT SETS THE POSITION ---
     const container = pdfWrapperRef.current;
     if (container) {
-      // It sets the position to 50px from the left,
-      // and 50px down from the top of the VISIBLE scroll area
       setSignaturePosition({ x: 50, y: container.scrollTop + 50 });
     } else {
-      setSignaturePosition({ x: 50, y: 50 }); // Fallback
+      setSignaturePosition({ x: 50, y: 50 });
     }
-
     setSignatureImage(signatureDataUrl);
     handleCloseSignatureModal();
   };
@@ -208,18 +210,17 @@ function ProcurementDetailPage() {
       const signaturePng = await pdfDoc.embedPng(signatureImageBytes);
       const page = pdfDoc.getPages()[0];
       const pageDimensions = page.getSize();
-      const firstPageInViewer = viewerWrapper.querySelector(".react-pdf__Page");
+      const firstPageInViewer =
+        pdfWrapperRef.current.querySelector(".react-pdf__Page");
       if (!firstPageInViewer) {
-        alert("Error: Cannot find the rendered PDF page inside the viewer.");
+        alert("Error: Cannot find the rendered PDF page.");
         return;
       }
       const renderedPageRect = firstPageInViewer.getBoundingClientRect();
-      const signatureRect = signatureEl.getBoundingClientRect();
+      const signatureRect = signatureRef.current.getBoundingClientRect();
       const scale = pageDimensions.width / renderedPageRect.width;
-
       const relativeX = signatureRect.left - renderedPageRect.left;
       const relativeY = signatureRect.top - renderedPageRect.top;
-
       const xInPoints = relativeX * scale;
       const yInPoints =
         pageDimensions.height -
@@ -232,9 +233,30 @@ function ProcurementDetailPage() {
         width: signatureSize.width * scale,
         height: signatureSize.height * scale,
       });
+
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
-      download(blob, `signed-${request.title}.pdf`);
+
+      // const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      // const originalFileName = decodeURIComponent(
+      //   selectedPdfUrl.split("/").pop().replace(".pdf", "")
+      // );
+
+      // const newFilename = `signed_${originalFileName}_${timestamp}.pdf`;
+      const today = new Date().toLocaleDateString('th-TH').replace(/\//g, '-');
+      // Use the user's first name if available, otherwise their username
+      const signerName = user.first_name || user.username;
+      const newFilename = `signed_by_${signerName}_on_${today}.pdf`;
+
+      const signedFile = new File([blob], newFilename, {
+        type: "application/pdf",
+      });
+      setFilesToUpload((prevFiles) => [...prevFiles, signedFile]);
+      setSignatureImage(null);
+      setSelectedPdfUrl(null);
+      toast.success(
+        "Signed PDF has been added to the attachment list. Please press 'Approve' to submit."
+      );
     } catch (error) {
       console.error("Failed to embed signature:", error);
       alert("Could not create signed PDF.");
@@ -262,11 +284,42 @@ function ProcurementDetailPage() {
     );
   };
   const canApprove = checkUserPermission();
+
+  const handleViewPdf = (attachment) => {
+    const latestHistoryId =
+      request.history.length > 0
+        ? request.history[request.history.length - 1].id
+        : null;
+    if (canApprove && attachment.history_entry === latestHistoryId) {
+      setCanSignCurrentPdf(true);
+    } else {
+      setCanSignCurrentPdf(false);
+    }
+    setSelectedPdfUrl(attachment.file);
+  };
+
   const sla = calculateSLA(request.current_step_due_date);
   const responsibleGroupNames =
     request.current_step_details?.responsible_group_details
       ?.map((g) => g.name)
       .join(", ") || "";
+
+
+  const latestHistoryEntryId = request.history.length > 0 ? request.history[request.history.length - 1].id : null;
+  const isPdfFromLastStep = request.history.some(h =>
+    h.id === latestHistoryEntryId &&
+    h.attachments.some(att => att.file === selectedPdfUrl)
+  );
+  const showSignButton = canApprove && isPdfFromLastStep;
+
+  const isSigningCompleted = () => {
+    if (!selectedPdfUrl) {
+      return true;
+    }
+    return filesToUpload.some((file) => file.name.startsWith("signed_"));
+  };
+
+  const signingIsDone = isSigningCompleted();
 
   return (
     <div className="procurement-detail-container">
@@ -287,26 +340,38 @@ function ProcurementDetailPage() {
         <div className="document-viewer-section">
           <div className="document-header">
             <h2>Document Viewer</h2>
-            <div>
-              <button
-                className="sign-document-btn"
-                onClick={handleOpenSignatureModal}
-              >
-                Sign Document
-              </button>
-              <button
-                className="apply-signature-btn"
-                onClick={handleEmbedSignature}
-                disabled={!signatureImage}
-              >
-                Apply & Save Signature
-              </button>
-              <button
-                className="close-viewer-btn"
-                onClick={() => setSelectedPdfUrl(null)}
-              >
-                &times; Close Viewer
-              </button>
+            <div className="document-controls">
+              <div className="zoom-controls">
+                <button onClick={() => setPdfScale(prev => prev - 0.1)} disabled={pdfScale <= 0.5}>
+                  <FiZoomOut />
+                </button>
+                <span onClick={() => setPdfScale(1.0)} style={{ cursor: 'pointer' }}>
+                  {Math.round(pdfScale * 100)}%
+                </span>
+                <button onClick={() => setPdfScale(prev => prev + 0.1)} disabled={pdfScale >= 2.0}>
+                  <FiZoomIn />
+                </button>
+              </div>
+              <div>
+                {showSignButton && (
+                  <button className="sign-document-btn" onClick={handleOpenSignatureModal}>
+                    Sign Document
+                  </button>
+                )}
+                <button
+                  className="apply-signature-btn"
+                  onClick={handleEmbedSignature}
+                  disabled={!signatureImage}
+                >
+                  Apply & Save Signature
+                </button>
+                <button
+                  className="close-viewer-btn"
+                  onClick={() => setSelectedPdfUrl(null)}
+                >
+                  &times; Close Viewer
+                </button>
+              </div>
             </div>
           </div>
 
@@ -355,6 +420,7 @@ function ProcurementDetailPage() {
                       key={`page_${index + 1}`}
                       pageNumber={index + 1}
                       width={containerWidth}
+                      scale={pdfScale}
                     />
                   ))}
               </Document>
@@ -429,26 +495,26 @@ function ProcurementDetailPage() {
                 <p className="sla-date">
                   {request.current_step_due_date
                     ? new Date(
-                        request.current_step_due_date
-                      ).toLocaleDateString("en-GB")
+                      request.current_step_due_date
+                    ).toLocaleDateString("en-GB")
                     : "N/A"}
                 </p>
                 <p className={`sla-remaining ${sla.className}`}>{sla.text}</p>
               </div>
               <div className="form-group">
-                <label htmlFor="notes">Approval Notes (Optional)</label>
+                <label htmlFor="approval_notes">Approval Notes (Optional)</label>
                 <textarea
-                  id="notes"
+                  id="approval_notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows="3"
                 ></textarea>
               </div>
               <div className="form-group">
-                <label htmlFor="attachments">Attach Files</label>
+                <label htmlFor="approval_attachments">Attach Files</label>
                 <input
                   type="file"
-                  id="attachments"
+                  id="approval_attachments"
                   multiple
                   onChange={handleFileChange}
                   className="upload-input"
@@ -458,7 +524,7 @@ function ProcurementDetailPage() {
                 <div className="file-preview-list">
                   {filesToUpload.map((file, index) => (
                     <div key={index} className="file-preview-item">
-                      <span className="file-preview-name">{file.name}</span>
+                      <span className="file-preview-name">{decodeURIComponent(file.name)}</span>
                       <button
                         onClick={() => handleRemoveFile(file.name)}
                         className="remove-file-btn"
@@ -472,10 +538,16 @@ function ProcurementDetailPage() {
               <button
                 onClick={handleApprove}
                 className="approve-button"
-                disabled={!canApprove || isSubmitting}
+                disabled={!canApprove || isSubmitting || !signingIsDone}
               >
                 {isSubmitting ? "Submitting..." : "Approve & Advance"}
               </button>
+
+              {!signingIsDone && (
+                <p className="signing-required-message">
+                  Please "Apply & Save Signature" to the document before approving.
+                </p>
+              )}
               {!canApprove &&
                 request.current_step_details?.responsible_group_details && (
                   <details className="potential-approvers">
@@ -503,7 +575,6 @@ function ProcurementDetailPage() {
           )}
         </div>
       </div>
-
       <div style={{ marginTop: "2rem" }}>
         <Link to="/procurement" className="nav-link">
           ← Back to Procurement List
@@ -514,6 +585,7 @@ function ProcurementDetailPage() {
         onClose={handleCloseSignatureModal}
         onSave={handleSaveSignature}
       />
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );
 }
