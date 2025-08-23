@@ -16,8 +16,6 @@ import "react-resizable/css/styles.css";
 import { PDFDocument } from "pdf-lib";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FiZoomIn, FiZoomOut, FiRefreshCw } from 'react-icons/fi';
-
 
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 
@@ -57,8 +55,6 @@ function ProcurementDetailPage() {
   const signatureRef = useRef(null);
   const pdfWrapperRef = useRef(null);
   const pdfContainerRef = useRef(null);
-
-  const [pdfScale, setPdfScale] = useState(1.0);
 
   const fetchRequestDetails = useCallback(async () => {
     try {
@@ -237,17 +233,12 @@ function ProcurementDetailPage() {
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
 
-      // const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      // const originalFileName = decodeURIComponent(
-      //   selectedPdfUrl.split("/").pop().replace(".pdf", "")
-      // );
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const originalFileName = decodeURIComponent(
+        selectedPdfUrl.split("/").pop().replace(".pdf", "")
+      );
 
-      // const newFilename = `signed_${originalFileName}_${timestamp}.pdf`;
-      const today = new Date().toLocaleDateString('th-TH').replace(/\//g, '-');
-      // Use the user's first name if available, otherwise their username
-      const signerName = user.first_name || user.username;
-      const newFilename = `signed_by_${signerName}_on_${today}.pdf`;
-
+      const newFilename = `signed_${originalFileName}_${timestamp}.pdf`;
       const signedFile = new File([blob], newFilename, {
         type: "application/pdf",
       });
@@ -304,14 +295,6 @@ function ProcurementDetailPage() {
       ?.map((g) => g.name)
       .join(", ") || "";
 
-
-  const latestHistoryEntryId = request.history.length > 0 ? request.history[request.history.length - 1].id : null;
-  const isPdfFromLastStep = request.history.some(h =>
-    h.id === latestHistoryEntryId &&
-    h.attachments.some(att => att.file === selectedPdfUrl)
-  );
-  const showSignButton = canApprove && isPdfFromLastStep;
-
   const isSigningCompleted = () => {
     if (!selectedPdfUrl) {
       return true;
@@ -320,6 +303,13 @@ function ProcurementDetailPage() {
   };
 
   const signingIsDone = isSigningCompleted();
+  
+  const latestHistoryEntryId = request.history.length > 0 ? request.history[request.history.length - 1].id : null;
+  const isPdfFromLastStep = request.history.some(h => 
+      h.id === latestHistoryEntryId && 
+      h.attachments.some(att => att.file === selectedPdfUrl)
+  );
+  const showSignButton = canApprove && isPdfFromLastStep;
 
   return (
     <div className="procurement-detail-container">
@@ -340,38 +330,28 @@ function ProcurementDetailPage() {
         <div className="document-viewer-section">
           <div className="document-header">
             <h2>Document Viewer</h2>
-            <div className="document-controls">
-              <div className="zoom-controls">
-                <button onClick={() => setPdfScale(prev => prev - 0.1)} disabled={pdfScale <= 0.5}>
-                  <FiZoomOut />
-                </button>
-                <span onClick={() => setPdfScale(1.0)} style={{ cursor: 'pointer' }}>
-                  {Math.round(pdfScale * 100)}%
-                </span>
-                <button onClick={() => setPdfScale(prev => prev + 0.1)} disabled={pdfScale >= 2.0}>
-                  <FiZoomIn />
-                </button>
-              </div>
-              <div>
-                {showSignButton && (
-                  <button className="sign-document-btn" onClick={handleOpenSignatureModal}>
-                    Sign Document
-                  </button>
-                )}
+            <div>
+              {showSignButton && (
                 <button
-                  className="apply-signature-btn"
-                  onClick={handleEmbedSignature}
-                  disabled={!signatureImage}
+                  className="sign-document-btn"
+                  onClick={handleOpenSignatureModal}
                 >
-                  Apply & Save Signature
+                  Sign Document
                 </button>
-                <button
-                  className="close-viewer-btn"
-                  onClick={() => setSelectedPdfUrl(null)}
-                >
-                  &times; Close Viewer
-                </button>
-              </div>
+              )}
+              <button
+                className="apply-signature-btn"
+                onClick={handleEmbedSignature}
+                disabled={!signatureImage}
+              >
+                Apply & Save Signature
+              </button>
+              <button
+                className="close-viewer-btn"
+                onClick={() => setSelectedPdfUrl(null)}
+              >
+                &times; Close Viewer
+              </button>
             </div>
           </div>
 
@@ -420,7 +400,6 @@ function ProcurementDetailPage() {
                       key={`page_${index + 1}`}
                       pageNumber={index + 1}
                       width={containerWidth}
-                      scale={pdfScale}
                     />
                   ))}
               </Document>
@@ -469,7 +448,7 @@ function ProcurementDetailPage() {
                       {att.file.toLowerCase().endsWith(".pdf") && (
                         <button
                           className="view-pdf-btn"
-                          onClick={() => setSelectedPdfUrl(att.file)}
+                          onClick={() => handleViewPdf(att)}
                         >
                           View
                         </button>
@@ -495,8 +474,8 @@ function ProcurementDetailPage() {
                 <p className="sla-date">
                   {request.current_step_due_date
                     ? new Date(
-                      request.current_step_due_date
-                    ).toLocaleDateString("en-GB")
+                        request.current_step_due_date
+                      ).toLocaleDateString("en-GB")
                     : "N/A"}
                 </p>
                 <p className={`sla-remaining ${sla.className}`}>{sla.text}</p>
@@ -542,7 +521,7 @@ function ProcurementDetailPage() {
               >
                 {isSubmitting ? "Submitting..." : "Approve & Advance"}
               </button>
-
+              
               {!signingIsDone && (
                 <p className="signing-required-message">
                   Please "Apply & Save Signature" to the document before approving.

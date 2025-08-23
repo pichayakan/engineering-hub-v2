@@ -12,6 +12,9 @@ function CreateProcurementPage() {
   const [project, setProject] = useState(null)
   const [workflowTemplate, setWorkflowTemplate] = useState(null)
 
+  const [category, setCategory] = useState(null)
+  const [categories, setCategories] = useState([])
+
   const [projects, setProjects] = useState([])
   const [templates, setTemplates] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -20,15 +23,18 @@ function CreateProcurementPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [projectsRes, templatesRes] = await Promise.all([
+        const [projectsRes, templatesRes, categoriesRes] = await Promise.all([
           apiClient.get('/api/projects/'),
           apiClient.get('/api/procurement/templates/'),
+          apiClient.get('/api/procurement/categories/'), // Fetch categories
         ])
 
         // --- ส่วนที่แก้ไข ---
         // ทำให้รองรับข้อมูลทั้งแบบแบ่งหน้าและไม่แบ่งหน้า
         setProjects(projectsRes.data.results || projectsRes.data)
         setTemplates(templatesRes.data.results || templatesRes.data)
+
+        setCategories(categoriesRes.data.results || categoriesRes.data)
       } catch (error) {
         console.error('Failed to fetch data', error)
       }
@@ -39,10 +45,12 @@ function CreateProcurementPage() {
   const projectOptions = projects.map((p) => ({ value: p.id, label: p.name }))
   const templateOptions = templates.map((t) => ({ value: t.id, label: t.name }))
 
+  const categoryOptions = categories.map((c) => ({ value: c.id, label: c.name }))
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!workflowTemplate) {
-      alert('Please select a workflow template.')
+    if (!workflowTemplate || !category) { // ✅ Added check for category
+      alert('Please select a workflow template and a category.')
       return
     }
     setIsSubmitting(true)
@@ -51,6 +59,7 @@ function CreateProcurementPage() {
         title,
         project: project ? project.value : null,
         workflow_template: workflowTemplate.value,
+        category: category.value,
       })
       // ไปยังหน้ารายละเอียดของเรื่องที่เพิ่งสร้าง
       navigate(`/procurement/requests/${response.data.id}`)
@@ -74,6 +83,18 @@ function CreateProcurementPage() {
               type='text'
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
+          <div className='form-group'>
+            <label htmlFor='reqCategory'>Category</label>
+            <Select
+              id='reqCategory'
+              options={categoryOptions}
+              className='multi-select-container'
+              classNamePrefix='multi-select'
+              value={category}
+              onChange={setCategory}
               required
             />
           </div>

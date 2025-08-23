@@ -88,7 +88,7 @@ function ProcurementListPage() {
   return (
     <div>
       <div className="page-header">
-        <h1>Procurement Requests</h1>
+        <h1>งานภายในส่วนงานวิศวกรรมฯ(วขตป.)</h1>
         <Link to="/procurement/new" className="create-request-btn">
           + Create New Request
         </Link>

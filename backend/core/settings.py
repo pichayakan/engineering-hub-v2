@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "django_filters",
     "procurement",
     "workflows",
+    "notifications",
 ]
 
 MIDDLEWARE = [

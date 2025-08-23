@@ -9,7 +9,6 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }) => {
-  // ดึงข้อมูล tokens และ user object ทั้งหมดจาก localStorage
   const [authTokens, setAuthTokens] = useState(() =>
     localStorage.getItem('authTokens')
       ? JSON.parse(localStorage.getItem('authTokens'))
@@ -25,31 +24,19 @@ export const AuthProvider = ({ children }) => {
 
   const loginUser = async (email, password) => {
     try {
-      // 1. ขอ Tokens
-      const tokenResponse = await apiClient.post('/api/token/', {
-        email,
-        password,
-      })
-
+      const tokenResponse = await apiClient.post('/api/token/', { email, password, })
       if (tokenResponse.status === 200) {
         const tokens = tokenResponse.data
-        // เก็บ token ใน localStorage ก่อนเพื่อให้ Interceptor ทำงานได้
         localStorage.setItem('authTokens', JSON.stringify(tokens))
         setAuthTokens(tokens)
-
-        // 2. ใช้ token ใหม่เพื่อขอข้อมูลผู้ใช้ทั้งหมด
         const userResponse = await apiClient.get('/api/auth/user/')
         const userData = userResponse.data
-
-        // 3. เก็บข้อมูลผู้ใช้ทั้งหมดลงใน state และ localStorage
         setUser(userData)
         localStorage.setItem('user', JSON.stringify(userData))
-
         return true
       }
     } catch (error) {
       console.error('Login Error:', error)
-      // ล้างข้อมูลเก่าทิ้งถ้า Login ล้มเหลว
       logoutUser()
       alert('Login failed! Please check your credentials.')
       return false
@@ -61,35 +48,35 @@ export const AuthProvider = ({ children }) => {
     setUser(null)
     setUnseenTaskCount(0)
     localStorage.removeItem('authTokens')
-    localStorage.removeItem('user') // ต้องลบข้อมูล user ออกด้วย
+    localStorage.removeItem('user')
   }
 
-  useEffect(() => {
-    let interval
-    if (user) {
-      const fetchUnseenCount = async () => {
-        try {
-          const response = await apiClient.get(
-            '/api/notifications/unseen-count/'
-          )
-          setUnseenTaskCount(response.data.unseen_count)
-        } catch (error) {
-          console.error('Failed to fetch unseen task count', error)
-        }
-      }
-
-      fetchUnseenCount()
-      interval = setInterval(fetchUnseenCount, 30000)
+  // ✅ THIS IS THE CORRECTED FUNCTION
+  const fetchUnseenTaskCount = async () => {
+    if (!user) return;
+    try {
+        // Use the correct URL to filter for unread notifications
+        const response = await apiClient.get('/api/notifications/?is_read=false');
+        // The count is in the 'count' property of the paginated response
+        setUnseenTaskCount(response.data.count || 0);
+    } catch (error) {
+        console.error("Failed to fetch notification count", error);
     }
+  };
 
-    return () => clearInterval(interval)
-  }, [user])
+  useEffect(() => {
+    if (user) {
+      fetchUnseenTaskCount(); // Fetch on initial load/login
+      const intervalId = setInterval(fetchUnseenTaskCount, 60000); // Check every 60 seconds
+      return () => clearInterval(intervalId);
+    }
+  }, [user]);
 
   const contextData = {
-    user: user, // ตอนนี้ user คือ object ที่มีข้อมูลครบถ้วน
+    user: user,
     authTokens: authTokens,
     unseenTaskCount: unseenTaskCount,
-    setUnseenTaskCount: setUnseenTaskCount,
+    fetchUnseenTaskCount: fetchUnseenTaskCount, // Expose the function
     loginUser: loginUser,
     logoutUser: logoutUser,
   }
@@ -98,5 +85,3 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={contextData}>{children}</AuthContext.Provider>
   )
 }
-
-export default AuthContext

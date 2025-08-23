@@ -24,6 +24,7 @@ urlpatterns = [
     path("download/<uuid:pk>/", FileDownloadView.as_view(), name="file-download"),
     path("api/procurement/", include("procurement.urls")),
     path('api/workflows/', include('workflows.urls')),
+    path('api/notifications/', include('notifications.urls')),
 ]
 
 if settings.DEBUG:

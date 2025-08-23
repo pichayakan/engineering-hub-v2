@@ -6,6 +6,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
+from notifications.models import Notification
 
 from .models import (
     WorkflowTemplate,
@@ -55,68 +56,99 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
         first_step = workflow.steps.order_by("order").first()
         serializer.save(created_by=self.request.user, current_step=first_step)
 
+        procurement_request = serializer.save(created_by=self.request.user, current_step=first_step)
+
+        # Now, create notifications for the first step
+        if first_step:
+            for group in first_step.responsible_groups.all():
+                for user_to_notify in group.user_set.all():
+                    Notification.objects.create(
+                        recipient=user_to_notify,
+                        message=f"New procurement task '{procurement_request.title}' has been created and is waiting for approval.",
+                        link=f"/procurement/requests/{procurement_request.id}"
+                    )
+
+
     @action(detail=True, methods=["post"], url_path="advance-step")
     def advance_step(self, request, pk=None):
+        print("\n--- [DEBUG] advance_step called ---") # DEBUG PRINT
         procurement_request = self.get_object()
         user = request.user
         notes = request.data.get("notes", "")
         files = request.FILES.getlist("files")
 
         if procurement_request.is_completed:
-            return Response(
-                {"error": "This request is already completed."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"error": "This request is already completed."}, status=status.HTTP_400_BAD_REQUEST)
+        
         current_step = procurement_request.current_step
         if not current_step:
-            return Response(
-                {"error": "This request has no current step defined."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"error": "This request has no current step defined."}, status=status.HTTP_400_BAD_REQUEST)
         
         responsible_pks = current_step.responsible_groups.values_list('pk', flat=True)
-        if (
-            responsible_pks.exists()
-            and not user.is_staff and not user.groups.filter(pk__in=responsible_pks).exists()
-        ):
-             return Response(
-                {"error": "You do not have permission to approve this step."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        if (responsible_pks.exists() and not user.is_staff and not user.groups.filter(pk__in=responsible_pks).exists()):
+             return Response({"error": "You do not have permission to approve this step."}, status=status.HTTP_403_FORBIDDEN)
         
         history_entry = RequestHistory.objects.create(
-            procurement_request=procurement_request,
-            step=current_step,
-            approved_by=user,
-            notes=notes,
+            procurement_request=procurement_request, step=current_step, approved_by=user, notes=notes
+        )
+
+        Notification.objects.create(
+            recipient=user,
+            message=f"You have successfully approved step: '{current_step.name}' for '{procurement_request.title}'.",
+            link=f"/procurement/requests/{procurement_request.id}",
+            is_read=True # Mark as read since the user initiated the action
         )
 
         for file in files:
             ProcurementAttachment.objects.create(
-                procurement_request=procurement_request,
-                history_entry=history_entry,
-                file=file,
-                uploaded_by=user,
-                name=file.name, # The name is taken from the uploaded file
+                procurement_request=procurement_request, history_entry=history_entry,
+                file=file, uploaded_by=user, name=file.name
             )
 
-        next_step = (
-            Step.objects.filter(
-                workflow_template=procurement_request.workflow_template,
-                order__gt=current_step.order,
-            )
-            .order_by("order")
-            .first()
-        )
+        next_step = Step.objects.filter(workflow_template=procurement_request.workflow_template, order__gt=current_step.order).order_by("order").first()
+        
         if next_step:
+            print(f"[DEBUG] Found next step: {next_step.name}") # DEBUG PRINT
             procurement_request.current_step = next_step
             procurement_request.save()
+            
+            responsible_groups = next_step.responsible_groups.all()
+            print(f"[DEBUG] Responsible groups for next step: {list(responsible_groups)}") # DEBUG PRINT
+
+            if not responsible_groups:
+                print("[DEBUG] No responsible groups found for the next step. No notifications will be sent.")
+
+            for group in responsible_groups:
+                print(f"[DEBUG] Processing group: {group.name}") # DEBUG PRINT
+                users_in_group = group.user_set.all()
+                print(f"[DEBUG] Users in this group: {list(users_in_group)}") # DEBUG PRINT
+
+                if not users_in_group:
+                    print(f"[DEBUG] No users in group '{group.name}'.")
+
+                for user_to_notify in users_in_group:
+                    print(f"[DEBUG] CREATING NOTIFICATION for user: {user_to_notify.username}") # DEBUG PRINT
+                    Notification.objects.create(
+                        recipient=user_to_notify,
+                        message=f"มีงานใหม่ '{procurement_request.title}' รอการอนุมัติจากคุณ",
+                        link=f"/procurement/requests/{procurement_request.id}"
+                    )
+            print("[DEBUG] Notification logic finished.") # DEBUG PRINT
         else:
+            print("[DEBUG] No next step found. Marking as completed.") # DEBUG PRINT
             procurement_request.current_step = None
             procurement_request.is_completed = True
             procurement_request.save()
 
+            if procurement_request.created_by != user:
+                 Notification.objects.create(
+                    recipient=procurement_request.created_by,
+                    message=f"Your procurement request '{procurement_request.title}' has been fully approved.",
+                    link=f"/procurement/requests/{procurement_request.id}"
+                )
+
         return Response(self.get_serializer(procurement_request).data)
+            
     
     @action(detail=True, methods=['post'], url_path='upload-signed-pdf')
     def upload_signed_pdf(self, request, pk=None):

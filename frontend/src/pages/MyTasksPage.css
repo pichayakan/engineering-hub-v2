@@ -1,48 +1,62 @@
 /* frontend/src/pages/MyTasksPage.css */
-.dashboard-header {
-    margin-bottom: 2rem;
+.notifications-container {
+    max-width: 900px;
+    margin: 2rem auto;
 }
 
-.dashboard-header h1 {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-    color: #e0e0e0;
-}
-
-.dashboard-header p {
-    font-size: 1.1rem;
-    color: #a0a0a0;
-    margin-top: 0;
-}
-
-.task-board {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 2rem;
-}
-
-.status-column {
-    background-color: #1e1e1e;
-    border-radius: 12px;
-    padding: 1.5rem;
-    border: 1px solid #363636;
-}
-
-.status-column h2 {
-    margin-top: 0;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #363636;
-    font-size: 1.2rem;
-    color: #c7c7c7;
-}
-
-.task-column-list {
-    min-height: 200px;
+.notification-list {
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
 
-.task-main-info {
-    color: #d32f2f
+.notification-item {
+    background-color: var(--nt-white);
+    border: 1px solid var(--nt-border-color);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex; /* ✅ ADD */
+    align-items: center; /* ✅ ADD */
+}
+
+/* Remove the left border, as the icon provides the color cue now */
+.notification-item.is-read {
+    background-color: #f8f9fa;
+    opacity: 0.8;
+}
+
+.notification-item.is-unread {
+    background-color: #fff9e6; /* A light yellow background for unread items */
+    border-color: var(--nt-yellow);
+    font-weight: 600;
+}
+
+.notification-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.notification-message {
+    margin: 0 0 0.5rem;
+}
+
+.notification-meta {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.notification-group {
+    margin-bottom: 2rem;
+}
+
+.group-header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--nt-border-color);
 }

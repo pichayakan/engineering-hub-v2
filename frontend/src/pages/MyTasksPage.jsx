@@ -1,129 +1,125 @@
 // frontend/src/pages/MyTasksPage.jsx
-import React, { useState, useEffect } from 'react'
-import apiClient from '../api'
-import TaskList from '../components/TaskList.jsx'
-import { useAuth } from '../context/AuthContext'
-import './MyTasksPage.css'
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '../api';
+import { useAuth } from '../context/AuthContext';
+import './MyTasksPage.css';
+import NotificationIcon from '../components/NotificationIcon';
+
+// --- ✅ ADDED: Helper function to group notifications by date ---
+const groupNotificationsByDate = (notifications) => {
+  const groups = {
+    Today: [],
+    Yesterday: [],
+    Older: [],
+  };
+
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  notifications.forEach(noti => {
+    const notiDate = new Date(noti.created_at);
+    if (notiDate.toDateString() === today.toDateString()) {
+      groups.Today.push(noti);
+    } else if (notiDate.toDateString() === yesterday.toDateString()) {
+      groups.Yesterday.push(noti);
+    } else {
+      groups.Older.push(noti);
+    }
+  });
+
+  return groups;
+};
 
 function MyTasksPage() {
-  const [tasks, setTasks] = useState([])
-  const [loading, setLoading] = useState(true)
-  const { setUnseenTaskCount } = useAuth()
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { fetchUnseenTaskCount } = useAuth();
+  const navigate = useNavigate();
 
-  const fetchMyTasks = async () => {
-    // ไม่ต้อง setLoading(true) ที่นี่ เพื่อการ refresh ที่ลื่นไหล
-    try {
-      const response = await apiClient.get('/api/my-tasks/')
-      setTasks(response.data)
-    } catch (error) {
-      console.error('Failed to fetch assigned tasks', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // ✅ Fetch notifications without marking them as read automatically
   useEffect(() => {
-    const initPage = async () => {
-      setLoading(true)
-      const markTasksAsSeen = async () => {
-        try {
-          await apiClient.post('/api/notifications/mark-as-seen/')
-          setUnseenTaskCount(0)
-        } catch (error) {
-          console.error('Failed to mark tasks as seen', error)
-        }
+    const getNotifications = async () => {
+      setLoading(true);
+      try {
+        const response = await apiClient.get('/api/notifications/');
+        setNotifications(response.data.results || []);
+      } catch (error) {
+        console.error("Failed to fetch notifications", error);
+      } finally {
+        setLoading(false);
       }
+    };
+    getNotifications();
+  }, []);
 
-      await fetchMyTasks()
-      await markTasksAsSeen()
+  // ✅ This function now marks the specific notification as read
+  const handleNotificationClick = async (notification) => {
+    // Mark as read on the backend if it's currently unread
+    if (!notification.is_read) {
+      try {
+        await apiClient.post(`/api/notifications/${notification.id}/mark_as_read/`);
+
+        // Update the state locally for instant visual feedback
+        setNotifications(prev =>
+          prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
+        );
+
+        // Refresh the badge count in the sidebar
+        fetchUnseenTaskCount();
+      } catch (error) {
+        console.error("Failed to mark notification as read", error);
+      }
     }
 
-    initPage()
-  }, [setUnseenTaskCount])
-
-  const handleTaskStatusChange = async (taskId, newStatus, projectId) => {
-    if (!projectId) {
-      alert('Cannot update task: Project ID is missing.')
-      return
+    // Navigate to the link associated with the notification
+    if (notification.link) {
+      navigate(notification.link);
     }
-    const originalTasks = [...tasks]
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId ? { ...task, status: newStatus } : task
-      )
-    )
-    try {
-      await apiClient.patch(`/api/projects/${projectId}/tasks/${taskId}/`, {
-        status: newStatus,
-      })
-    } catch (error) {
-      console.error('Failed to update task status', error)
-      alert(
-        error.response?.data?.error ||
-          'Could not update the task status. Reverting.'
-      )
-      setTasks(originalTasks)
-    }
-  }
+  };
 
-  const handleAcceptTask = async (taskId, projectId) => {
-    try {
-      await apiClient.post(`/api/projects/${projectId}/tasks/${taskId}/accept/`)
-      fetchMyTasks() // โหลดข้อมูลใหม่เพื่อให้เห็นการเปลี่ยนแปลง
-    } catch (error) {
-      console.error('Failed to accept task', error)
-      alert(error.response?.data?.error || 'Could not accept the task.')
-    }
-  }
+  if (loading) return <div>Loading tasks...</div>;
 
-  const handleUnacceptTask = async (taskId, projectId) => {
-    try {
-      await apiClient.post(
-        `/api/projects/${projectId}/tasks/${taskId}/unaccept/`
-      )
-      fetchMyTasks() // โหลดข้อมูลใหม่เพื่อให้เห็นการเปลี่ยนแปลง
-    } catch (error) {
-      console.error('Failed to un-accept task', error)
-      alert(error.response?.data?.error || 'Could not un-accept the task.')
-    }
-  }
-
-  const tasksByStatus = {
-    'To Do': tasks.filter((t) => t.status === 'To Do'),
-    'In Progress': tasks.filter((t) => t.status === 'In Progress'),
-    Done: tasks.filter((t) => t.status === 'Done'),
-  }
-
-  if (loading) {
-    return <div>Loading your tasks...</div>
-  }
+  const groupedNotifications = groupNotificationsByDate(notifications);
 
   return (
-    <div>
-      <div className='dashboard-header'>
-        <h1>My Tasks</h1>
-        <p>Here are all the tasks currently assigned to you.</p>
+    <div className="notifications-container">
+      <div className="page-header">
+        <h1>My Tasks & Notifications</h1>
       </div>
-      <div className='task-board'>
-        {Object.entries(tasksByStatus).map(([status, tasksInColumn]) => (
-          <div key={status} className='status-column'>
-            <h2>
-              {status} ({tasksInColumn.length})
-            </h2>
-            <div className='task-column-list'>
-              <TaskList
-                tasks={tasksInColumn}
-                onStatusChange={handleTaskStatusChange}
-                onAcceptTask={handleAcceptTask}
-                onUnacceptTask={handleUnacceptTask}
-                showProjectLink={true}
-              />
+
+      {notifications.length > 0 ? (
+        // ✅ Render the grouped notifications
+        Object.entries(groupedNotifications).map(([groupName, notis]) => (
+          notis.length > 0 && (
+            <div key={groupName} className="notification-group">
+              <h2 className="group-header">{groupName}</h2>
+              <div className="notification-list">
+                {notis.map(noti => (
+                  <div
+                    key={noti.id}
+                    className={`notification-item ${noti.is_read ? 'is-read' : 'is-unread'}`}
+                    onClick={() => handleNotificationClick(noti)}
+                  >
+                    <NotificationIcon message={noti.message} />
+                    <div>
+                      <p className="notification-message">{noti.message}</p>
+                      <p className="notification-meta">
+                        Received on: {new Date(noti.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          )
+        ))
+      ) : (
+        <p>You have no new notifications.</p>
+      )}
     </div>
-  )
+  );
 }
 
-export default MyTasksPage
+export default MyTasksPage;
