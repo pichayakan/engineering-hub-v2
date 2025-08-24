@@ -1,0 +1,47 @@
+/* frontend/src/pages/ProcurementDashboardPage.css */
+.procurement-dashboard {
+    display: grid;
+    gap: 2rem;
+}
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+}
+.dashboard-section {
+    background-color: var(--nt-white);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid var(--nt-border-color);
+}
+.dashboard-section h2 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    border-bottom: 1px solid var(--nt-border-color);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+.actionable-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.actionable-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+.task-step {
+    font-weight: 500;
+    color: #495057;
+}
+
+.dashboard-controls {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: flex-end;
+}

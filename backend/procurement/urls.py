@@ -4,7 +4,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     WorkflowTemplateViewSet,
     ProcurementRequestViewSet,
-    ProcurementCategoryViewSet,  # ✅ IMPORTED
+    ProcurementCategoryViewSet,
+    procurement_summary_view,
 )
 
 router = DefaultRouter()
@@ -17,4 +18,5 @@ router.register(r"categories", ProcurementCategoryViewSet,
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("summary/", procurement_summary_view, name="procurement-summary"),
 ]

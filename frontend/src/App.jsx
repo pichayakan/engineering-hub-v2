@@ -28,6 +28,7 @@ import ProjectWorkflowListPage from "./pages/ProjectWorkflowListPage";
 import ProjectWorkflowDetailPage from "./pages/ProjectWorkflowDetailPage";
 import CreateWorkflowPage from "./pages/CreateWorkflowPage";
 import UserProfilePage from "./pages/UserProfilePage";
+import ProcurementDashboardPage from "./pages/ProcurementDashboardPage.jsx";
 
 import HelpButton from "./components/HelpButton.jsx";
 
@@ -102,6 +103,8 @@ function App() {
             </Route>
             <Route path="/workflows/new" element={<CreateWorkflowPage />} />{" "}
             <Route path="/profile/:userId" element={<UserProfilePage />} />
+            <Route path="/procurement/dashboard" element={<ProcurementDashboardPage />} />
+            
           </Routes>
         </main>
         <HelpButton />

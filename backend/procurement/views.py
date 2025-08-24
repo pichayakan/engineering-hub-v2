@@ -1,12 +1,14 @@
 # backend/procurement/views.py
 from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from notifications.models import Notification
+from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 
 from .models import (
     WorkflowTemplate,
@@ -21,6 +23,45 @@ from .serializers import (
     ProcurementRequestSerializer,
     ProcurementCategorySerializer,  # ✅ IMPORTED
 )
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 100
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def procurement_summary_view(request):
+    """
+    API endpoint for procurement dashboard summary data.
+    """
+    user = request.user
+    ongoing_qs = ProcurementRequest.objects.filter(is_completed=False)
+    ongoing_count = ongoing_qs.count()
+    
+    # Placeholder for overdue
+    overdue_count = 0 
+
+    # Completed this month
+    completed_this_month_count = ProcurementRequest.objects.filter(
+        is_completed=True,
+        # updated_at__year=timezone.now().year, # This requires an updated_at field
+        # updated_at__month=timezone.now().month
+    ).count()
+
+    # Pending your approval
+    user_group_ids = user.groups.values_list('id', flat=True)
+    pending_your_approval_count = ongoing_qs.filter(
+        current_step__responsible_groups__id__in=user_group_ids
+    ).distinct().count()
+
+    data = {
+        'ongoing_count': ongoing_count,
+        'pending_your_approval_count': pending_your_approval_count,
+        'overdue_count': overdue_count,
+        'completed_this_month_count': completed_this_month_count,
+    }
+    return Response(data)
 
 
 # --- ✅ ADDED THIS NEW VIEWSET ---
@@ -50,6 +91,8 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
     serializer_class = ProcurementRequestSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    pagination_class = StandardResultsSetPagination
 
     def perform_create(self, serializer):
         workflow = serializer.validated_data.get("workflow_template")
