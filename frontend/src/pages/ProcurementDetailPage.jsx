@@ -190,78 +190,102 @@ function ProcurementDetailPage() {
   };
 
   const handleEmbedSignature = async () => {
-    if (!selectedPdfUrl || !signatureImage) return;
-    const viewerWrapper = pdfWrapperRef.current;
-    const signatureEl = signatureRef.current;
-    if (!viewerWrapper || !signatureEl) {
-      alert(
-        "Error: Could not get a reference to the PDF viewer or signature. Please try again."
-      );
+    if (!selectedPdfUrl || !signatureImage || !signatureRef.current) {
+      alert("Please select a PDF and place your signature before saving.");
       return;
     }
+
     try {
-      const existingPdfBytes = await fetch(selectedPdfUrl).then((res) =>
-        res.arrayBuffer()
-      );
-      const signatureImageBytes = await fetch(signatureImage).then((res) =>
-        res.arrayBuffer()
-      );
+      const existingPdfBytes = await fetch(selectedPdfUrl).then((res) => res.arrayBuffer());
+      const signatureImageBytes = await fetch(signatureImage).then((res) => res.arrayBuffer());
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const signaturePng = await pdfDoc.embedPng(signatureImageBytes);
+
+      // สมมติว่าเซ็นหน้าแรก (ปรับได้ถ้าจะรองรับหลายหน้า)
       const page = pdfDoc.getPages()[0];
-      const pageDimensions = page.getSize();
-      const firstPageInViewer =
-        pdfWrapperRef.current.querySelector(".react-pdf__Page");
-      if (!firstPageInViewer) {
-        alert("Error: Cannot find the rendered PDF page.");
+      const pageDimensions = page.getSize(); // { width, height } หน่วย points
+
+      // หา "canvas" จริงที่ถูกวาดโดย react-pdf แล้ววัดจาก canvas นั้น
+      const pageWrapper = pdfWrapperRef.current?.querySelector(".react-pdf__Page");
+      if (!pageWrapper) {
+        alert("Error: Cannot find the rendered PDF page wrapper.");
         return;
       }
-      const renderedPageRect = firstPageInViewer.getBoundingClientRect();
+
+      // ใช้ตัว canvas ที่อยู่ในหน้า (react-pdf วาดเป็น <canvas>)
+      const pageCanvas =
+        pageWrapper.querySelector("canvas") ||
+        pageWrapper.querySelector(".react-pdf__Page__canvas canvas");
+
+      if (!pageCanvas) {
+        alert("Error: Cannot find PDF canvas for coordinate mapping.");
+        return;
+      }
+
+      // bounding rect ของ canvas (หน่วย CSS px หลังซูมแล้ว)
+      const canvasRect = pageCanvas.getBoundingClientRect();
+      // bounding rect ของลายเซ็น (หน่วย CSS px)
       const signatureRect = signatureRef.current.getBoundingClientRect();
-      const scale = pageDimensions.width / renderedPageRect.width;
-      const relativeX = signatureRect.left - renderedPageRect.left;
-      const relativeY = signatureRect.top - renderedPageRect.top;
-      const xInPoints = relativeX * scale;
-      const yInPoints =
-        pageDimensions.height -
-        relativeY * scale -
-        signatureSize.height * scale;
+
+      // แปลงพิกัด: ใช้ canvas เป็นจุดอ้างอิง (ไม่ใช่ wrapper)
+      const relX = signatureRect.left - canvasRect.left; // px จากซ้ายของ canvas
+      const relY = signatureRect.top - canvasRect.top;   // px จากบนของ canvas
+
+      // อัตราส่วนแปลง px (ของ canvas ณ ซูมปัจจุบัน) -> points (PDF จริง)
+      const pointsPerPx = pageDimensions.width / canvasRect.width;
+
+      // ขนาดลายเซ็นจริงจาก DOM (px) -> แปลงเป็น points
+      const sigWidthPts = signatureRect.width * pointsPerPx;
+      const sigHeightPts = signatureRect.height * pointsPerPx;
+
+      // พิกัดใน PDF (origin อยู่ล่างซ้าย)
+      let xPts = relX * pointsPerPx;
+      let yPts = pageDimensions.height - (relY * pointsPerPx) - sigHeightPts;
+
+      // กันพ้นขอบหน้า (เผื่อเผลอลากเกิน)
+      const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+      xPts = clamp(xPts, 0, pageDimensions.width - sigWidthPts);
+      yPts = clamp(yPts, 0, pageDimensions.height - sigHeightPts);
+
+      // Debug ดูว่าคงที่แม้ซูมหรือไม่ (ควรใกล้เคียงเดิม)
+      console.log("Signature placement (canvas-based)", {
+        canvasCssWidth: canvasRect.width,
+        canvasCssHeight: canvasRect.height,
+        pageWidthPoints: pageDimensions.width,
+        pageHeightPoints: pageDimensions.height,
+        relX, relY,
+        xPts, yPts,
+        sigWidthPts, sigHeightPts,
+      });
 
       page.drawImage(signaturePng, {
-        x: xInPoints,
-        y: yInPoints,
-        width: signatureSize.width * scale,
-        height: signatureSize.height * scale,
+        x: xPts,
+        y: yPts,
+        width: sigWidthPts,
+        height: sigHeightPts,
       });
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
 
-      // const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      // const originalFileName = decodeURIComponent(
-      //   selectedPdfUrl.split("/").pop().replace(".pdf", "")
-      // );
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const originalFileName = decodeURIComponent(
+        selectedPdfUrl.split("/").pop().replace(".pdf", "")
+      );
+      const newFilename = `signed_${originalFileName}_${timestamp}.pdf`;
 
-      // const newFilename = `signed_${originalFileName}_${timestamp}.pdf`;
-      const today = new Date().toLocaleDateString('th-TH').replace(/\//g, '-');
-      // Use the user's first name if available, otherwise their username
-      const signerName = user.first_name || user.username;
-      const newFilename = `signed_by_${signerName}_on_${today}.pdf`;
-
-      const signedFile = new File([blob], newFilename, {
-        type: "application/pdf",
-      });
-      setFilesToUpload((prevFiles) => [...prevFiles, signedFile]);
+      const signedFile = new File([blob], newFilename, { type: "application/pdf" });
+      setFilesToUpload((prev) => [...prev, signedFile]);
       setSignatureImage(null);
       setSelectedPdfUrl(null);
-      toast.success(
-        "Signed PDF has been added to the attachment list. Please press 'Approve' to submit."
-      );
+      toast.success("Signed PDF has been added. Please press 'Approve' to submit.");
     } catch (error) {
       console.error("Failed to embed signature:", error);
       alert("Could not create signed PDF.");
     }
   };
+
+
 
   if (loading) return <div>Loading details...</div>;
   if (!request || !workflow) return <div>Could not load data.</div>;
@@ -388,7 +412,12 @@ function ProcurementDetailPage() {
                 <div
                   ref={signatureRef}
                   className="signature-container"
-                  style={{ transform: `scale(${signatureScale})` }}
+                  style={{
+                    position: "absolute",
+                    cursor: "move",
+                    width: `${signatureSize.width}px`,
+                    height: `${signatureSize.height}px`,
+                  }}
                 >
                   <ResizableBox
                     width={signatureSize.width}
