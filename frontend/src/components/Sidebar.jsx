@@ -4,6 +4,13 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./Sidebar.css";
 
+// --- ✅ IMPORT ICONS ---
+import {
+  FiHome, FiGrid, FiArchive, FiShoppingCart, FiFileText,
+  FiCheckSquare, FiShare2, FiBarChart2, FiUsers, FiSettings, FiClipboard
+} from 'react-icons/fi';
+
+
 function Sidebar({ isOpen, onClose }) {
   const { user, logoutUser, unseenTaskCount } = useAuth();
 
@@ -23,85 +30,46 @@ function Sidebar({ isOpen, onClose }) {
         <nav className="sidebar-nav">
           {user && (
             <>
+              {/* --- ✅ ADDED ICONS to each link --- */}
               <NavLink to="/" className="sidebar-link" onClick={onClose} end>
-                หน้าหลัก
+                <FiHome /> <span>หน้าหลัก</span>
               </NavLink>
-              <NavLink
-                to="/dashboard"
-                className="sidebar-link"
-                onClick={onClose}
-              >
-                แดชบอร์ด
+              <NavLink to="/dashboard" className="sidebar-link" onClick={onClose}>
+                <FiGrid /> <span>แดชบอร์ด</span>
               </NavLink>
-              <NavLink
-                to="/projects"
-                className="sidebar-link"
-                onClick={onClose}
-                end
-              >
-                โปรเจกต์ทั้งหมด
+              <NavLink to="/projects" className="sidebar-link" onClick={onClose} end>
+                <FiArchive /> <span>โปรเจกต์ทั้งหมด</span>
               </NavLink>
-              <NavLink
-                to="/procurement"
-                className="sidebar-link"
-                onClick={onClose}
-              >
-                ระบบตามงาน วขตป.
+              <NavLink to="/procurement" className="sidebar-link" onClick={onClose}>
+                <FiShoppingCart /> <span>ระบบติดตามงาน วขตป.</span>
               </NavLink>
-
-              {/* --- ✅ ADDED THIS NEW MENU ITEM --- */}
-              <NavLink
-                to="/workflows"
-                className="sidebar-link"
-                onClick={onClose}
-              >
-                ระบบ Workflow
+              <NavLink to="/workflows" className="sidebar-link" onClick={onClose}>
+                <FiFileText /> <span>ระบบติดตามงานจัดหาฯ</span>
               </NavLink>
-
-              <NavLink
-                to="/my-tasks"
-                className="sidebar-link"
-                onClick={onClose}
-              >
-                <span>งานของฉัน</span>
+              <NavLink to="/my-tasks" className="sidebar-link" onClick={onClose}>
+                <FiCheckSquare /> <span>งานของฉัน</span>
                 {unseenTaskCount > 0 && (
                   <span className="notification-badge">{unseenTaskCount}</span>
                 )}
               </NavLink>
               <NavLink to="/share" className="sidebar-link" onClick={onClose}>
-                แชร์ไฟล์
+                <FiShare2 /> <span>แชร์ไฟล์</span>
               </NavLink>
 
               {user.is_staff && (
                 <>
-                  <hr style={{ borderColor: "#495057", margin: "1rem 0" }} />
-                  <NavLink
-                    to="/workload"
-                    className="sidebar-link"
-                    onClick={onClose}
-                  >
-                    ภาระงาน
+                  <hr className="sidebar-divider" />
+                  <NavLink to="/workload" className="sidebar-link" onClick={onClose}>
+                    <FiBarChart2 /> <span>ภาระงาน</span>
                   </NavLink>
-                  <NavLink
-                    to="/performance"
-                    className="sidebar-link"
-                    onClick={onClose}
-                  >
-                    ประสิทธิภาพ
+                  <NavLink to="/performance" className="sidebar-link" onClick={onClose}>
+                    <FiUsers /> <span>ประสิทธิภาพ</span>
                   </NavLink>
-                  <NavLink
-                    to="/admin/departments"
-                    className="sidebar-link"
-                    onClick={onClose}
-                  >
-                    จัดการแผนก
+                  <NavLink to="/admin/departments" className="sidebar-link" onClick={onClose}>
+                    <FiSettings /> <span>จัดการแผนก</span>
                   </NavLink>
-                  <NavLink
-                    to="/tasks/all"
-                    className="sidebar-link"
-                    onClick={onClose}
-                  >
-                    รายงาน Task
+                  <NavLink to="/tasks/all" className="sidebar-link" onClick={onClose}>
+                    <FiClipboard /> <span>รายงาน Task</span>
                   </NavLink>
                 </>
               )}
