@@ -24,10 +24,12 @@ from .serializers import (
     ProcurementCategorySerializer,  # ✅ IMPORTED
 )
 
+
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 100
     page_size_query_param = 'page_size'
     max_page_size = 1000
+
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
@@ -38,9 +40,9 @@ def procurement_summary_view(request):
     user = request.user
     ongoing_qs = ProcurementRequest.objects.filter(is_completed=False)
     ongoing_count = ongoing_qs.count()
-    
+
     # Placeholder for overdue
-    overdue_count = 0 
+    overdue_count = 0
 
     # Completed this month
     completed_this_month_count = ProcurementRequest.objects.filter(
@@ -94,12 +96,24 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
     pagination_class = StandardResultsSetPagination
 
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+
+    # Fields available for exact match filtering (e.g., ?category=1)
+    filterset_fields = ['category', 'is_completed', 'project']
+
+    # Fields available for text searching (e.g., ?search=test)
+    search_fields = ['title', 'project__name',
+                     'created_by__username', 'category__name']
+
+    # Fields available for ordering (e.g., ?ordering=title)
+    ordering_fields = ['created_at', 'title']
+
     def perform_create(self, serializer):
         workflow = serializer.validated_data.get("workflow_template")
         first_step = workflow.steps.order_by("order").first()
-        serializer.save(created_by=self.request.user, current_step=first_step)
 
-        procurement_request = serializer.save(created_by=self.request.user, current_step=first_step)
+        procurement_request = serializer.save(
+            created_by=self.request.user, current_step=first_step)
 
         # Now, create notifications for the first step
         if first_step:
@@ -111,10 +125,9 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                         link=f"/procurement/requests/{procurement_request.id}"
                     )
 
-
     @action(detail=True, methods=["post"], url_path="advance-step")
     def advance_step(self, request, pk=None):
-        print("\n--- [DEBUG] advance_step called ---") # DEBUG PRINT
+        print("\n--- [DEBUG] advance_step called ---")  # DEBUG PRINT
         procurement_request = self.get_object()
         user = request.user
         notes = request.data.get("notes", "")
@@ -122,15 +135,16 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
         if procurement_request.is_completed:
             return Response({"error": "This request is already completed."}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         current_step = procurement_request.current_step
         if not current_step:
             return Response({"error": "This request has no current step defined."}, status=status.HTTP_400_BAD_REQUEST)
-        
-        responsible_pks = current_step.responsible_groups.values_list('pk', flat=True)
+
+        responsible_pks = current_step.responsible_groups.values_list(
+            'pk', flat=True)
         if (responsible_pks.exists() and not user.is_staff and not user.groups.filter(pk__in=responsible_pks).exists()):
-             return Response({"error": "You do not have permission to approve this step."}, status=status.HTTP_403_FORBIDDEN)
-        
+            return Response({"error": "You do not have permission to approve this step."}, status=status.HTTP_403_FORBIDDEN)
+
         history_entry = RequestHistory.objects.create(
             procurement_request=procurement_request, step=current_step, approved_by=user, notes=notes
         )
@@ -139,7 +153,7 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             recipient=user,
             message=f"You have successfully approved step: '{current_step.name}' for '{procurement_request.title}'.",
             link=f"/procurement/requests/{procurement_request.id}",
-            is_read=True # Mark as read since the user initiated the action
+            is_read=True  # Mark as read since the user initiated the action
         )
 
         for file in files:
@@ -148,51 +162,58 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 file=file, uploaded_by=user, name=file.name
             )
 
-        next_step = Step.objects.filter(workflow_template=procurement_request.workflow_template, order__gt=current_step.order).order_by("order").first()
-        
+        next_step = Step.objects.filter(
+            workflow_template=procurement_request.workflow_template, order__gt=current_step.order).order_by("order").first()
+
         if next_step:
-            print(f"[DEBUG] Found next step: {next_step.name}") # DEBUG PRINT
+            print(f"[DEBUG] Found next step: {next_step.name}")  # DEBUG PRINT
             procurement_request.current_step = next_step
             procurement_request.save()
-            
+
             responsible_groups = next_step.responsible_groups.all()
-            print(f"[DEBUG] Responsible groups for next step: {list(responsible_groups)}") # DEBUG PRINT
+            # DEBUG PRINT
+            print(
+                f"[DEBUG] Responsible groups for next step: {list(responsible_groups)}")
 
             if not responsible_groups:
-                print("[DEBUG] No responsible groups found for the next step. No notifications will be sent.")
+                print(
+                    "[DEBUG] No responsible groups found for the next step. No notifications will be sent.")
 
             for group in responsible_groups:
-                print(f"[DEBUG] Processing group: {group.name}") # DEBUG PRINT
+                print(f"[DEBUG] Processing group: {group.name}")  # DEBUG PRINT
                 users_in_group = group.user_set.all()
-                print(f"[DEBUG] Users in this group: {list(users_in_group)}") # DEBUG PRINT
+                # DEBUG PRINT
+                print(f"[DEBUG] Users in this group: {list(users_in_group)}")
 
                 if not users_in_group:
                     print(f"[DEBUG] No users in group '{group.name}'.")
 
                 for user_to_notify in users_in_group:
-                    print(f"[DEBUG] CREATING NOTIFICATION for user: {user_to_notify.username}") # DEBUG PRINT
+                    # DEBUG PRINT
+                    print(
+                        f"[DEBUG] CREATING NOTIFICATION for user: {user_to_notify.username}")
                     Notification.objects.create(
                         recipient=user_to_notify,
                         message=f"มีงานใหม่ '{procurement_request.title}' รอการอนุมัติจากคุณ",
                         link=f"/procurement/requests/{procurement_request.id}"
                     )
-            print("[DEBUG] Notification logic finished.") # DEBUG PRINT
+            print("[DEBUG] Notification logic finished.")  # DEBUG PRINT
         else:
-            print("[DEBUG] No next step found. Marking as completed.") # DEBUG PRINT
+            # DEBUG PRINT
+            print("[DEBUG] No next step found. Marking as completed.")
             procurement_request.current_step = None
             procurement_request.is_completed = True
             procurement_request.save()
 
             if procurement_request.created_by != user:
-                 Notification.objects.create(
+                Notification.objects.create(
                     recipient=procurement_request.created_by,
                     message=f"Your procurement request '{procurement_request.title}' has been fully approved.",
                     link=f"/procurement/requests/{procurement_request.id}"
                 )
 
         return Response(self.get_serializer(procurement_request).data)
-            
-    
+
     @action(detail=True, methods=['post'], url_path='upload-signed-pdf')
     def upload_signed_pdf(self, request, pk=None):
         procurement_request = self.get_object()
@@ -204,15 +225,16 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 {'error': 'No signed PDF file provided.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Find the latest history entry to associate the file with
-        latest_history = procurement_request.history.order_by('-timestamp').first()
+        latest_history = procurement_request.history.order_by(
+            '-timestamp').first()
         if not latest_history:
-             return Response(
+            return Response(
                 {'error': 'Cannot attach file, no approval history found.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # timestamp = timezone.now().strftime("%Y%m%d-%H%M%S")
         # new_filename = f"signed_{timestamp}_{procurement_request.title}.pdf"
         new_filename = signed_file.name
@@ -225,7 +247,7 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             uploaded_by=user,
             name=new_filename
         )
-        
+
         # Return the updated request object
         serializer = self.get_serializer(procurement_request)
         return Response(serializer.data, status=status.HTTP_200_OK)

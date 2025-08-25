@@ -195,20 +195,35 @@ function ProcurementDetailPage() {
     }
 
     try {
+      // โหลด PDF เดิม
       const existingPdfBytes = await fetch(selectedPdfUrl).then((res) =>
         res.arrayBuffer()
       );
-      const signatureImageBytes = await fetch(signatureImage).then((res) =>
-        res.arrayBuffer()
-      );
+
+      // โหลดไฟล์ลายเซ็น
+      const sigResponse = await fetch(signatureImage);
+      const contentType = sigResponse.headers.get("Content-Type") || "";
+      const signatureImageBytes = await sigResponse.arrayBuffer();
+
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
-      const signaturePng = await pdfDoc.embedPng(signatureImageBytes);
 
-      // สมมติว่าเซ็นหน้าแรก (ปรับได้ถ้าจะรองรับหลายหน้า)
+      // ✅ เลือก embed ตามชนิดไฟล์
+      let signatureImg;
+      if (contentType.includes("png")) {
+        signatureImg = await pdfDoc.embedPng(signatureImageBytes);
+      } else if (contentType.includes("jpg") || contentType.includes("jpeg")) {
+        signatureImg = await pdfDoc.embedJpg(signatureImageBytes);
+      } else {
+        throw new Error(
+          "Unsupported signature format. Please upload PNG or JPG."
+        );
+      }
+
+      // ใช้หน้าแรก (แก้ได้ถ้าอยากรองรับหลายหน้า)
       const page = pdfDoc.getPages()[0];
-      const pageDimensions = page.getSize(); // { width, height } หน่วย points
+      const pageDimensions = page.getSize();
 
-      // หา "canvas" จริงที่ถูกวาดโดย react-pdf แล้ววัดจาก canvas นั้น
+      // หา canvas ของ react-pdf
       const pageWrapper =
         pdfWrapperRef.current?.querySelector(".react-pdf__Page");
       if (!pageWrapper) {
@@ -216,7 +231,6 @@ function ProcurementDetailPage() {
         return;
       }
 
-      // ใช้ตัว canvas ที่อยู่ในหน้า (react-pdf วาดเป็น <canvas>)
       const pageCanvas =
         pageWrapper.querySelector("canvas") ||
         pageWrapper.querySelector(".react-pdf__Page__canvas canvas");
@@ -226,33 +240,29 @@ function ProcurementDetailPage() {
         return;
       }
 
-      // bounding rect ของ canvas (หน่วย CSS px หลังซูมแล้ว)
+      // ขนาดจริงบน DOM
       const canvasRect = pageCanvas.getBoundingClientRect();
-      // bounding rect ของลายเซ็น (หน่วย CSS px)
       const signatureRect = signatureRef.current.getBoundingClientRect();
 
-      // แปลงพิกัด: ใช้ canvas เป็นจุดอ้างอิง (ไม่ใช่ wrapper)
-      const relX = signatureRect.left - canvasRect.left; // px จากซ้ายของ canvas
-      const relY = signatureRect.top - canvasRect.top; // px จากบนของ canvas
+      const relX = signatureRect.left - canvasRect.left;
+      const relY = signatureRect.top - canvasRect.top;
 
-      // อัตราส่วนแปลง px (ของ canvas ณ ซูมปัจจุบัน) -> points (PDF จริง)
+      // สัดส่วน pixel → point
       const pointsPerPx = pageDimensions.width / canvasRect.width;
 
-      // ขนาดลายเซ็นจริงจาก DOM (px) -> แปลงเป็น points
       const sigWidthPts = signatureRect.width * pointsPerPx;
       const sigHeightPts = signatureRect.height * pointsPerPx;
 
-      // พิกัดใน PDF (origin อยู่ล่างซ้าย)
       let xPts = relX * pointsPerPx;
       let yPts = pageDimensions.height - relY * pointsPerPx - sigHeightPts;
 
-      // กันพ้นขอบหน้า (เผื่อเผลอลากเกิน)
+      // clamp กันไม่ให้หลุดขอบ
       const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
       xPts = clamp(xPts, 0, pageDimensions.width - sigWidthPts);
       yPts = clamp(yPts, 0, pageDimensions.height - sigHeightPts);
 
-      // Debug ดูว่าคงที่แม้ซูมหรือไม่ (ควรใกล้เคียงเดิม)
       console.log("Signature placement (canvas-based)", {
+        contentType,
         canvasCssWidth: canvasRect.width,
         canvasCssHeight: canvasRect.height,
         pageWidthPoints: pageDimensions.width,
@@ -265,13 +275,15 @@ function ProcurementDetailPage() {
         sigHeightPts,
       });
 
-      page.drawImage(signaturePng, {
+      // วาดลายเซ็น
+      page.drawImage(signatureImg, {
         x: xPts,
         y: yPts,
         width: sigWidthPts,
         height: sigHeightPts,
       });
 
+      // บันทึก PDF ใหม่
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
 
