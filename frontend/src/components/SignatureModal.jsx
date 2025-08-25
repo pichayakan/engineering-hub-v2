@@ -1,24 +1,53 @@
 // frontend/src/components/SignatureModal.jsx
-import React, { useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Modal from "./Modal";
 import SignatureCanvas from "react-signature-canvas";
 import "./SignatureModal.css";
 
-function SignatureModal({ isOpen, onClose, onSave }) {
+function SignatureModal({
+  isOpen,
+  onClose,
+  onSave,
+  typedSignatureFont = "'Sarabun', sans-serif",
+}) {
   const sigPadRef = useRef(null);
   const fileInputRef = useRef(null); // Ref for the file input
 
+  const [activeTab, setActiveTab] = useState("draw");
+  const [typedName, setTypedName] = useState("");
+  const [typedSignatureUrl, setTypedSignatureUrl] = useState("");
+
+  useEffect(() => {
+    if (activeTab === "type" && typedName) {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 400;
+      canvas.height = 100;
+      ctx.font = `normal 40px ${typedSignatureFont}`;
+      ctx.fillStyle = "blue";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(typedName, canvas.width / 2, canvas.height / 2);
+      setTypedSignatureUrl(canvas.toDataURL("image/png"));
+    }
+  }, [typedName, activeTab, typedSignatureFont]);
+
   const handleClear = () => {
-    sigPadRef.current.clear();
+    if (activeTab === "draw") {
+      sigPadRef.current.clear();
+    } else if (activeTab === "type") {
+      setTypedName("");
+    }
   };
 
   const handleSave = () => {
-    if (sigPadRef.current.isEmpty()) {
-      alert("Please provide a signature first.");
-      return;
+    if (activeTab === "draw") {
+      if (sigPadRef.current.isEmpty()) return alert("Please draw a signature.");
+      onSave(sigPadRef.current.toDataURL("image/png"));
+    } else if (activeTab === "type") {
+      if (!typedName) return alert("Please type your name.");
+      onSave(typedSignatureUrl);
     }
-    const signatureDataUrl = sigPadRef.current.toDataURL("image/png");
-    onSave(signatureDataUrl);
   };
 
   // --- ✅ ADDED: Handle image upload ---
@@ -39,37 +68,70 @@ function SignatureModal({ isOpen, onClose, onSave }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Please Sign Here">
-      <div className="signature-pad-container">
-        <SignatureCanvas
-          ref={sigPadRef}
-          penColor="black"
-          canvasProps={{ className: "signature-canvas" }}
-        />
+    <Modal isOpen={isOpen} onClose={onClose} title="Provide Your Signature">
+      {/* --- ✅ ADDED: Tab Buttons --- */}
+      <div className="signature-tabs">
+        <button
+          onClick={() => setActiveTab("draw")}
+          className={activeTab === "draw" ? "active" : ""}
+        >
+          Draw
+        </button>
+        <button
+          onClick={() => setActiveTab("type")}
+          className={activeTab === "type" ? "active" : ""}
+        >
+          Type
+        </button>
+        <button onClick={triggerFileUpload} className="upload-tab-btn">
+          Upload
+        </button>
       </div>
-      <div className="signature-actions">
-        <div>
-          {/* --- ✅ ADDED: Upload Button --- */}
-          <button onClick={triggerFileUpload} className="btn-upload">
-            Upload Image
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            style={{ display: "none" }}
-            onChange={handleImageUpload}
-            accept="image/png, image/jpeg"
+
+      {/* --- ✅ MODIFIED: Conditionally render the correct input --- */}
+      {activeTab === "draw" && (
+        <div className="signature-pad-container">
+          <SignatureCanvas
+            ref={sigPadRef}
+            penColor="black"
+            canvasProps={{ className: "signature-canvas" }}
           />
         </div>
-        <div>
-          <button onClick={handleClear} className="btn-clear">
-            Clear
-          </button>
-          <button onClick={handleSave} className="btn-save">
-            Save Signature
-          </button>
+      )}
+
+      {activeTab === "type" && (
+        <div className="type-signature-container">
+          <input
+            type="text"
+            className="type-signature-input"
+            placeholder="Type your full name"
+            value={typedName}
+            onChange={(e) => setTypedName(e.target.value)}
+          />
+          {typedName && (
+            <div className="type-signature-preview">
+              <img src={typedSignatureUrl} alt="Signature preview" />
+            </div>
+          )}
         </div>
+      )}
+
+      <div className="signature-actions">
+        <button onClick={handleClear} className="btn-clear">
+          Clear
+        </button>
+        <button onClick={handleSave} className="btn-save">
+          Save Signature
+        </button>
       </div>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        onChange={handleImageUpload}
+        accept="image/png, image/jpeg"
+      />
     </Modal>
   );
 }

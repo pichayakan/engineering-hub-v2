@@ -16,8 +16,7 @@ import "react-resizable/css/styles.css";
 import { PDFDocument } from "pdf-lib";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FiZoomIn, FiZoomOut, FiRefreshCw } from 'react-icons/fi';
-
+import { FiZoomIn, FiZoomOut, FiRefreshCw } from "react-icons/fi";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 
@@ -196,8 +195,12 @@ function ProcurementDetailPage() {
     }
 
     try {
-      const existingPdfBytes = await fetch(selectedPdfUrl).then((res) => res.arrayBuffer());
-      const signatureImageBytes = await fetch(signatureImage).then((res) => res.arrayBuffer());
+      const existingPdfBytes = await fetch(selectedPdfUrl).then((res) =>
+        res.arrayBuffer()
+      );
+      const signatureImageBytes = await fetch(signatureImage).then((res) =>
+        res.arrayBuffer()
+      );
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const signaturePng = await pdfDoc.embedPng(signatureImageBytes);
 
@@ -206,7 +209,8 @@ function ProcurementDetailPage() {
       const pageDimensions = page.getSize(); // { width, height } หน่วย points
 
       // หา "canvas" จริงที่ถูกวาดโดย react-pdf แล้ววัดจาก canvas นั้น
-      const pageWrapper = pdfWrapperRef.current?.querySelector(".react-pdf__Page");
+      const pageWrapper =
+        pdfWrapperRef.current?.querySelector(".react-pdf__Page");
       if (!pageWrapper) {
         alert("Error: Cannot find the rendered PDF page wrapper.");
         return;
@@ -229,7 +233,7 @@ function ProcurementDetailPage() {
 
       // แปลงพิกัด: ใช้ canvas เป็นจุดอ้างอิง (ไม่ใช่ wrapper)
       const relX = signatureRect.left - canvasRect.left; // px จากซ้ายของ canvas
-      const relY = signatureRect.top - canvasRect.top;   // px จากบนของ canvas
+      const relY = signatureRect.top - canvasRect.top; // px จากบนของ canvas
 
       // อัตราส่วนแปลง px (ของ canvas ณ ซูมปัจจุบัน) -> points (PDF จริง)
       const pointsPerPx = pageDimensions.width / canvasRect.width;
@@ -240,7 +244,7 @@ function ProcurementDetailPage() {
 
       // พิกัดใน PDF (origin อยู่ล่างซ้าย)
       let xPts = relX * pointsPerPx;
-      let yPts = pageDimensions.height - (relY * pointsPerPx) - sigHeightPts;
+      let yPts = pageDimensions.height - relY * pointsPerPx - sigHeightPts;
 
       // กันพ้นขอบหน้า (เผื่อเผลอลากเกิน)
       const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
@@ -253,9 +257,12 @@ function ProcurementDetailPage() {
         canvasCssHeight: canvasRect.height,
         pageWidthPoints: pageDimensions.width,
         pageHeightPoints: pageDimensions.height,
-        relX, relY,
-        xPts, yPts,
-        sigWidthPts, sigHeightPts,
+        relX,
+        relY,
+        xPts,
+        yPts,
+        sigWidthPts,
+        sigHeightPts,
       });
 
       page.drawImage(signaturePng, {
@@ -274,18 +281,20 @@ function ProcurementDetailPage() {
       );
       const newFilename = `signed_${originalFileName}_${timestamp}.pdf`;
 
-      const signedFile = new File([blob], newFilename, { type: "application/pdf" });
+      const signedFile = new File([blob], newFilename, {
+        type: "application/pdf",
+      });
       setFilesToUpload((prev) => [...prev, signedFile]);
       setSignatureImage(null);
       setSelectedPdfUrl(null);
-      toast.success("Signed PDF has been added. Please press 'Approve' to submit.");
+      toast.success(
+        "Signed PDF has been added. Please press 'Approve' to submit."
+      );
     } catch (error) {
       console.error("Failed to embed signature:", error);
       alert("Could not create signed PDF.");
     }
   };
-
-
 
   if (loading) return <div>Loading details...</div>;
   if (!request || !workflow) return <div>Could not load data.</div>;
@@ -328,11 +337,14 @@ function ProcurementDetailPage() {
       ?.map((g) => g.name)
       .join(", ") || "";
 
-
-  const latestHistoryEntryId = request.history.length > 0 ? request.history[request.history.length - 1].id : null;
-  const isPdfFromLastStep = request.history.some(h =>
-    h.id === latestHistoryEntryId &&
-    h.attachments.some(att => att.file === selectedPdfUrl)
+  const latestHistoryEntryId =
+    request.history.length > 0
+      ? request.history[request.history.length - 1].id
+      : null;
+  const isPdfFromLastStep = request.history.some(
+    (h) =>
+      h.id === latestHistoryEntryId &&
+      h.attachments.some((att) => att.file === selectedPdfUrl)
   );
   const showSignButton = canApprove && isPdfFromLastStep;
 
@@ -366,19 +378,31 @@ function ProcurementDetailPage() {
             <h2>Document Viewer</h2>
             <div className="document-controls">
               <div className="zoom-controls">
-                <button onClick={() => setPdfScale(prev => prev - 0.1)} disabled={pdfScale <= 0.5}>
+                <button
+                  onClick={() => setPdfScale((prev) => prev - 0.1)}
+                  disabled={pdfScale <= 0.5}
+                >
                   <FiZoomOut />
                 </button>
-                <span onClick={() => setPdfScale(1.0)} style={{ cursor: 'pointer' }}>
+                <span
+                  onClick={() => setPdfScale(1.0)}
+                  style={{ cursor: "pointer" }}
+                >
                   {Math.round(pdfScale * 100)}%
                 </span>
-                <button onClick={() => setPdfScale(prev => prev + 0.1)} disabled={pdfScale >= 2.0}>
+                <button
+                  onClick={() => setPdfScale((prev) => prev + 0.1)}
+                  disabled={pdfScale >= 2.0}
+                >
                   <FiZoomIn />
                 </button>
               </div>
               <div>
                 {showSignButton && (
-                  <button className="sign-document-btn" onClick={handleOpenSignatureModal}>
+                  <button
+                    className="sign-document-btn"
+                    onClick={handleOpenSignatureModal}
+                  >
                     Sign Document
                   </button>
                 )}
@@ -524,14 +548,16 @@ function ProcurementDetailPage() {
                 <p className="sla-date">
                   {request.current_step_due_date
                     ? new Date(
-                      request.current_step_due_date
-                    ).toLocaleDateString("en-GB")
+                        request.current_step_due_date
+                      ).toLocaleDateString("en-GB")
                     : "N/A"}
                 </p>
                 <p className={`sla-remaining ${sla.className}`}>{sla.text}</p>
               </div>
               <div className="form-group">
-                <label htmlFor="approval_notes">Approval Notes (Optional)</label>
+                <label htmlFor="approval_notes">
+                  Approval Notes (Optional)
+                </label>
                 <textarea
                   id="approval_notes"
                   value={notes}
@@ -553,7 +579,9 @@ function ProcurementDetailPage() {
                 <div className="file-preview-list">
                   {filesToUpload.map((file, index) => (
                     <div key={index} className="file-preview-item">
-                      <span className="file-preview-name">{decodeURIComponent(file.name)}</span>
+                      <span className="file-preview-name">
+                        {decodeURIComponent(file.name)}
+                      </span>
                       <button
                         onClick={() => handleRemoveFile(file.name)}
                         className="remove-file-btn"
@@ -574,7 +602,8 @@ function ProcurementDetailPage() {
 
               {!signingIsDone && (
                 <p className="signing-required-message">
-                  Please "Apply & Save Signature" to the document before approving.
+                  Please "Apply & Save Signature" to the document before
+                  approving.
                 </p>
               )}
               {!canApprove &&
@@ -613,6 +642,7 @@ function ProcurementDetailPage() {
         isOpen={isSignatureModalOpen}
         onClose={handleCloseSignatureModal}
         onSave={handleSaveSignature}
+        typedSignatureFont="'Sarabun', sans-serif"
       />
       <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
