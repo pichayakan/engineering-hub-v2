@@ -17,6 +17,8 @@ function SignatureModal({
   const [typedName, setTypedName] = useState("");
   const [typedSignatureUrl, setTypedSignatureUrl] = useState("");
 
+  const FIXED_SIGNATURE_URL = "/worawitl_sign.png";
+
   useEffect(() => {
     if (activeTab === "type" && typedName) {
       const canvas = document.createElement("canvas");
@@ -47,6 +49,8 @@ function SignatureModal({
     } else if (activeTab === "type") {
       if (!typedName) return alert("Please type your name.");
       onSave(typedSignatureUrl);
+    } else if (activeTab === "fixed") {
+      onSave(FIXED_SIGNATURE_URL);
     }
   };
 
@@ -83,6 +87,12 @@ function SignatureModal({
         >
           Type
         </button>
+        <button
+          onClick={() => setActiveTab("fixed")}
+          className={activeTab === "fixed" ? "active" : ""}
+        >
+          ลายเซ็น ผส.วขตป.(FIX)
+        </button>
         <button onClick={triggerFileUpload} className="upload-tab-btn">
           Upload
         </button>
@@ -113,6 +123,19 @@ function SignatureModal({
               <img src={typedSignatureUrl} alt="Signature preview" />
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === "fixed" && (
+        <div className="fixed-signature-info">
+          <p>Using the following fixed signature:</p>
+          <div className="fixed-signature-preview">
+            <img
+              src={FIXED_SIGNATURE_URL}
+              alt="Fixed Signature Preview"
+              style={{ maxWidth: "100%", maxHeight: "50px" }}
+            />
+          </div>
         </div>
       )}
 
