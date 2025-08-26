@@ -235,6 +235,20 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
         return Response(self.get_serializer(procurement_request).data)
 
+    @action(detail=True, methods=['post'], url_path='cancel')
+    def cancel_request(self, request, pk=None):
+        procurement_request = self.get_object()
+        user = request.user
+
+        # --- Permission Check ---
+        # 1. Only the user who created the request can cancel it.
+        # 2. A request cannot be cancelled if it's already completed or cancelled.
+        if procurement_request.created_by != user:
+            return Response({'error': 'You do not have permission to cancel this request.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if procurement_request.is_completed or procurement_request.is_cancelled:
+            return Response({'error': 'This request cannot be cancelled.'}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=['post'], url_path='upload-signed-pdf')
     def upload_signed_pdf(self, request, pk=None):
         procurement_request = self.get_object()

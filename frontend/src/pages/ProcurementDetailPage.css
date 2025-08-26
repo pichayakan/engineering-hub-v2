@@ -482,7 +482,6 @@ box-sizing: border-box; / Ensure border is inside width/height */
   left: -5px;
 }
 
-
 .signing-required-message {
   font-size: 0.9rem;
   color: #856404; /* Dark yellow for warning */
@@ -534,4 +533,39 @@ box-sizing: border-box; / Ensure border is inside width/height */
   min-width: 50px;
   text-align: center;
   font-size: 0.9rem;
+}
+
+.status-banner.is-cancelled {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.cancel-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.cancel-section p {
+  margin: 0 0 1rem;
+  color: #856404;
+  font-weight: 500;
+}
+
+.cancel-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
 }

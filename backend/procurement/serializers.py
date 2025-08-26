@@ -137,6 +137,8 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
             "is_completed",
             "history",
             "current_step_due_date",
+            "created_by",
             "attachments",
+            "is_cancelled",
         ]
         read_only_fields = ["current_step", "created_by"]

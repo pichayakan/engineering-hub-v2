@@ -94,6 +94,8 @@ class ProcurementRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_completed = models.BooleanField(default=False)
 
+    is_cancelled = models.BooleanField(default=False)
+
     @property
     def current_step_due_date(self):
         if self.is_completed or not self.current_step:

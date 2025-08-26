@@ -93,6 +93,27 @@ function ProcurementDetailPage() {
     return () => resizeObserver.disconnect();
   }, [selectedPdfUrl]);
 
+  const handleCancelRequest = async () => {
+    if (
+      window.confirm(
+        "Are you sure you want to cancel this request? This action cannot be undone."
+      )
+    ) {
+      try {
+        const response = await apiClient.post(
+          `/api/procurement/requests/${requestId}/cancel/`
+        );
+        setRequest(response.data); // Update the state with the cancelled status
+        toast.success("Request has been cancelled successfully.");
+      } catch (error) {
+        console.error("Failed to cancel request", error);
+        toast.error(
+          error.response?.data?.error || "Could not cancel the request."
+        );
+      }
+    }
+  };
+
   const onDocumentLoadSuccess = (pdf) => {
     setNumPages(pdf.numPages);
     pdf.getPage(1).then((page) => {
@@ -369,6 +390,13 @@ function ProcurementDetailPage() {
 
   const signingIsDone = isSigningCompleted();
 
+  const showCancelButton =
+    user &&
+    user.id === request.created_by &&
+    !request.is_completed &&
+    !request.is_cancelled;
+  console.log(request.created_by);
+
   return (
     <div className="procurement-detail-container">
       <div className="detail-header">
@@ -376,9 +404,11 @@ function ProcurementDetailPage() {
         <p>
           Created by: {request.created_by_details.username} on{" "}
           {new Date(request.created_at).toLocaleDateString()}
+          {request.is_cancelled && (
+            <div className="status-banner is-cancelled">Cancelled</div>
+          )}
         </p>
       </div>
-
       <ProcessStepper
         steps={workflow.steps}
         currentStepId={request.current_step}
@@ -551,9 +581,9 @@ function ProcurementDetailPage() {
           <h2>
             Current Step: {request.current_step_details?.name || "Completed"}
           </h2>
-          {request.is_completed ? (
-            <p>This request is fully completed.</p>
-          ) : (
+          {request.is_completed && <p>This request is fully completed.</p>}
+          {request.is_cancelled && <p>This request has been cancelled.</p>}
+          {!request.is_completed && !request.is_cancelled && (
             <div>
               <div className="sla-info">
                 <p className="sla-title">Step Due Date</p>
@@ -645,6 +675,14 @@ function ProcurementDetailPage() {
           )}
         </div>
       </div>
+      {showCancelButton && (
+        <div className="cancel-section">
+          <p>If you created this request in error, you can cancel it.</p>
+          <button onClick={handleCancelRequest} className="cancel-button">
+            Cancel This Request
+          </button>
+        </div>
+      )}
       <div style={{ marginTop: "2rem" }}>
         <Link to="/procurement" className="nav-link">
           ← Back to Procurement List
