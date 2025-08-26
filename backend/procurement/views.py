@@ -9,6 +9,7 @@ from django.utils import timezone
 from notifications.models import Notification
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
+from notifications.line_utils import send_line_push_message
 
 from .models import (
     WorkflowTemplate,
@@ -198,6 +199,26 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                         link=f"/procurement/requests/{procurement_request.id}"
                     )
             print("[DEBUG] Notification logic finished.")  # DEBUG PRINT
+            # Create and send Line notification
+            requester_name = f"{procurement_request.created_by.first_name} {procurement_request.created_by.last_name}"
+            recipient_name = f"{user_to_notify.first_name} {user_to_notify.last_name}"
+            # 👈 Replace with your actual domain
+            link_to_task = f"http://202.139.196.7/procurement/requests/{procurement_request.id}"
+
+            line_message = (
+                f"เรียน คุณ {recipient_name},\n\n"
+                f"มีงานใหม่รอการอนุมัติจากท่าน\n"
+                f"เรื่อง: {procurement_request.title}\n"
+                f"สร้างโดย: {requester_name}\n"
+                f"ขั้นตอนปัจจุบัน: {next_step.name}\n\n"
+                f"กรุณาตรวจสอบและดำเนินการที่: \n\n"
+                f" {link_to_task}"
+            )
+
+            send_line_push_message(
+                user=user_to_notify,
+                message=line_message
+            )
         else:
             # DEBUG PRINT
             print("[DEBUG] No next step found. Marking as completed.")

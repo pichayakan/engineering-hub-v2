@@ -4,9 +4,12 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.conf import settings
 
 # --- เพิ่ม Department Model เข้ามาในไฟล์นี้ ---
+
+
 class Department(models.Model):
     name = models.CharField(max_length=255, unique=True)
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+    parent = models.ForeignKey(
+        'self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     manager = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -14,8 +17,10 @@ class Department(models.Model):
         blank=True,
         related_name='managed_departments'
     )
+
     def __str__(self):
         return self.name
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -39,8 +44,9 @@ class UserManager(BaseUserManager):
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
-            
+
         return self.create_user(email, password, **extra_fields)
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=50)
@@ -48,22 +54,25 @@ class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(max_length=100, unique=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
-    employee_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
-    
+    employee_id = models.CharField(
+        max_length=50, unique=True, null=True, blank=True)
+    line_user_id = models.CharField(max_length=100, blank=True, null=True)
+    notify_enabled = models.BooleanField(default=True)
+
     department = models.ForeignKey(
         'Department',
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='members'
     )
-    
+
     date_joined = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(auto_now=True)
     is_admin = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)
-    
+
     # --- ส่วนที่แก้ไข: ลบ is_superadmin ทิ้งไป ---
     # is_superuser จะถูกสืบทอดมาจาก PermissionsMixin โดยอัตโนมัติ
 
