@@ -1,4 +1,8 @@
 # backend/procurement/views.py
+import os
+import re
+from .utils import generate_signed_filename
+from django.core.files.base import ContentFile
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -248,6 +252,7 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
         if procurement_request.is_completed or procurement_request.is_cancelled:
             return Response({'error': 'This request cannot be cancelled.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(self.get_serializer(procurement_request).data)
 
     @action(detail=True, methods=['post'], url_path='upload-signed-pdf')
     def upload_signed_pdf(self, request, pk=None):
@@ -261,7 +266,6 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Find the latest history entry to associate the file with
         latest_history = procurement_request.history.order_by(
             '-timestamp').first()
         if not latest_history:
@@ -270,11 +274,20 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # timestamp = timezone.now().strftime("%Y%m%d-%H%M%S")
-        # new_filename = f"signed_{timestamp}_{procurement_request.title}.pdf"
-        new_filename = signed_file.name
+        # ✅ sanitize original filename
+        original_name = signed_file.name
+        base_name, ext = original_name.rsplit('.', 1)
 
-        # Create the new attachment
+        # ลบ prefix signed_ และ timestamp เก่าออก
+        # ตัด signed_ ด้านหน้า
+        base_name = re.sub(r'^signed_', '', base_name)
+        base_name = re.sub(r'_\d{4}-\d{2}-\d{2}T.*$', '',
+                           base_name)  # ตัด timestamp ถ้ามี
+
+        # ✅ ใช้ timestamp ใหม่เสมอ
+        timestamp = timezone.now().strftime("%Y%m%d-%H%M%S")
+        new_filename = f"signed_{base_name}_{timestamp}.pdf"
+
         ProcurementAttachment.objects.create(
             procurement_request=procurement_request,
             history_entry=latest_history,
@@ -283,6 +296,5 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             name=new_filename
         )
 
-        # Return the updated request object
         serializer = self.get_serializer(procurement_request)
         return Response(serializer.data, status=status.HTTP_200_OK)

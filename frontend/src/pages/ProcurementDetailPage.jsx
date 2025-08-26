@@ -308,15 +308,26 @@ function ProcurementDetailPage() {
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
 
+      // ✅ จัดการชื่อไฟล์
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const originalFileName = decodeURIComponent(
-        selectedPdfUrl.split("/").pop().replace(".pdf", "")
-      );
-      const newFilename = `signed_${originalFileName}_${timestamp}.pdf`;
+      let fullFilename = decodeURIComponent(selectedPdfUrl.split("/").pop());
+
+      // เอาแค่ base name (ตัด .pdf ทิ้ง)
+      let baseName = fullFilename.replace(/\.pdf$/i, "");
+
+      // เอา signed_ ออกถ้ามีอยู่แล้ว (กัน signed_signed_....)
+      baseName = baseName.replace(/^signed_/, "");
+
+      // กัน dot ปนมาในชื่อไฟล์ → แปลง . เป็น _
+      baseName = baseName.replace(/\./g, "_");
+
+      // ✅ สร้างชื่อใหม่แบบสั้น
+      const newFilename = `signed_${baseName}_${timestamp}.pdf`;
 
       const signedFile = new File([blob], newFilename, {
         type: "application/pdf",
       });
+
       setFilesToUpload((prev) => [...prev, signedFile]);
       setSignatureImage(null);
       setSelectedPdfUrl(null);
