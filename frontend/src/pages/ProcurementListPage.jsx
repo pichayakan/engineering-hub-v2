@@ -15,6 +15,7 @@ function ProcurementListPage() {
   const [ordering, setOrdering] = useState("-created_at");
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -39,6 +40,16 @@ function ProcurementListPage() {
       if (selectedCategory) {
         params.category = selectedCategory;
       }
+
+      if (statusFilter === 'completed') {
+        params.is_completed = true;
+      } else if (statusFilter === 'cancelled') {
+        params.is_cancelled = true;
+      } else if (statusFilter === 'inprogress') {
+        params.is_completed = false;
+        params.is_cancelled = false;
+      }
+
       const response = await apiClient.get("/api/procurement/requests/", {
         params,
       });
@@ -47,12 +58,12 @@ function ProcurementListPage() {
       console.error("Failed to fetch procurement requests", error);
       toast.error(
         "Failed to fetch requests: " +
-          (error.response?.data?.error || error.message)
+        (error.response?.data?.error || error.message)
       );
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, ordering, selectedCategory]);
+  }, [searchTerm, ordering, selectedCategory, statusFilter]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -97,6 +108,16 @@ function ProcurementListPage() {
         <SearchInput value={searchTerm} onChange={handleSearchChange} />
         <select
           className="sort-select"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="">Filter by: All Statuses</option>
+          <option value="inprogress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select
+          className="sort-select"
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
         >
@@ -136,12 +157,26 @@ function ProcurementListPage() {
             {requests.length > 0 ? (
               requests.map((req) => {
                 const sla = calculateSLA(req.current_step_due_date);
+
+                // --- ✅ THIS IS THE FIX ---
+                // Helper function to get status text and class
+                const getStatus = () => {
+                  if (req.is_cancelled) {
+                    return { text: "Cancelled", className: "status-cancelled" };
+                  }
+                  if (req.is_completed) {
+                    return { text: "Completed", className: "status-completed" };
+                  }
+                  return { text: "In Progress", className: "status-inprogress" };
+                };
+                const status = getStatus();
+
                 return (
                   <tr
                     key={req.id}
-                    className={req.is_completed ? "is-completed" : ""}
+                    // ✅ Apply a class for cancelled rows as well
+                    className={req.is_completed ? "is-completed" : req.is_cancelled ? "is-cancelled" : ""}
                   >
-                    {/* --- ✅ ADDED: data-label to all <td> tags --- */}
                     <td data-label="Title">
                       <Link
                         to={`/procurement/requests/${req.id}`}
@@ -157,19 +192,16 @@ function ProcurementListPage() {
                       </span>
                     </td>
                     <td data-label="Current Step">
+                      {/* Show 'Cancelled' if applicable */}
                       <span
-                        className={`status-badge status-${
-                          req.current_step_details?.name.replace(/\s+/g, "-") ||
+                        className={`status-badge status-${req.current_step_details?.name.replace(/\s+/g, "-") ||
                           "N-A"
-                        }`}
+                          }`}
                       >
-                        {req.current_step_details?.name || "N/A"}
+                        {req.is_cancelled ? "---" : (req.current_step_details?.name || "N/A")}
                       </span>
                     </td>
-                    <td
-                      data-label="SLA"
-                      className={`sla-text ${sla.className}`}
-                    >
+                    <td data-label="SLA" className={`sla-text ${sla.className}`}>
                       {sla.text}
                     </td>
                     <td data-label="Created By">
@@ -179,14 +211,9 @@ function ProcurementListPage() {
                       {new Date(req.created_at).toLocaleDateString()}
                     </td>
                     <td data-label="Status">
-                      <span
-                        className={`status-badge ${
-                          req.is_completed
-                            ? "status-completed"
-                            : "status-inprogress"
-                        }`}
-                      >
-                        {req.is_completed ? "Completed" : "In Progress"}
+                      {/* ✅ Use the new getStatus function */}
+                      <span className={`status-badge ${status.className}`}>
+                        {status.text}
                       </span>
                     </td>
                   </tr>
@@ -194,10 +221,7 @@ function ProcurementListPage() {
               })
             ) : (
               <tr>
-                <td
-                  colSpan="8"
-                  style={{ textAlign: "center", padding: "2rem" }}
-                >
+                <td colSpan="8" style={{ textAlign: "center", padding: "2rem" }}>
                   No procurement requests found.
                 </td>
               </tr>

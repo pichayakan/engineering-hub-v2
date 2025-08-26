@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import ProcessStepper from "../components/ProcessStepper.jsx";
 import SignatureModal from "../components/SignatureModal.jsx";
 import "./ProcurementDetailPage.css";
+import ConfirmModal from '../components/ConfirmModal';
 
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -38,6 +39,8 @@ function ProcurementDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { requestId } = useParams();
   const { user } = useAuth();
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
 
   // PDF & Signature State
   const [numPages, setNumPages] = useState(null);
@@ -93,24 +96,20 @@ function ProcurementDetailPage() {
     return () => resizeObserver.disconnect();
   }, [selectedPdfUrl]);
 
-  const handleCancelRequest = async () => {
-    if (
-      window.confirm(
-        "Are you sure you want to cancel this request? This action cannot be undone."
-      )
-    ) {
-      try {
-        const response = await apiClient.post(
-          `/api/procurement/requests/${requestId}/cancel/`
-        );
-        setRequest(response.data); // Update the state with the cancelled status
-        toast.success("Request has been cancelled successfully.");
-      } catch (error) {
-        console.error("Failed to cancel request", error);
-        toast.error(
-          error.response?.data?.error || "Could not cancel the request."
-        );
-      }
+  const handleCancelRequest = () => {
+    setIsConfirmModalOpen(true);
+  };
+
+  // This is the new function that runs when the user confirms
+  const executeCancellation = async () => {
+    try {
+      const response = await apiClient.post(`/api/procurement/requests/${requestId}/cancel/`);
+      setRequest(response.data);
+      toast.success("Request has been cancelled successfully.");
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Could not cancel the request.");
+    } finally {
+      setIsConfirmModalOpen(false); // Close the modal
     }
   };
 
@@ -152,6 +151,9 @@ function ProcurementDetailPage() {
   };
 
   const handleApprove = async () => {
+    if (!window.confirm("Are you sure you want to approve and advance to the next step?")) {
+      return; // Stop the function if the user clicks "Cancel"
+    }
     if (isSubmitting) return;
     setIsSubmitting(true);
     const formData = new FormData();
@@ -705,6 +707,14 @@ function ProcurementDetailPage() {
         onSave={handleSaveSignature}
         typedSignatureFont="'Sarabun', sans-serif"
       />
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={executeCancellation}
+        title="Confirm Cancellation"
+      >
+        Are you sure you want to cancel this request? This action cannot be undone.
+      </ConfirmModal>
       <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );

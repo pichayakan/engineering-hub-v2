@@ -17,7 +17,7 @@ function SignatureModal({
   const [typedName, setTypedName] = useState("");
   const [typedSignatureUrl, setTypedSignatureUrl] = useState("");
 
-  const FIXED_SIGNATURE_URL = "/worawitl_sign.png";
+  const FIXED_SIGNATURE_URL = "/worawitl_sign-removebg.png";
 
   useEffect(() => {
     if (activeTab === "type" && typedName) {

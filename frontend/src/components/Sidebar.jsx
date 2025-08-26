@@ -43,7 +43,7 @@ function Sidebar({ isOpen, onClose }) {
               <NavLink to="/" className="sidebar-link" onClick={onClose} end>
                 <FiHome /> <span>หน้าหลัก</span>
               </NavLink>
-              <NavLink
+              {/* <NavLink
                 to="/dashboard"
                 className="sidebar-link"
                 onClick={onClose}
@@ -57,7 +57,7 @@ function Sidebar({ isOpen, onClose }) {
                 end
               >
                 <FiArchive /> <span>โปรเจกต์ทั้งหมด</span>
-              </NavLink>
+              </NavLink> */}
 
               {/* --- ✅ UPDATED: Collapsible Procurement Menu --- */}
               <div

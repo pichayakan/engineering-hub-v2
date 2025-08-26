@@ -1,0 +1,30 @@
+/* frontend/src/components/ConfirmModal.css */
+.confirm-modal-body p {
+  font-size: 1.1rem;
+  margin: 0 0 2rem 0;
+  color: #495057;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.confirm-modal-actions button {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirm-modal-actions .btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.confirm-modal-actions .btn-danger {
+  background-color: #dc3545;
+  color: white;
+}

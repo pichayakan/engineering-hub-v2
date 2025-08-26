@@ -26,7 +26,7 @@ from .models import (
 from .serializers import (
     WorkflowTemplateSerializer,
     ProcurementRequestSerializer,
-    ProcurementCategorySerializer,  # ✅ IMPORTED
+    ProcurementCategorySerializer,  
 )
 
 
@@ -104,7 +104,7 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     # Fields available for exact match filtering (e.g., ?category=1)
-    filterset_fields = ['category', 'is_completed', 'project']
+    filterset_fields = ['category', 'is_completed', 'is_cancelled', 'project']
 
     # Fields available for text searching (e.g., ?search=test)
     search_fields = ['title', 'project__name',
@@ -252,6 +252,10 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
         if procurement_request.is_completed or procurement_request.is_cancelled:
             return Response({'error': 'This request cannot be cancelled.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        procurement_request.is_cancelled = True
+        procurement_request.save()
+
         return Response(self.get_serializer(procurement_request).data)
 
     @action(detail=True, methods=['post'], url_path='upload-signed-pdf')
@@ -298,3 +302,4 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(procurement_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    

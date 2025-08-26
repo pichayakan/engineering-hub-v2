@@ -56,8 +56,8 @@
   color: #6c757d;
 }
 .tasks-table tr.is-completed .task-title-link {
-  color: #6c757d;
-  text-decoration: line-through;
+  color: #0f5132;
+  /* text-decoration: line-through; */
 }
 
 .status-badge {
@@ -71,6 +71,17 @@
 .status-completed {
   background-color: #d1e7dd;
   color: #0f5132;
+}
+
+.status-cancelled {
+  background-color: #f8d7da; /* Light red */
+  color: #721c24; /* Dark red */
+}
+
+tr.is-cancelled {
+  background-color: #f8f9fa;
+  color: #721c24;
+  text-decoration: line-through;
 }
 
 .status-inprogress {
