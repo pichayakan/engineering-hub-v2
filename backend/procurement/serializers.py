@@ -72,7 +72,8 @@ class ProcurementAttachmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProcurementAttachment
-        fields = ["id", "file", "name", "uploaded_by_details", "uploaded_at"]
+        fields = ["id", "file", "name", "uploaded_by_details",
+                  "uploaded_at", "history_entry"]
 
 
 class RequestHistorySerializer(serializers.ModelSerializer):
