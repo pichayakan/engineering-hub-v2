@@ -104,13 +104,25 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background-color: #198754;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.8rem;
 }
+
+.history-item.action-APPROVED::before {
+  background-color: #198754; /* Green */
+}
+
+/* Style for Sent Back items */
+.history-item.action-SENT_BACK::before {
+  content: "⭯"; /* A return arrow icon */
+  background-color: #dc3545; /* Red */
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
 .history-step-name {
   font-weight: 600;
 }
@@ -568,4 +580,25 @@ box-sizing: border-box; / Ensure border is inside width/height */
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.send-back-button {
+  width: 100%;
+  background-color: #6c757d; /* Gray */
+  color: white;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.step-name-display {
+  background-color: #e9ecef;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-weight: 500;
+  margin-top: 0.5rem;
 }

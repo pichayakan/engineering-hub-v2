@@ -26,7 +26,7 @@ from .models import (
 from .serializers import (
     WorkflowTemplateSerializer,
     ProcurementRequestSerializer,
-    ProcurementCategorySerializer,  
+    ProcurementCategorySerializer,
 )
 
 
@@ -124,11 +124,12 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
         if first_step:
             for group in first_step.responsible_groups.all():
                 for user_to_notify in group.user_set.all():
-                    Notification.objects.create(
-                        recipient=user_to_notify,
-                        message=f"New procurement task '{procurement_request.title}' has been created and is waiting for approval.",
-                        link=f"/procurement/requests/{procurement_request.id}"
-                    )
+                    if user_to_notify != self.request.user:
+                        Notification.objects.create(
+                            recipient=user_to_notify,
+                            message=f"New procurement task '{procurement_request.title}' has been created and is waiting for approval.",
+                            link=f"/procurement/requests/{procurement_request.id}"
+                        )
 
     @action(detail=True, methods=["post"], url_path="advance-step")
     def advance_step(self, request, pk=None):
@@ -156,7 +157,7 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
         Notification.objects.create(
             recipient=user,
-            message=f"You have successfully approved step: '{current_step.name}' for '{procurement_request.title}'.",
+            message=f"คุณได้อนุมัติขั้นตอน'{current_step.name}' สำหรับงาน '{procurement_request.title}'.",
             link=f"/procurement/requests/{procurement_request.id}",
             is_read=True  # Mark as read since the user initiated the action
         )
@@ -233,7 +234,7 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             if procurement_request.created_by != user:
                 Notification.objects.create(
                     recipient=procurement_request.created_by,
-                    message=f"Your procurement request '{procurement_request.title}' has been fully approved.",
+                    message=f"งาน '{procurement_request.title}' ได้รับการอนุมัติแล้ว",
                     link=f"/procurement/requests/{procurement_request.id}"
                 )
 
@@ -252,7 +253,7 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
         if procurement_request.is_completed or procurement_request.is_cancelled:
             return Response({'error': 'This request cannot be cancelled.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         procurement_request.is_cancelled = True
         procurement_request.save()
 
@@ -302,4 +303,50 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(procurement_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
+    @action(detail=True, methods=['post'], url_path='send-back')
+    def send_back_step(self, request, pk=None):
+        procurement_request = self.get_object()
+        user = request.user
+        target_step_id = request.data.get('target_step_id')
+        notes = request.data.get('notes')
+
+        if not target_step_id or not notes:
+            return Response(
+                {'error': 'Target step and notes are required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Basic permission check
+        if not user.groups.filter(pk__in=procurement_request.current_step.responsible_groups.all()).exists() and not user.is_staff:
+            return Response({'error': 'You do not have permission to perform this action.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            target_step = Step.objects.get(
+                pk=target_step_id, workflow_template=procurement_request.workflow_template)
+        except Step.DoesNotExist:
+            return Response({'error': 'Invalid target step.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create a "Sent Back" history record
+        RequestHistory.objects.create(
+            procurement_request=procurement_request,
+            step=procurement_request.current_step,
+            approved_by=user,
+            notes=notes,
+            action='SENT_BACK'
+        )
+
+        # Update the request to the target step
+        procurement_request.current_step = target_step
+        procurement_request.save()
+
+        # Notify the responsible users of the target step
+        for group in target_step.responsible_groups.all():
+            for user_to_notify in group.user_set.all():
+                Notification.objects.create(
+                    recipient=user_to_notify,
+                    message=f"Task '{procurement_request.title}' has been sent back to your step for revision.",
+                    link=f"/procurement/requests/{procurement_request.id}"
+                )
+
+        return Response(self.get_serializer(procurement_request).data)

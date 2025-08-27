@@ -92,6 +92,7 @@ class RequestHistorySerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "step",
+            "action",
             "approved_by_details",
             "timestamp",
             "notes",

@@ -121,11 +121,17 @@ class RequestHistory(models.Model):
     """
     เก็บประวัติการอนุมัติทั้งหมดของแต่ละเรื่อง
     """
+    ACTION_CHOICES = [
+        ('APPROVED', 'Approved'),
+        ('SENT_BACK', 'Sent Back'),
+    ]
 
     procurement_request = models.ForeignKey(
         ProcurementRequest, related_name="history", on_delete=models.CASCADE
     )
     step = models.ForeignKey(Step, on_delete=models.CASCADE)
+    action = models.CharField(
+        max_length=10, choices=ACTION_CHOICES, default='APPROVED')
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)

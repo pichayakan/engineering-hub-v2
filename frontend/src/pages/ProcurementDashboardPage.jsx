@@ -104,7 +104,7 @@ function ProcurementDashboardPage() {
       </div>
 
       <div className="dashboard-section">
-        <h2>Waiting for Your Approval</h2>
+        <h2>รอการอนุมัติจากคุณ</h2>
         <div className="actionable-list">
           {yourTasks.length > 0 ? (
             yourTasks.map((task) => (
@@ -126,7 +126,7 @@ function ProcurementDashboardPage() {
       </div>
 
       <div className="dashboard-section">
-        <h2>All Ongoing Procurements</h2>
+        <h2>อยู่ระหว่างดำเนินการ</h2>
         <div className="tasks-table-wrapper">
           <table className="tasks-table">
             <thead>

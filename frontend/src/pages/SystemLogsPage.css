@@ -1,0 +1,54 @@
+/* frontend/src/pages/SystemLogsPage.css */
+.logs-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+}
+
+.logs-table-wrapper {
+  background-color: var(--nt-white);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--nt-border-color);
+}
+
+.logs-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.logs-table th,
+.logs-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--nt-border-color);
+}
+
+.logs-table th {
+  background-color: #f8f9fa;
+}
+
+.log-message {
+  word-break: break-all;
+}
+
+.log-badge {
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  text-align: center;
+}
+
+.log-level-INFO {
+  background-color: #0d6efd;
+} /* Blue */
+.log-level-WARNING {
+  background-color: #ffc107;
+} /* Yellow */
+.log-level-ERROR {
+  background-color: #dc3545;
+} /* Red */
+.log-level-LINE {
+  background-color: #06c755;
+} /* Green */

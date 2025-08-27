@@ -18,6 +18,7 @@ import {
   FiSettings,
   FiClipboard,
   FiChevronDown,
+  FiHardDrive,
 } from "react-icons/fi";
 
 function Sidebar({ isOpen, onClose }) {
@@ -82,7 +83,7 @@ function Sidebar({ isOpen, onClose }) {
                       className="sidebar-link sub-menu"
                       onClick={onClose}
                     >
-                      <span>แดชบอร์ด</span>
+                      <span>แดชบอร์ดของฉัน</span>
                     </NavLink>
                     <NavLink
                       to="/procurement"
@@ -108,7 +109,7 @@ function Sidebar({ isOpen, onClose }) {
                 className="sidebar-link"
                 onClick={onClose}
               >
-                <FiCheckSquare /> <span>งานของฉัน</span>
+                <FiCheckSquare /> <span>แจ้งเตือนงาน</span>
                 {unseenTaskCount > 0 && (
                   <span className="notification-badge">{unseenTaskCount}</span>
                 )}
@@ -147,6 +148,13 @@ function Sidebar({ isOpen, onClose }) {
                     onClick={onClose}
                   >
                     <FiClipboard /> <span>รายงาน Task</span>
+                  </NavLink>
+                  <NavLink
+                    to="/admin/logs"
+                    className="sidebar-link"
+                    onClick={onClose}
+                  >
+                    <FiHardDrive /> <span>System Logs</span>
                   </NavLink>
                 </>
               )}

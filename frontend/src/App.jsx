@@ -29,6 +29,7 @@ import ProjectWorkflowDetailPage from "./pages/ProjectWorkflowDetailPage";
 import CreateWorkflowPage from "./pages/CreateWorkflowPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import ProcurementDashboardPage from "./pages/ProcurementDashboardPage.jsx";
+import SystemLogsPage from "./pages/SystemLogsPage";
 
 import HelpButton from "./components/HelpButton.jsx";
 
@@ -94,6 +95,7 @@ function App() {
                   element={<AssignerPerformancePage />}
                 />
                 <Route path="/tasks/all" element={<AllTasksPage />} />
+                <Route path="/admin/logs" element={<SystemLogsPage />} />
               </Route>
               <Route path="/workflows" element={<ProjectWorkflowListPage />} />
               <Route
@@ -103,8 +105,10 @@ function App() {
             </Route>
             <Route path="/workflows/new" element={<CreateWorkflowPage />} />{" "}
             <Route path="/profile/:userId" element={<UserProfilePage />} />
-            <Route path="/procurement/dashboard" element={<ProcurementDashboardPage />} />
-            
+            <Route
+              path="/procurement/dashboard"
+              element={<ProcurementDashboardPage />}
+            />
           </Routes>
         </main>
         <HelpButton />

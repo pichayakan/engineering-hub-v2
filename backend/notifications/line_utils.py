@@ -1,6 +1,7 @@
 # backend/notifications/line_utils.py
 import requests
 from django.conf import settings
+from logs.models import LogEntry
 
 
 def send_line_push_message(user, message):
@@ -34,5 +35,15 @@ def send_line_push_message(user, message):
         response = requests.post(url, headers=headers, json=body)
         response.raise_for_status()  # Raises an exception for bad status codes (4xx or 5xx)
         print(f"Successfully sent LINE notification to {user.username}.")
+        LogEntry.objects.create(
+            level=LogEntry.LogLevel.LINE,
+            message=f"Successfully sent Line notification to {user.username}: \"{message}\"",
+            user=user  # Associate the log with the recipient
+        )
     except requests.exceptions.RequestException as e:
         print(f"Error sending LINE notification to {user.username}: {e}")
+        LogEntry.objects.create(
+            level=LogEntry.LogLevel.ERROR,
+            message=f"Error sending LINE notification to {user.username}: {e}",
+            user=user
+        )

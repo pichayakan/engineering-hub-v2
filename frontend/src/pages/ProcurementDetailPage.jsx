@@ -6,7 +6,10 @@ import { useAuth } from "../context/AuthContext";
 import ProcessStepper from "../components/ProcessStepper.jsx";
 import SignatureModal from "../components/SignatureModal.jsx";
 import "./ProcurementDetailPage.css";
-import ConfirmModal from '../components/ConfirmModal';
+import ConfirmModal from "../components/ConfirmModal";
+
+import SendBackModal from "../components//SendBackModal"; // ✅ IMPORT
+import Modal from "../components/Modal";
 
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -41,7 +44,6 @@ function ProcurementDetailPage() {
   const { user } = useAuth();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
-
   // PDF & Signature State
   const [numPages, setNumPages] = useState(null);
   const [selectedPdfUrl, setSelectedPdfUrl] = useState(null);
@@ -55,6 +57,22 @@ function ProcurementDetailPage() {
   const [pdfPageDetails, setPdfPageDetails] = useState(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [signaturePosition, setSignaturePosition] = useState(null);
+
+  const [isSendBackModalOpen, setIsSendBackModalOpen] = useState(false);
+  const handleSendBack = async (data) => {
+    try {
+      const response = await apiClient.post(
+        `/api/procurement/requests/${requestId}/send-back/`,
+        data
+      );
+      setRequest(response.data); // Update the page with the new state
+      setIsSendBackModalOpen(false);
+      // You can add a success toast message here
+    } catch (error) {
+      console.error("Failed to send back step", error);
+      // You can add an error toast message here
+    }
+  };
 
   const signatureRef = useRef(null);
   const pdfWrapperRef = useRef(null);
@@ -103,11 +121,15 @@ function ProcurementDetailPage() {
   // This is the new function that runs when the user confirms
   const executeCancellation = async () => {
     try {
-      const response = await apiClient.post(`/api/procurement/requests/${requestId}/cancel/`);
+      const response = await apiClient.post(
+        `/api/procurement/requests/${requestId}/cancel/`
+      );
       setRequest(response.data);
       toast.success("Request has been cancelled successfully.");
     } catch (error) {
-      toast.error(error.response?.data?.error || "Could not cancel the request.");
+      toast.error(
+        error.response?.data?.error || "Could not cancel the request."
+      );
     } finally {
       setIsConfirmModalOpen(false); // Close the modal
     }
@@ -151,7 +173,11 @@ function ProcurementDetailPage() {
   };
 
   const handleApprove = async () => {
-    if (!window.confirm("Are you sure you want to approve and advance to the next step?")) {
+    if (
+      !window.confirm(
+        "Are you sure you want to approve and advance to the next step?"
+      )
+    ) {
       return; // Stop the function if the user clicks "Cancel"
     }
     if (isSubmitting) return;
@@ -541,7 +567,7 @@ function ProcurementDetailPage() {
           <h2>Approval History</h2>
           <div className="history-timeline">
             {request.history.map((h) => (
-              <div key={h.id} className="history-item">
+              <div key={h.id} className={`history-item action-${h.action}`}>
                 <p className="history-step-name">{h.step.name}</p>
                 <div className="history-meta">
                   Approved by{" "}
@@ -684,6 +710,15 @@ function ProcurementDetailPage() {
                     )}
                   </details>
                 )}
+              {/* {canApprove && (
+                <button
+                  type="button"
+                  className="send-back-button"
+                  onClick={() => setIsSendBackModalOpen(true)}
+                >
+                  Send Back for Revision
+                </button>
+              )} */}
             </div>
           )}
         </div>
@@ -713,8 +748,20 @@ function ProcurementDetailPage() {
         onConfirm={executeCancellation}
         title="Confirm Cancellation"
       >
-        Are you sure you want to cancel this request? This action cannot be undone.
+        Are you sure you want to cancel this request? This action cannot be
+        undone.
       </ConfirmModal>
+      <Modal
+        isOpen={isSendBackModalOpen}
+        onClose={() => setIsSendBackModalOpen(false)}
+        title="Send Back for Revision"
+      >
+        <SendBackModal
+          history={request.history}
+          onSendBack={handleSendBack}
+          onCancel={() => setIsSendBackModalOpen(false)}
+        />
+      </Modal>
       <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );
