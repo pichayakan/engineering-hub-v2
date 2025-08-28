@@ -16,7 +16,7 @@ function LoginPage() {
     e.preventDefault();
     const loggedIn = await loginUser(email, password, rememberMe);
     if (loggedIn) {
-      navigate("/");
+      // navigate("/");
     }
   };
 

@@ -52,7 +52,7 @@ function SystemLogsPage() {
                 </td>
                 <td className="log-message">{log.message}</td>
                 <td>{log.user?.username || "System"}</td>
-                <td>{new Date(log.timestamp).toLocaleString()}</td>
+                <td>{formatDate(log.timestamp, true)}</td>
               </tr>
             ))}
           </tbody>

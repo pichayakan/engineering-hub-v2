@@ -37,6 +37,8 @@ import HelpButton from "./components/HelpButton.jsx";
 import ProtectedRoute from "./utils/ProtectedRoute.jsx";
 import AdminRoute from "./utils/AdminRoute.jsx";
 
+import RedirectIfAuth from "./utils/RedirectIfAuth";
+
 // Import Global CSS
 import "./App.css";
 
@@ -55,8 +57,10 @@ function App() {
           <Routes>
             {/* --- Public Routes --- */}
             {/* เส้นทางที่ทุกคนสามารถเข้าถึงได้โดยไม่ต้อง Login */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route element={<RedirectIfAuth />}>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+            </Route>
             {/* --- Protected Routes --- */}
             {/* เส้นทางทั้งหมดที่อยู่ข้างในนี้ จะต้องทำการ Login ก่อน */}
             <Route element={<ProtectedRoute />}>

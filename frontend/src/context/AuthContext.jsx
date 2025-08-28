@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }) => {
   });
 
   const [unseenTaskCount, setUnseenTaskCount] = useState(0);
+  const [redirectAfterLogin, setRedirectAfterLogin] = useState(null);
   const navigate = useNavigate(); // ✅ Added navigate
 
   // ✅ MODIFIED: loginUser now accepts the rememberMe flag
@@ -49,6 +50,13 @@ export const AuthProvider = ({ children }) => {
 
         setAuthTokens(tokens);
         setUser(userData);
+        const targetPath =
+          typeof redirectAfterLogin === "string" &&
+          redirectAfterLogin !== "/login"
+            ? redirectAfterLogin
+            : "/";
+        navigate(targetPath, { replace: true });
+        setRedirectAfterLogin(null); // Clear redirect
         return true;
       }
     } catch (error) {
@@ -60,7 +68,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ✅ MODIFIED: logoutUser now clears both storages
-  const logoutUser = () => {
+  const logoutUser = (originalPath = "/login") => {
     setAuthTokens(null);
     setUser(null);
     setUnseenTaskCount(0);
@@ -68,7 +76,13 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
     sessionStorage.removeItem("authTokens");
     sessionStorage.removeItem("user");
-    navigate("/login"); // Redirect to login on logout
+    // Validate originalPath to ensure it's a string
+    const validPath =
+      typeof originalPath === "string" && originalPath !== "/login"
+        ? originalPath
+        : null;
+    setRedirectAfterLogin(validPath);
+    navigate("/login", { state: { sessionExpired: true }, replace: true });
   };
 
   const fetchUnseenTaskCount = async () => {
@@ -88,6 +102,21 @@ export const AuthProvider = ({ children }) => {
       return () => clearInterval(intervalId);
     }
   }, [user]);
+
+  useEffect(() => {
+    const handleSessionExpired = (event) => {
+      // Ensure originalPath is a string
+      const originalPath =
+        typeof event.detail?.originalPath === "string"
+          ? event.detail.originalPath
+          : null;
+      logoutUser(originalPath);
+    };
+    window.addEventListener("sessionExpired", handleSessionExpired);
+    return () => {
+      window.removeEventListener("sessionExpired", handleSessionExpired);
+    };
+  }, []);
 
   const contextData = {
     user: user,

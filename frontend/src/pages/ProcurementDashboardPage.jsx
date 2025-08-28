@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext"; // ✅ IMPORT useAuth
 import "./ProcurementDashboardPage.css";
 import "./AllTasksPage.css"; // For table styles
 import ViewToggle from "../components/ViewToggle";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 function ProcurementDashboardPage() {
   const [summaryData, setSummaryData] = useState(null);
@@ -61,7 +62,7 @@ function ProcurementDashboardPage() {
   }, [user, viewMode]);
 
   if (loading) {
-    return <div>Loading Dashboard...</div>;
+    return <LoadingSpinner message="Loading procurement requests..." />;
   }
 
   return (

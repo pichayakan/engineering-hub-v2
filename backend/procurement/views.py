@@ -124,6 +124,8 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
         if first_step:
             for group in first_step.responsible_groups.all():
                 for user_to_notify in group.user_set.all():
+                    # --- ✅ ADD THIS CHECK ---
+                    # Only send a notification if the recipient is not the person who created the request
                     if user_to_notify != self.request.user:
                         Notification.objects.create(
                             recipient=user_to_notify,

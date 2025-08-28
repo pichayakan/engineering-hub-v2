@@ -38,13 +38,13 @@ apiClient.interceptors.response.use(
       if (authTokens?.refresh) {
         try {
           const response = await axios.post(
-            "http://localhost:8000/api/token/refresh/",
+            //"http://localhost:8000/api/token/refresh/",
+            "http://202.139.196.7:8000/api/token/refresh/",
             {
               refresh: authTokens.refresh,
             }
           );
 
-          // Update the tokens in the correct storage
           storage.setItem("authTokens", JSON.stringify(response.data));
 
           originalRequest.headers[
@@ -54,14 +54,28 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         } catch (refreshError) {
           console.error("Token refresh failed:", refreshError);
-          // Clear both storages on failure
           localStorage.removeItem("authTokens");
           localStorage.removeItem("user");
           sessionStorage.removeItem("authTokens");
           sessionStorage.removeItem("user");
-          window.location.href = "/login";
+          window.dispatchEvent(
+            new CustomEvent("sessionExpired", {
+              detail: { originalPath: window.location.pathname },
+            })
+          );
           return Promise.reject(refreshError);
         }
+      } else {
+        localStorage.removeItem("authTokens");
+        localStorage.removeItem("user");
+        sessionStorage.removeItem("authTokens");
+        sessionStorage.removeItem("user");
+        window.dispatchEvent(
+          new CustomEvent("sessionExpired", {
+            detail: { originalPath: window.location.pathname },
+          })
+        );
+        return Promise.reject(error);
       }
     }
     return Promise.reject(error);

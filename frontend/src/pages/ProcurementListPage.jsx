@@ -7,6 +7,8 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./AllTasksPage.css";
 import "./ProcurementListPage.css";
+import { formatDate } from "../utils/formatDate";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 function ProcurementListPage() {
   const [requests, setRequests] = useState([]);
@@ -41,11 +43,11 @@ function ProcurementListPage() {
         params.category = selectedCategory;
       }
 
-      if (statusFilter === 'completed') {
+      if (statusFilter === "completed") {
         params.is_completed = true;
-      } else if (statusFilter === 'cancelled') {
+      } else if (statusFilter === "cancelled") {
         params.is_cancelled = true;
-      } else if (statusFilter === 'inprogress') {
+      } else if (statusFilter === "inprogress") {
         params.is_completed = false;
         params.is_cancelled = false;
       }
@@ -58,7 +60,7 @@ function ProcurementListPage() {
       console.error("Failed to fetch procurement requests", error);
       toast.error(
         "Failed to fetch requests: " +
-        (error.response?.data?.error || error.message)
+          (error.response?.data?.error || error.message)
       );
     } finally {
       setLoading(false);
@@ -93,8 +95,9 @@ function ProcurementListPage() {
     return { text: `${diffDays}d left`, className: "sla-on-time" };
   };
 
-  if (loading && requests.length === 0)
-    return <div>Loading procurement requests...</div>;
+  if (loading) {
+    return <LoadingSpinner message="Loading procurement requests..." />;
+  }
 
   return (
     <div>
@@ -167,7 +170,10 @@ function ProcurementListPage() {
                   if (req.is_completed) {
                     return { text: "Completed", className: "status-completed" };
                   }
-                  return { text: "In Progress", className: "status-inprogress" };
+                  return {
+                    text: "In Progress",
+                    className: "status-inprogress",
+                  };
                 };
                 const status = getStatus();
 
@@ -175,7 +181,13 @@ function ProcurementListPage() {
                   <tr
                     key={req.id}
                     // ✅ Apply a class for cancelled rows as well
-                    className={req.is_completed ? "is-completed" : req.is_cancelled ? "is-cancelled" : ""}
+                    className={
+                      req.is_completed
+                        ? "is-completed"
+                        : req.is_cancelled
+                        ? "is-cancelled"
+                        : ""
+                    }
                   >
                     <td data-label="Title">
                       <Link
@@ -194,21 +206,27 @@ function ProcurementListPage() {
                     <td data-label="Current Step">
                       {/* Show 'Cancelled' if applicable */}
                       <span
-                        className={`status-badge status-${req.current_step_details?.name.replace(/\s+/g, "-") ||
+                        className={`status-badge status-${
+                          req.current_step_details?.name.replace(/\s+/g, "-") ||
                           "N-A"
-                          }`}
+                        }`}
                       >
-                        {req.is_cancelled ? "---" : (req.current_step_details?.name || "N/A")}
+                        {req.is_cancelled
+                          ? "---"
+                          : req.current_step_details?.name || "N/A"}
                       </span>
                     </td>
-                    <td data-label="SLA" className={`sla-text ${sla.className}`}>
+                    <td
+                      data-label="SLA"
+                      className={`sla-text ${sla.className}`}
+                    >
                       {sla.text}
                     </td>
                     <td data-label="Created By">
                       {req.created_by_details?.username || "N/A"}
                     </td>
                     <td data-label="Date Created">
-                      {new Date(req.created_at).toLocaleDateString()}
+                      {formatDate(req.created_at, true) || "N/A"}
                     </td>
                     <td data-label="Status">
                       {/* ✅ Use the new getStatus function */}
@@ -221,7 +239,10 @@ function ProcurementListPage() {
               })
             ) : (
               <tr>
-                <td colSpan="8" style={{ textAlign: "center", padding: "2rem" }}>
+                <td
+                  colSpan="8"
+                  style={{ textAlign: "center", padding: "2rem" }}
+                >
                   No procurement requests found.
                 </td>
               </tr>
