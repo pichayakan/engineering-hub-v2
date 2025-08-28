@@ -16,17 +16,42 @@
   background-color: var(--nt-light-gray);
 }
 
-
 .app-layout {
   display: grid;
   height: 100vh;
   /* สำหรับจอเล็ก: ให้มีแค่ 1 คอลัมน์ */
-  grid-template-columns: 1fr; 
+  grid-template-columns: 1fr;
   grid-template-rows: 60px 1fr; /* ความสูง Header | เนื้อหาหลัก */
   grid-template-areas:
     "header"
     "main";
   transition: grid-template-columns 0.3s ease-in-out;
+}
+
+/* Style the remember me checkbox group */
+.remember-me-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.remember-me-group input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #3b82f6; /* Blue checkbox */
+}
+
+.remember-me-group label {
+  font-size: 0.875rem;
+  color: #a0a0a0; /* Changed to darker gray for better readability */
+}
+
+.system-name {
+  font-size: 1.875rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  color: #e6b800; /* Changed to darker gray for better contrast */
 }
 
 /* สำหรับจอขนาดกลางขึ้นไป (md: 768px) */

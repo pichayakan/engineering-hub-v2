@@ -2,17 +2,18 @@ import axios from "axios";
 
 // สร้าง apiClient instance พื้นฐาน
 const apiClient = axios.create({
-  baseURL: "http://202.139.196.7:8000",
-  //baseURL: "http://localhost:8000",
+  //baseURL: "http://202.139.196.7:8000",
+  baseURL: "http://localhost:8000",
 });
 
-// Interceptor 1: สำหรับ "ขาไป" (Request)
-// - ทำหน้าที่แนบ Access Token ไปกับทุกๆ request
 apiClient.interceptors.request.use(
   (config) => {
+    // --- ✅ THIS IS THE FIX ---
+    // Try to get tokens from localStorage first, then fall back to sessionStorage
     const authTokens = localStorage.getItem("authTokens")
       ? JSON.parse(localStorage.getItem("authTokens"))
-      : null;
+      : JSON.parse(sessionStorage.getItem("authTokens"));
+
     if (authTokens) {
       config.headers["Authorization"] = `Bearer ${authTokens.access}`;
     }
@@ -21,28 +22,21 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor 2: สำหรับ "ขากลับ" (Response) - นี่คือส่วนที่เพิ่มเข้ามา
-// - ทำหน้าที่ดักจับ Error ที่เกิดขึ้น
 apiClient.interceptors.response.use(
-  // ถ้า Response สำเร็จ ก็ส่งต่อไปตามปกติ
   (response) => response,
-
-  // ถ้า Response เกิด Error
   async (error) => {
     const originalRequest = error.config;
-
-    // 1. ตรวจสอบว่าเป็น Error 401 และยังไม่ได้ลอง refresh มาก่อน
     if (error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true; // ตั้งธงว่ากำลังจะลอง refresh
+      originalRequest._retry = true;
 
-      const authTokens = localStorage.getItem("authTokens")
-        ? JSON.parse(localStorage.getItem("authTokens"))
-        : null;
+      // Check which storage the tokens are in
+      const storage = localStorage.getItem("authTokens")
+        ? localStorage
+        : sessionStorage;
+      const authTokens = JSON.parse(storage.getItem("authTokens"));
 
       if (authTokens?.refresh) {
         try {
-          console.log("Access token expired. Attempting to refresh...");
-          // 2. ส่ง refresh token ไปขอ access token ใบใหม่
           const response = await axios.post(
             "http://localhost:8000/api/token/refresh/",
             {
@@ -50,30 +44,26 @@ apiClient.interceptors.response.use(
             }
           );
 
-          // 3. อัปเดต token ใน localStorage
-          localStorage.setItem("authTokens", JSON.stringify(response.data));
+          // Update the tokens in the correct storage
+          storage.setItem("authTokens", JSON.stringify(response.data));
 
-          // 4. อัปเดต Authorization header ใน request เดิมที่เคยล้มเหลว
           originalRequest.headers[
             "Authorization"
           ] = `Bearer ${response.data.access}`;
 
-          console.log(
-            "Token refreshed successfully. Retrying original request..."
-          );
-          // 5. ส่ง request เดิมซ้ำอีกครั้งด้วย token ใหม่
           return apiClient(originalRequest);
         } catch (refreshError) {
-          // ถ้าการ refresh ล้มเหลว (เช่น refresh token หมดอายุ)
           console.error("Token refresh failed:", refreshError);
+          // Clear both storages on failure
           localStorage.removeItem("authTokens");
-          window.location.href = "/login"; // บังคับ Logout
+          localStorage.removeItem("user");
+          sessionStorage.removeItem("authTokens");
+          sessionStorage.removeItem("user");
+          window.location.href = "/login";
           return Promise.reject(refreshError);
         }
       }
     }
-
-    // สำหรับ Error อื่นๆ หรือถ้า refresh ล้มเหลว ก็ให้ส่ง Error ต่อไป
     return Promise.reject(error);
   }
 );

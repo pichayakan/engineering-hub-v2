@@ -35,6 +35,9 @@ function ProcurementDashboardPage() {
 
         setSummaryData(summaryRes.data);
         const allTasks = tasksRes.data.results || [];
+        const onGoingTasks = allTasks.filter(
+          (task) => !task.is_cancelled && task.current_step_details
+        );
 
         const userGroupIds = user.groups || [];
         const userTasks = allTasks.filter(
@@ -46,7 +49,7 @@ function ProcurementDashboardPage() {
         );
 
         setYourTasks(userTasks);
-        setAllOngoingTasks(allTasks);
+        setAllOngoingTasks(onGoingTasks);
       } catch (error) {
         console.error("Failed to fetch dashboard data", error);
       } finally {
@@ -64,7 +67,7 @@ function ProcurementDashboardPage() {
   return (
     <div className="procurement-dashboard">
       <div className="page-header">
-        <h1>Procurement Dashboard</h1>
+        <h1>แดชบอร์ดส่วนงาน วขตป. </h1>
         <Link to="/procurement/new" className="create-request-btn">
           + Create New Request
         </Link>

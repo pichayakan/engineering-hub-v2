@@ -1,0 +1,153 @@
+/* frontend/src/pages/LoginPage.css */
+
+/* Center the authentication container on the page */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Changed to flex-start to move login box higher */
+  min-height: 100vh;
+  background-color: #f3f4f6; /* Light gray background for a clean look */
+  padding: 2rem; /* Adjusted padding for better spacing from the top */
+}
+
+/* Style the authentication card */
+.auth-card {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Style the system name */
+.system-name {
+  font-size: 1.875rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  color: #1f2937; /* Changed to darker gray for better contrast */
+}
+
+/* Style the heading */
+.auth-card h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #1f2937; /* Dark gray for text */
+}
+
+/* Style the form */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Style input fields */
+form input[type="email"],
+form input[type="password"] {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db; /* Light gray border */
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  color: #1f2937;
+  transition: border-color 0.2s ease;
+}
+
+form input[type="email"]:focus,
+form input[type="password"]:focus {
+  outline: none;
+  border-color: #3b82f6; /* Blue focus border */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Placeholder text styling */
+form input::placeholder {
+  color: #9ca3af; /* Gray placeholder text */
+}
+
+/* Style the form options (checkbox group) */
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+/* Style the remember me checkbox group */
+.remember-me-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.remember-me-group input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #3b82f6; /* Blue checkbox */
+}
+
+.remember-me-group label {
+  font-size: 0.875rem;
+  color: #4b5563; /* Changed to darker gray for better readability */
+}
+
+/* Style the submit button */
+form button {
+  background-color: #3b82f6; /* Blue button */
+  color: white;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+form button:hover {
+  background-color: #2563eb; /* Darker blue on hover */
+}
+
+/* Style the auth-switch link section */
+.auth-switch {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.auth-switch p {
+  font-size: 0.875rem;
+  color: #4b5563; /* Changed to darker gray for consistency */
+}
+
+.auth-switch a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .auth-container {
+    padding: 1.5rem; /* Slightly reduced padding for smaller screens */
+  }
+
+  .auth-card {
+    padding: 1.5rem;
+    max-width: 90%;
+  }
+
+  .system-name {
+    font-size: 1.5rem;
+  }
+
+  .auth-card h2 {
+    font-size: 1.25rem;
+  }
+}
