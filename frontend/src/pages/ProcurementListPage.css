@@ -175,6 +175,274 @@ tr.is-cancelled {
   }
 }
 
+.auto-place-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+/* .auto-place-controls input {
+  flex-grow: 1;
+  border: 1px solid var(--nt-border-color);
+  border-radius: 6px;
+  padding: 0 0.75rem;
+  min-width: 100px;
+  min-height: 50px;
+} */
+
+.auto-place-controls button {
+  background-color: #0d6efd; /* ✅ Changed to blue */
+  color: white; /* ✅ Changed text to white */
+  border: none; /* ✅ Removed border */
+  border-radius: 6px;
+  padding: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  transition: background-color 0.2s; /* Smooth transition for hover */
+}
+auto-place-controls button:hover {
+  background-color: #0b5ed7; /* Darker blue on hover */
+}
+/* 1. Base Styles (Mobile First) */
+.document-header {
+  display: flex;
+  flex-direction: column; /* Stack sections vertically on mobile */
+  align-items: stretch; /* Make children take full width */
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  background-color: var(--nt-white);
+  z-index: 20;
+  padding: 1rem;
+  border-bottom: 1px solid var(--nt-border-color);
+  margin-bottom: 1rem;
+}
+
+.header-left-controls,
+.header-right-actions {
+  display: flex;
+  flex-direction: column; /* Stack controls vertically */
+  align-items: stretch; /* Make buttons/inputs full-width */
+  gap: 1rem;
+}
+
+.zoom-controls {
+  justify-content: center; /* Center zoom buttons */
+}
+
+.auto-place-controls {
+  display: flex;
+  flex-direction: column; /* Stack input and button */
+  gap: 0.5rem;
+}
+
+.auto-place-controls input {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  width: 50%;
+  box-sizing: border-box; /* Important for full width */
+}
+
+.header-right-actions .sign-document-btn,
+.header-right-actions .apply-signature-btn,
+.header-right-actions .close-viewer-btn {
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.header-right-actions .sign-document-btn {
+  background-color: #12b02c;
+  border: 1px solid #dee2e6;
+  color: #f1f9f2;
+  order: 2; /* Change order for better flow on mobile */
+}
+
+.header-right-actions .apply-signature-btn {
+  background-color: #198754;
+  color: white;
+  order: 1; /* Make primary action appear first */
+}
+
+.header-right-actions .close-viewer-btn {
+  background-color: #f8d7da;
+  border: 1px solid #f5c2c7;
+  color: #842029;
+  order: 3;
+}
+
+/* 2. Desktop Styles (for screens 992px and wider) */
+@media (min-width: 992px) {
+  .document-header {
+    flex-direction: row; /* Back to horizontal layout */
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+  }
+
+  .header-left-controls,
+  .header-right-actions {
+    flex-direction: row; /* Horizontal layout for controls */
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .auto-place-controls {
+    flex-direction: row; /* Horizontal for search bar */
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  auto-place-controls input {
+    border: none;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    min-width: 180px; /* ✅ ปรับขนาดความกว้างขั้นต่ำที่นี่ (จาก 250px) */
+  }
+
+  .header-right-actions .apply-signature-btn,
+  .header-right-actions .close-viewer-btn {
+    padding: 0.6rem 1.2rem;
+    font-size: initial;
+    /* Reset order */
+    order: 0;
+  }
+}
+
+/* Container for the entire PDF viewing area */
+.pdf-viewer-container {
+  background-color: #f0f2f5; /* Light gray background to contrast with the page */
+  padding: 2rem 1rem;
+  border: 1px solid var(--nt-border-color);
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem; /* Space between pages if you ever show more than one */
+}
+
+/* Styling for a single PDF page */
+.pdf-page {
+  background-color: white;
+  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.1),
+    0 4px 8px -4px rgba(0, 0, 0, 0.06);
+  max-width: 100%;
+  height: auto; /* Maintain aspect ratio */
+  margin-bottom: 1rem; /* Spacing at the bottom */
+}
+
+/* New controls for page navigation */
+.page-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 0.25rem;
+}
+
+.page-controls button {
+  background: none;
+  border: none;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.page-controls button:hover:not(:disabled) {
+  background-color: #e9ecef;
+}
+
+.page-controls button:disabled {
+  color: #adb5bd;
+  cursor: not-allowed;
+}
+
+.page-indicator {
+  font-weight: 600;
+  min-width: 80px; /* Give it enough space for "Page X of Y" */
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--nt-text-dark);
+}
+
+@media (max-width: 768px) {
+  /* 1. เปลี่ยน layout หลักให้เรียงจากบนลงล่าง */
+  .document-header {
+    flex-direction: column; /* เรียงเป็นแนวตั้ง */
+    align-items: stretch; /* ยืดให้เต็มความกว้าง */
+    gap: 0.75rem; /* ลดช่องว่างระหว่างกลุ่ม control */
+  }
+
+  /* 2. จัดการกลุ่ม control ซ้ายและขวาให้พร้อมสำหรับการ wrap */
+  .header-left-controls,
+  .header-right-actions {
+    flex-wrap: wrap; /* ถ้าปุ่มเยอะให้ขึ้นบรรทัดใหม่ */
+    justify-content: center; /* จัดปุ่มให้อยู่ตรงกลางเมื่อขึ้นบรรทัดใหม่ */
+    gap: 0.5rem; /* ลดช่องว่างระหว่างปุ่ม */
+  }
+
+  /* 3. ลดขนาดของปุ่ม Zoom และ Page */
+  .zoom-controls button,
+  .page-controls button {
+    width: 28px;
+    height: 28px;
+    font-size: 1rem; /* ลดขนาดไอคอนเล็กน้อย */
+  }
+
+  /* 4. ลดขนาดของข้อความแสดงผล % และเลขหน้า */
+  .zoom-controls span,
+  .page-indicator {
+    font-size: 0.85rem;
+    padding: 0 0.25rem;
+    min-width: auto; /* ยกเลิกความกว้างขั้นต่ำ */
+  }
+  .page-indicator {
+    min-width: 70px; /* กำหนดให้พอดีกับข้อความ */
+  }
+
+  /* 5. ลดขนาดปุ่ม Action หลักๆ */
+  .sign-document-btn,
+  .apply-signature-btn,
+  .close-viewer-btn {
+    padding: 0.5rem 0.8rem; /* ลด padding */
+    font-size: 0.9rem; /* ลดขนาดฟอนต์ */
+    flex-grow: 1; /* ทำให้ปุ่มขยายเต็มพื้นที่ถ้ามีที่ว่าง */
+    text-align: center;
+  }
+
+  /* 6. ปรับแถบค้นหาลายเซ็นให้เรียงแนวตั้ง */
+  .auto-place-controls {
+    flex-direction: column; /* เรียง input และ button แนวตั้ง */
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .auto-place-controls input {
+    text-align: center;
+  }
+}
 /* ใช้สไตล์ตารางร่วมกับ AllTasksPage.css */
 /* คุณสามารถ copy สไตล์ .tasks-table-wrapper และ .tasks-table มาไว้ที่นี่ได้ */
 /* หรือ import './AllTasksPage.css'; ที่ด้านบนของ ProcurementListPage.jsx */
