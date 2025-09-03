@@ -452,8 +452,27 @@ function ProcurementDetailPage() {
   // console.log("Current pdfScale:", pdfScale);
 
   const handleFindAndPlace = () => {
-    if (!searchText) {
-      toast.error("กรุณาพิมพ์ชื่อเพื่อค้นหา");
+    // ✅ 1. กำหนดรูปแบบการค้นหาทั้งหมดที่ต้องการในรูปแบบ Regular Expression
+    const searchPatterns = [
+      // รูปแบบที่ 1: จัดการเคส "( นายวรวิทย์ ล่องทอง )" และ "(นายวรวิทย* ลIองทอง)"
+      // - \(\s*นาย\s*\)?: ค้นหา "( นาย )" หรือ "(นาย)" หรือ "นาย" โดยมีหรือไม่มีวงเล็บและเว้นวรรคก็ได้
+      // - วรวิทย[์*]?: ค้นหา "วรวิทย" ที่อาจจะมี "์" หรือ "*" หรือไม่มีเลยก็ได้ (จัดการ typo)
+      // - \s*: จัดการเว้นวรรคระหว่างชื่อกับนามสกุลได้ทุกรูปแบบ
+      // - ล[I่]องทอง: ค้นหานามสกุลที่อาจจะเป็น "ลIองทอง" (ตัว I) หรือ "ล่องทอง" (ไม้เอก)
+      /\(?(นาย)?\s*วรวิทย[์*]?\s*ล[I่]องทอง\)?/i,
+
+      // รูปแบบที่ 2: จัดการเคสที่ตัวอักษรเพี้ยนอย่าง "นายวรวิทยຏปล຋องทอง)"
+      // - เราจะค้นหา "วรวิทย์" และ "องทอง" และอนุญาตให้มีตัวอักษรอะไรก็ได้คั่นกลาง (.*? คือ non-greedy match)
+      /วรวิทย์.*?ปล.*?องทอง/i,
+
+      // รูปแบบที่ 3: ค้นหาแค่ชื่อ "วรวิทย์" ตรงๆ (เป็นตัวสำรองสุดท้ายที่แม่นยำที่สุด)
+      /วรวิทย์/,
+
+      /วรวิทย[์]?/,
+    ];
+
+    if (!signatureImage) {
+      toast.error("กรุณาเลือกหรือสร้างลายเซ็นก่อน");
       return;
     }
 
@@ -463,33 +482,36 @@ function ProcurementDetailPage() {
       return;
     }
 
-    requestAnimationFrame(() => {
-      // ✨ เพิ่ม setTimeout เพื่อหน่วงเวลารอให้ react-pdf render เสร็จ
-      setTimeout(() => {
-        const wrapperRect = pdfWrapper.getBoundingClientRect();
-        const pages = pdfWrapper.querySelectorAll(".react-pdf__Page");
+    // หน่วงเวลาเล็กน้อยเพื่อให้ text layer ของ react-pdf render เสร็จสมบูรณ์
+    setTimeout(() => {
+      const wrapperRect = pdfWrapper.getBoundingClientRect();
+      const pages = pdfWrapper.querySelectorAll(".react-pdf__Page");
 
-        if (!pages || pages.length === 0) {
-          toast.error("ไม่พบหน้าของ PDF");
-          return;
-        }
+      if (!pages || pages.length === 0) {
+        toast.error("ไม่พบหน้าของ PDF");
+        return;
+      }
 
-        let found = false;
-        for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-          const page = pages[pageIndex];
-          const textLayer = page.querySelector(".react-pdf__Page__textContent");
-          if (!textLayer) continue;
+      let found = false;
 
-          const textSpans = textLayer.querySelectorAll("span");
-          for (const span of textSpans) {
-            if (span.innerText.includes(searchText)) {
+      // ✅ 2. วนลูปตามหน้า PDF แต่ละหน้า
+      for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+        const page = pages[pageIndex];
+        const textLayer = page.querySelector(".react-pdf__Page__textContent");
+        if (!textLayer) continue;
+
+        const textSpans = textLayer.querySelectorAll("span");
+
+        // ✅ 3. วนลูปตาม <span/> ที่มีข้อความในแต่ละหน้า
+        for (const span of textSpans) {
+          // ✅ 4. วนลูปเพื่อทดสอบทุกรูปแบบการค้นหา (searchPatterns)
+          for (const pattern of searchPatterns) {
+            // ✅ 5. ใช้ .test() เพื่อทดสอบว่าข้อความใน span ตรงกับ pattern หรือไม่
+            if (pattern.test(span.innerText)) {
+              // --- เมื่อเจอแล้ว ทำ Logic เดิม ---
               const spanRect = span.getBoundingClientRect();
+              if (spanRect.width === 0 && spanRect.height === 0) continue;
 
-              if (spanRect.width === 0 && spanRect.height === 0) {
-                continue;
-              }
-
-              // การคำนวณขนาดและตำแหน่ง (เหมือนเดิม)
               const newSignatureHeight = spanRect.height * 1.5;
               const newSignatureWidth =
                 newSignatureHeight / signatureAspectRatio.current;
@@ -502,35 +524,29 @@ function ProcurementDetailPage() {
                 spanRect.left - wrapperRect.left + spanRect.width / 2;
               const targetCenterY =
                 spanRect.top - wrapperRect.top + spanRect.height / 2;
-
               const finalX = targetCenterX - newSignatureWidth / 2;
               const finalY = targetCenterY - newSignatureHeight / 2;
 
-              setSignaturePosition({
-                x: finalX,
-                y: finalY,
-                page: pageIndex + 1,
-              });
+              setSignaturePosition({ x: finalX, y: finalY });
 
               toast.success(
-                `พบ "${searchText}" บนหน้า ${pageIndex + 1} และวางลายเซ็นแล้ว`
+                `พบข้อความที่ตรงกันบนหน้า ${pageIndex + 1} และวางลายเซ็นแล้ว`
               );
+              page.scrollIntoView({ behavior: "smooth", block: "center" });
 
-              page.scrollIntoView({ behavior: "smooth" });
               found = true;
-              break;
+              break; // หยุดลูป pattern เมื่อเจอแล้ว
             }
           }
-          if (found) {
-            break;
-          }
+          if (found) break; // หยุดลูป span เมื่อเจอแล้ว
         }
+        if (found) break; // หยุดลูป page เมื่อเจอแล้ว
+      }
 
-        if (!found) {
-          toast.error(`ไม่พบ "${searchText}" ในเอกสาร`);
-        }
-      }, 100); // หน่วงเวลา 100 มิลลิวินาที (สามารถปรับได้)
-    });
+      if (!found) {
+        toast.error(`ไม่พบข้อความที่ตรงกับรูปแบบที่กำหนดในเอกสาร`);
+      }
+    }, 200); // เพิ่มเวลาหน่วงเป็น 200ms เพื่อความแน่นอน
   };
 
   if (loading) return <div>Loading details...</div>;
