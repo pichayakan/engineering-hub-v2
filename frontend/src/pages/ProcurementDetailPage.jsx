@@ -112,7 +112,7 @@ function ProcurementDetailPage() {
     }
   };
 
-  const [searchText, setSearchText] = useState("วรวิทย์");
+  const [searchText, setSearchText] = useState("วรวิทย");
 
   const signatureRef = useRef(null);
   const pdfWrapperRef = useRef(null);
@@ -528,106 +528,91 @@ function ProcurementDetailPage() {
   // console.log("Current pdfScale:", pdfScale);
 
   const handleFindAndPlace = () => {
-    // ✅ 1. ตรวจสอบว่ามีลายเซ็นใน Array หรือไม่
-    if (signatures.length === 0) {
-      toast.error("กรุณาเพิ่มลายเซ็นก่อนทำการค้นหาตำแหน่ง");
+    if (!searchText || searchText.trim() === "") {
+      toast.error("กรุณาพิมพ์ข้อความในช่องค้นหาเพื่อระบุตำแหน่ง");
       return;
     }
 
-    // ✅ 2. กำหนดเป้าหมายเป็นลายเซ็นอันสุดท้ายที่เพิ่มเข้ามา
-    const targetSignatureId = signatures[signatures.length - 1].id;
-
-    const searchPatterns = [
-      /\(?(นาย)?\s*วรวิทย[์*]?\s*ล[I่]องทอง\)?/i,
-      /วรวิทย์.*?ปล.*?องทอง/i,
-      /วรวิทย์/,
-      /วรวิทย[์]?/,
-    ];
-
-    const pdfWrapper = pdfWrapperRef.current;
-    if (!pdfWrapper) {
-      toast.error("ไม่พบ PDF wrapper");
+    const targetSignature = signatures.find((sig) => !sig.placed);
+    if (!targetSignature) {
+      toast.error("ไม่พบลายเซ็นที่รอการจัดวาง (กรุณาเพิ่มลายเซ็นใหม่)");
       return;
     }
+    const targetSignatureId = targetSignature.id;
 
     setTimeout(() => {
-      const wrapperRect = pdfWrapper.getBoundingClientRect();
-      const pages = pdfWrapper.querySelectorAll(".react-pdf__Page");
-
-      if (!pages || pages.length === 0) {
-        toast.error("ไม่พบหน้าของ PDF");
+      const pdfWrapper = pdfWrapperRef.current;
+      if (!pdfWrapper) {
+        toast.error("ไม่พบ PDF wrapper");
         return;
       }
 
-      let found = false;
+      // ✅ [FINAL FIX] แก้ไขให้หาเฉพาะหน้าที่แสดงผลอยู่ ณ ปัจจุบันเพียงหน้าเดียว
+      const pageElement = pdfWrapper.querySelector(".react-pdf__Page");
 
-      for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-        const page = pages[pageIndex];
-        const textLayer = page.querySelector(".react-pdf__Page__textContent");
-        if (!textLayer) continue;
+      if (!pageElement) {
+        toast.error(
+          `ไม่สามารถเข้าถึงองค์ประกอบของหน้า ${currentPage} บนจอได้ กรุณาลองอีกครั้ง`
+        );
+        return;
+      }
 
+      const wrapperRect = pdfWrapper.getBoundingClientRect();
+      const searchPattern = new RegExp(searchText.trim(), "i");
+      let foundDetails = null;
+
+      const textLayer = pageElement.querySelector(
+        ".react-pdf__Page__textContent"
+      );
+
+      if (textLayer) {
         const textSpans = textLayer.querySelectorAll("span");
-
         for (const span of textSpans) {
-          for (const pattern of searchPatterns) {
-            if (pattern.test(span.innerText)) {
-              const spanRect = span.getBoundingClientRect();
-              if (spanRect.width === 0 && spanRect.height === 0) continue;
+          if (searchPattern.test(span.innerText)) {
+            const spanRect = span.getBoundingClientRect();
+            if (spanRect.width === 0 && spanRect.height === 0) continue;
 
-              const newSignatureHeight = spanRect.height * 2.5;
-              const newSignatureWidth =
-                newSignatureHeight / signatureAspectRatio.current;
+            const newSignatureHeight = spanRect.height * 2.5;
+            const newSignatureWidth =
+              newSignatureHeight / signatureAspectRatio.current;
+            const targetCenterX =
+              spanRect.left - wrapperRect.left + spanRect.width / 2;
+            const targetCenterY =
+              spanRect.top - wrapperRect.top + spanRect.height / 2;
 
-              const targetCenterX =
-                spanRect.left - wrapperRect.left + spanRect.width / 2;
-              const targetCenterY =
-                spanRect.top - wrapperRect.top + spanRect.height / 2;
-
-              const finalX = targetCenterX - newSignatureWidth / 2;
-              const finalY = targetCenterY - newSignatureHeight / 2;
-
-              // ✅ 3. อัปเดต Array `signatures` แทนการใช้ setSignatureSize/setSignaturePosition
-              setSignatures((prev) =>
-                prev.map((sig) =>
-                  sig.id === targetSignatureId
-                    ? {
-                        ...sig,
-                        size: {
-                          width: newSignatureWidth,
-                          height: newSignatureHeight,
-                        },
-                        position: { x: finalX, y: finalY },
-                        page: pageIndex + 1, // ✅ อัปเดตหน้าของลายเซ็นด้วย
-                      }
-                    : sig
-                )
-              );
-
-              // ✅ 4. เปลี่ยนหน้า PDF ไปยังหน้าที่เจอข้อความ
-              if (currentPage !== pageIndex + 1) {
-                setCurrentPage(pageIndex + 1);
-              }
-
-              toast.success(
-                `พบข้อความที่ตรงกันบนหน้า ${
-                  pageIndex + 1
-                } และย้ายลายเซ็นล่าสุดแล้ว`
-              );
-              page.scrollIntoView({ behavior: "smooth", block: "center" });
-
-              found = true;
-              break;
-            }
+            foundDetails = {
+              page: currentPage,
+              position: {
+                x: targetCenterX - newSignatureWidth / 2,
+                y: targetCenterY - newSignatureHeight / 2,
+              },
+              size: {
+                width: newSignatureWidth,
+                height: newSignatureHeight,
+              },
+            };
+            break;
           }
-          if (found) break;
         }
-        if (found) break;
       }
 
-      if (!found) {
-        toast.error(`ไม่พบข้อความที่ตรงกับรูปแบบที่กำหนดในเอกสาร`);
+      if (foundDetails) {
+        setSignatures((prev) =>
+          prev.map((sig) =>
+            sig.id === targetSignatureId
+              ? { ...sig, ...foundDetails, placed: true }
+              : sig
+          )
+        );
+
+        toast.success(`พบข้อความบนหน้า ${currentPage} และวางลายเซ็นแล้ว`);
+        pageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        toast.error(
+          `ไม่พบข้อความ "${searchText}" ในหน้าปัจจุบัน (หน้าที่ ${currentPage})`
+        );
       }
-    }, 200);
+    }, 300);
   };
 
   if (loading) return <div>Loading details...</div>;
@@ -773,6 +758,8 @@ function ProcurementDetailPage() {
                 <div className="auto-place-controls">
                   <input
                     type="text"
+                    id="signatureSearch"
+                    name="signatureSearch"
                     placeholder="ค้นหาชื่อเพื่อวางลายเซ็น..."
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}

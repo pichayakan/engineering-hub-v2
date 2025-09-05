@@ -207,12 +207,13 @@
   border-radius: 6px;
   font-size: 0.9rem;
 }
-.file-preview-name {
+/* .file-preview-name {
   color: #495057;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
+  min-width: 0;
+} */
 .remove-file-btn {
   background: none;
   border: none;
@@ -327,7 +328,7 @@
   font-weight: 500;
 }
 
-.sign-document-btn {
+/* .sign-document-btn {
   background-color: var(--nt-yellow);
   color: var(--nt-text-dark);
   padding: 0.6rem 1.2rem;
@@ -336,7 +337,7 @@
   border: 1px solid var(--nt-yellow);
   cursor: pointer;
   margin-right: 0.5rem; /* Space between buttons */
-}
+} */
 
 .document-header {
   display: flex;
@@ -395,8 +396,8 @@
   height: auto;
 }
 
-.apply-signature-btn {
-  background-color: #198754; /* Green */
+/* .apply-signature-btn {
+  background-color: #198754; 
   color: white;
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
@@ -404,7 +405,7 @@
   border: none;
   cursor: pointer;
   margin-right: 0.5rem;
-}
+} */
 
 .apply-signature-btn:disabled {
   background-color: #6c757d;
