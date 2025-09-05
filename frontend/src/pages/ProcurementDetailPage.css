@@ -603,3 +603,29 @@ box-sizing: border-box; / Ensure border is inside width/height */
   font-weight: 500;
   margin-top: 0.5rem;
 }
+
+
+.delete-signature-btn {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  z-index: 12; /* Should be higher than other elements like resize handles */
+  width: 24px;
+  height: 24px;
+  background-color: #dc3545; /* Red */
+  color: white;
+  border: 1px solid white;
+  border-radius: 50%; /* Make it a circle */
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 22px; /* Vertically center the '×' */
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s ease;
+}
+
+.delete-signature-btn:hover {
+  background-color: #a71d2a; /* Darker red on hover */
+}

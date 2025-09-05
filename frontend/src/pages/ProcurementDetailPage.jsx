@@ -112,7 +112,7 @@ function ProcurementDetailPage() {
     }
   };
 
-  const [searchText, setSearchText] = useState("วรวิทย");
+  const [searchText, setSearchText] = useState("วรวิ");
 
   const signatureRef = useRef(null);
   const pdfWrapperRef = useRef(null);
@@ -533,11 +533,13 @@ function ProcurementDetailPage() {
       return;
     }
 
-    const targetSignature = signatures.find((sig) => !sig.placed);
-    if (!targetSignature) {
+    // ✅ [BUG FIX] เปลี่ยน Logic ให้หาลายเซ็น "ตัวล่าสุด" ที่ยังไม่ถูกจัดวาง
+    const unplacedSignatures = signatures.filter((sig) => !sig.placed);
+    if (unplacedSignatures.length === 0) {
       toast.error("ไม่พบลายเซ็นที่รอการจัดวาง (กรุณาเพิ่มลายเซ็นใหม่)");
       return;
     }
+    const targetSignature = unplacedSignatures[unplacedSignatures.length - 1];
     const targetSignatureId = targetSignature.id;
 
     setTimeout(() => {
@@ -558,7 +560,8 @@ function ProcurementDetailPage() {
       }
 
       const wrapperRect = pdfWrapper.getBoundingClientRect();
-      const searchPattern = new RegExp(searchText.trim(), "i");
+      const flexibleSearchText = searchText.trim().split("").join("\\s*");
+      const searchPattern = new RegExp(flexibleSearchText.trim(), "i");
       let foundDetails = null;
 
       const textLayer = pageElement.querySelector(
@@ -613,6 +616,12 @@ function ProcurementDetailPage() {
         );
       }
     }, 300);
+  };
+
+  const handleDeleteSignature = (idToDelete) => {
+    setSignatures((prevSignatures) =>
+      prevSignatures.filter((signature) => signature.id !== idToDelete)
+    );
   };
 
   if (loading) return <div>Loading details...</div>;
@@ -763,6 +772,7 @@ function ProcurementDetailPage() {
                     placeholder="ค้นหาชื่อเพื่อวางลายเซ็น..."
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
+                    disabled
                   />
                   <button onClick={handleFindAndPlace}>
                     <FiSearch /> ค้นหา & วางตำแหน่ง
@@ -837,6 +847,13 @@ function ProcurementDetailPage() {
                         height: `${sig.size.height}px`,
                       }}
                     >
+                      <button
+                        className="delete-signature-btn"
+                        onClick={() => handleDeleteSignature(sig.id)}
+                        title="ลบลายเซ็นนี้"
+                      >
+                        &times;
+                      </button>
                       <ResizableBox
                         width={sig.size.width}
                         height={sig.size.height}
