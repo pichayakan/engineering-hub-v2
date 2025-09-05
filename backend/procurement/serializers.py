@@ -51,6 +51,7 @@ class StepSerializer(serializers.ModelSerializer):
             "order",
             "responsible_groups",
             "responsible_group_details",
+            "is_signature_required",
         ]
 
 

@@ -55,6 +55,10 @@ class Step(models.Model):
         default=7, help_text="กรอบเวลาสำหรับขั้นตอนนี้ (วัน)"
     )
 
+    is_signature_required = models.BooleanField(
+        default=False, help_text="ขั้นตอนนี้บังคับให้ต้องมีการลงนามในเอกสาร PDF หรือไม่"
+    )
+
     class Meta:
         ordering = ["workflow_template", "order"]
         unique_together = ("workflow_template", "order")

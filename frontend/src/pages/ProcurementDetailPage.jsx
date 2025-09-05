@@ -26,6 +26,7 @@ import {
   FiRefreshCw,
   FiSearch,
   FiEdit3,
+  FiSave,
 } from "react-icons/fi";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
@@ -57,14 +58,41 @@ function ProcurementDetailPage() {
   const [selectedPdfUrl, setSelectedPdfUrl] = useState(null);
   const [canSignCurrentPdf, setCanSignCurrentPdf] = useState(false);
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
-  const [signatureSize, setSignatureSize] = useState({
-    width: 200,
-    height: 100,
-  });
-  const [signatureImage, setSignatureImage] = useState(null);
+  // const [signatureSize, setSignatureSize] = useState({
+  //   width: 200,
+  //   height: 100,
+  // });
+  // const [signatureImage, setSignatureImage] = useState(null);
   const [pdfPageDetails, setPdfPageDetails] = useState(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [signaturePosition, setSignaturePosition] = useState(null);
+  // const [signaturePosition, setSignaturePosition] = useState(null);
+
+  const [signatures, setSignatures] = useState([]);
+
+  const handleSaveSignature = (signatureDataUrl) => {
+    const img = new Image();
+    img.src = signatureDataUrl;
+    img.onload = () => {
+      const initialWidth = 200;
+      const aspectRatio = img.height / img.width;
+      signatureAspectRatio.current = aspectRatio; // useRef ยังใช้ได้เหมือนเดิม
+
+      const newSignature = {
+        id: `sig-${Date.now()}`,
+        page: currentPage,
+        image: signatureDataUrl,
+        position: { x: 50, y: 50 },
+        size: {
+          width: initialWidth,
+          height: initialWidth * aspectRatio,
+        },
+      };
+
+      // ✅ เพิ่ม Object ลายเซ็นใหม่เข้าไปใน Array
+      setSignatures((prev) => [...prev, newSignature]);
+      handleCloseSignatureModal();
+    };
+  };
 
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -174,29 +202,29 @@ function ProcurementDetailPage() {
 
   const handleOpenSignatureModal = () => setIsSignatureModalOpen(true);
   const handleCloseSignatureModal = () => setIsSignatureModalOpen(false);
-  const handleSaveSignature = (signatureDataUrl) => {
-    const img = new Image();
-    img.src = signatureDataUrl;
-    img.onload = () => {
-      const initialWidth = 200;
-      const aspectRatio = img.height / img.width;
+  // const handleSaveSignature = (signatureDataUrl) => {
+  //   const img = new Image();
+  //   img.src = signatureDataUrl;
+  //   img.onload = () => {
+  //     const initialWidth = 200;
+  //     const aspectRatio = img.height / img.width;
 
-      signatureAspectRatio.current = aspectRatio;
+  //     signatureAspectRatio.current = aspectRatio;
 
-      setSignatureSize({
-        width: initialWidth,
-        height: initialWidth * aspectRatio,
-      });
-    };
-    const container = pdfWrapperRef.current;
-    if (container) {
-      setSignaturePosition({ x: 50, y: container.scrollTop + 50 });
-    } else {
-      setSignaturePosition({ x: 50, y: 50 });
-    }
-    setSignatureImage(signatureDataUrl);
-    handleCloseSignatureModal();
-  };
+  //     setSignatureSize({
+  //       width: initialWidth,
+  //       height: initialWidth * aspectRatio,
+  //     });
+  //   };
+  //   const container = pdfWrapperRef.current;
+  //   if (container) {
+  //     setSignaturePosition({ x: 50, y: container.scrollTop + 50 });
+  //   } else {
+  //     setSignaturePosition({ x: 50, y: 50 });
+  //   }
+  //   setSignatureImage(signatureDataUrl);
+  //   handleCloseSignatureModal();
+  // };
 
   const handleResize = (event, { size }) => {
     setSignatureSize({ width: size.width, height: size.height });
@@ -276,99 +304,147 @@ function ProcurementDetailPage() {
   };
 
   const handleEmbedSignature = async () => {
-    if (!selectedPdfUrl || !signatureImage || !signatureRef.current) {
-      alert("Please select a PDF and place your signature before saving.");
+    if (signatures.length === 0) {
+      alert("Please place at least one signature before saving.");
       return;
     }
 
+    toast.info("Applying all signatures, please wait...", {
+      autoClose: false,
+      toastId: "signing",
+    });
+
     try {
+      const pagesToSign = Array.from(
+        new Set(signatures.map((sig) => sig.page))
+      );
       const existingPdfBytes = await fetch(selectedPdfUrl).then((res) =>
         res.arrayBuffer()
       );
-      const sigResponse = await fetch(signatureImage);
-      const contentType = sigResponse.headers.get("Content-Type") || "";
-      const signatureImageBytes = await sigResponse.arrayBuffer();
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
-
-      let signatureImg;
-      if (contentType.includes("png")) {
-        signatureImg = await pdfDoc.embedPng(signatureImageBytes);
-      } else if (contentType.includes("jpg") || contentType.includes("jpeg")) {
-        signatureImg = await pdfDoc.embedJpg(signatureImageBytes);
-      } else {
-        throw new Error(
-          "Unsupported signature format. Please upload PNG or JPG."
-        );
-      }
-
-      // ==========================================================
-      // ▼▼▼ จุดที่แก้ไข ▼▼▼
-      // ดึงหน้าตามหน้าที่ผู้ใช้กำลังดูอยู่ (currentPage คือ 1-based, array คือ 0-based)
       const allPages = pdfDoc.getPages();
-      if (currentPage < 1 || currentPage > allPages.length) {
-        alert("Invalid page number. Cannot apply signature.");
-        return;
+
+      for (const pageNum of pagesToSign) {
+        setCurrentPage(pageNum);
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        const pdfWrapper = pdfWrapperRef.current;
+        const pageWrapper = pdfWrapper?.querySelector(".react-pdf__Page");
+        const pageCanvas = pageWrapper?.querySelector("canvas");
+
+        if (!pdfWrapper || !pageWrapper || !pageCanvas) {
+          console.error(
+            `Could not find PDF elements for page ${pageNum}. Skipping page.`
+          );
+          continue;
+        }
+
+        const wrapperRect = pdfWrapper.getBoundingClientRect();
+        const canvasRect = pageCanvas.getBoundingClientRect();
+
+        // ✅ [KEY FIX] ดึงค่า CSS Style ของ Wrapper เพื่อหาค่า Padding
+        const wrapperStyle = window.getComputedStyle(pdfWrapper);
+        const wrapperPaddingLeft = parseFloat(wrapperStyle.paddingLeft);
+        const wrapperPaddingTop = parseFloat(wrapperStyle.paddingTop);
+
+        const signaturesOnThisPage = signatures.filter(
+          (sig) => sig.page === pageNum
+        );
+
+        for (const sig of signaturesOnThisPage) {
+          // ... (ส่วนโหลดรูปภาพเหมือนเดิม) ...
+          const sigResponse = await fetch(sig.image);
+          const contentType = sigResponse.headers.get("Content-Type") || "";
+          const signatureImageBytes = await sigResponse.arrayBuffer();
+          let signatureImg;
+          if (contentType.includes("png")) {
+            signatureImg = await pdfDoc.embedPng(signatureImageBytes);
+          } else if (
+            contentType.includes("jpg") ||
+            contentType.includes("jpeg")
+          ) {
+            signatureImg = await pdfDoc.embedJpg(signatureImageBytes);
+          } else {
+            continue;
+          }
+
+          const page = allPages[sig.page - 1];
+          const pageDimensions = page.getSize();
+
+          // ✅ [KEY FIX] ใช้สูตรคำนวณใหม่ที่รวมค่า Padding เข้าไปด้วย
+
+          // 1. หาตำแหน่งของลายเซ็นบนหน้าจอ (Viewport)
+          // โดยอ้างอิงจากขอบของ wrapper + padding + ตำแหน่งของลายเซ็นเอง
+          const signatureScreenX =
+            wrapperRect.left + wrapperPaddingLeft + sig.position.x;
+          const signatureScreenY =
+            wrapperRect.top + wrapperPaddingTop + sig.position.y;
+
+          // 2. หาตำแหน่งของลายเซ็นที่สัมพันธ์กับขอบของ Canvas
+          // โดยการนำตำแหน่งบนหน้าจอของลายเซ็น ลบด้วยตำแหน่งบนหน้าจอของ Canvas
+          const signatureRelativeX_px = signatureScreenX - canvasRect.left;
+          const signatureRelativeY_px = signatureScreenY - canvasRect.top;
+
+          // 3. แปลงค่าจาก Pixel (หน้าจอ) ไปเป็น Point (PDF)
+          const pointsPerPixel = pageDimensions.width / canvasRect.width;
+          const sigWidthPts = sig.size.width * pointsPerPixel;
+          const sigHeightPts = sig.size.height * pointsPerPixel;
+          // ✅ [KEY FIX] กำหนดค่า Offset เป็นหน่วย "Pixel" ที่นี่
+          // ลองเริ่มจากค่าน้อยๆ เช่น 5-15 แล้วค่อยๆ ปรับหาค่าที่เหมาะสม
+          const X_OFFSET_PIXELS = 50; // ค่าบวก: เลื่อนไปทางขวา
+          const Y_OFFSET_PIXELS = 50; // ค่าบวก: เลื่อนลงล่าง
+
+          // ✅ [KEY FIX] นำค่า Offset (Pixel) ไปบวกก่อนที่จะแปลงเป็น Point
+          let xPts = (signatureRelativeX_px + X_OFFSET_PIXELS) * pointsPerPixel;
+          let yPts =
+            pageDimensions.height -
+            (signatureRelativeY_px + Y_OFFSET_PIXELS) * pointsPerPixel -
+            sigHeightPts;
+
+          // const X_OFFSET_POINTS = 33; // ค่าบวก: เลื่อนไปทางขวา
+          // const Y_OFFSET_POINTS = 33; // ค่าบวก: เลื่อนลงล่าง
+
+          // xPts += X_OFFSET_POINTS;
+          // yPts -= Y_OFFSET_POINTS; // แกน Y ต้องใช้เครื่องหมายลบเพื่อเลื่อนลง
+
+          const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+          xPts = clamp(xPts, 0, pageDimensions.width - sigWidthPts);
+          yPts = clamp(yPts, 0, pageDimensions.height - sigHeightPts);
+
+          page.drawImage(signatureImg, {
+            x: xPts,
+            y: yPts,
+            width: sigWidthPts,
+            height: sigHeightPts,
+          });
+        }
       }
-      const page = allPages[currentPage - 1];
-      // ▲▲▲ สิ้นสุดจุดที่แก้ไข ▲▲▲
-      // ==========================================================
 
-      const pageDimensions = page.getSize();
-      const pageWrapper =
-        pdfWrapperRef.current?.querySelector(".react-pdf__Page");
-      if (!pageWrapper) {
-        alert("Error: Cannot find the rendered PDF page wrapper.");
-        return;
-      }
-      const pageCanvas =
-        pageWrapper.querySelector("canvas") ||
-        pageWrapper.querySelector(".react-pdf__Page__canvas canvas");
-      if (!pageCanvas) {
-        alert("Error: Cannot find PDF canvas for coordinate mapping.");
-        return;
-      }
-
-      const canvasRect = pageCanvas.getBoundingClientRect();
-      const signatureRect = signatureRef.current.getBoundingClientRect();
-      const relX = signatureRect.left - canvasRect.left;
-      const relY = signatureRect.top - canvasRect.top;
-      const pointsPerPx = pageDimensions.width / canvasRect.width;
-      const sigWidthPts = signatureRect.width * pointsPerPx;
-      const sigHeightPts = signatureRect.height * pointsPerPx;
-      let xPts = relX * pointsPerPx;
-      let yPts = pageDimensions.height - relY * pointsPerPx - sigHeightPts;
-      const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
-      xPts = clamp(xPts, 0, pageDimensions.width - sigWidthPts);
-      yPts = clamp(yPts, 0, pageDimensions.height - sigHeightPts);
-
-      page.drawImage(signatureImg, {
-        x: xPts,
-        y: yPts,
-        width: sigWidthPts,
-        height: sigHeightPts,
-      });
-
+      // ... (ส่วนบันทึกไฟล์และเคลียร์ state เหมือนเดิม) ...
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       let fullFilename = decodeURIComponent(selectedPdfUrl.split("/").pop());
-      let baseName = fullFilename.replace(/\.pdf$/i, "");
-      baseName = baseName.replace(/^signed_/, "");
-      baseName = baseName.replace(/\./g, "_");
+      let baseName = fullFilename
+        .replace(/\.pdf$/i, "")
+        .replace(/^signed_/, "")
+        .replace(/\./g, "_");
       const newFilename = `signed_${baseName}_${timestamp}.pdf`;
       const signedFile = new File([blob], newFilename, {
         type: "application/pdf",
       });
 
       setFilesToUpload((prev) => [...prev, signedFile]);
-      setSignatureImage(null);
+      setSignatures([]);
       setSelectedPdfUrl(null);
+      toast.dismiss("signing");
       toast.success(
-        "Signed PDF has been added. Please press 'Approve' to submit."
+        "All signatures have been applied. Please press 'Approve' to submit."
       );
     } catch (error) {
-      console.error("Failed to embed signature:", error);
-      alert("Could not create signed PDF.");
+      toast.dismiss("signing");
+      console.error("Failed to embed signatures:", error);
+      alert(`Could not create signed PDF. Error: ${error.message}`);
     }
   };
 
@@ -452,29 +528,21 @@ function ProcurementDetailPage() {
   // console.log("Current pdfScale:", pdfScale);
 
   const handleFindAndPlace = () => {
-    // ✅ 1. กำหนดรูปแบบการค้นหาทั้งหมดที่ต้องการในรูปแบบ Regular Expression
-    const searchPatterns = [
-      // รูปแบบที่ 1: จัดการเคส "( นายวรวิทย์ ล่องทอง )" และ "(นายวรวิทย* ลIองทอง)"
-      // - \(\s*นาย\s*\)?: ค้นหา "( นาย )" หรือ "(นาย)" หรือ "นาย" โดยมีหรือไม่มีวงเล็บและเว้นวรรคก็ได้
-      // - วรวิทย[์*]?: ค้นหา "วรวิทย" ที่อาจจะมี "์" หรือ "*" หรือไม่มีเลยก็ได้ (จัดการ typo)
-      // - \s*: จัดการเว้นวรรคระหว่างชื่อกับนามสกุลได้ทุกรูปแบบ
-      // - ล[I่]องทอง: ค้นหานามสกุลที่อาจจะเป็น "ลIองทอง" (ตัว I) หรือ "ล่องทอง" (ไม้เอก)
-      /\(?(นาย)?\s*วรวิทย[์*]?\s*ล[I่]องทอง\)?/i,
-
-      // รูปแบบที่ 2: จัดการเคสที่ตัวอักษรเพี้ยนอย่าง "นายวรวิทยຏปล຋องทอง)"
-      // - เราจะค้นหา "วรวิทย์" และ "องทอง" และอนุญาตให้มีตัวอักษรอะไรก็ได้คั่นกลาง (.*? คือ non-greedy match)
-      /วรวิทย์.*?ปล.*?องทอง/i,
-
-      // รูปแบบที่ 3: ค้นหาแค่ชื่อ "วรวิทย์" ตรงๆ (เป็นตัวสำรองสุดท้ายที่แม่นยำที่สุด)
-      /วรวิทย์/,
-
-      /วรวิทย[์]?/,
-    ];
-
-    if (!signatureImage) {
-      toast.error("กรุณาเลือกหรือสร้างลายเซ็นก่อน");
+    // ✅ 1. ตรวจสอบว่ามีลายเซ็นใน Array หรือไม่
+    if (signatures.length === 0) {
+      toast.error("กรุณาเพิ่มลายเซ็นก่อนทำการค้นหาตำแหน่ง");
       return;
     }
+
+    // ✅ 2. กำหนดเป้าหมายเป็นลายเซ็นอันสุดท้ายที่เพิ่มเข้ามา
+    const targetSignatureId = signatures[signatures.length - 1].id;
+
+    const searchPatterns = [
+      /\(?(นาย)?\s*วรวิทย[์*]?\s*ล[I่]องทอง\)?/i,
+      /วรวิทย์.*?ปล.*?องทอง/i,
+      /วรวิทย์/,
+      /วรวิทย[์]?/,
+    ];
 
     const pdfWrapper = pdfWrapperRef.current;
     if (!pdfWrapper) {
@@ -482,7 +550,6 @@ function ProcurementDetailPage() {
       return;
     }
 
-    // หน่วงเวลาเล็กน้อยเพื่อให้ text layer ของ react-pdf render เสร็จสมบูรณ์
     setTimeout(() => {
       const wrapperRect = pdfWrapper.getBoundingClientRect();
       const pages = pdfWrapper.querySelectorAll(".react-pdf__Page");
@@ -494,7 +561,6 @@ function ProcurementDetailPage() {
 
       let found = false;
 
-      // ✅ 2. วนลูปตามหน้า PDF แต่ละหน้า
       for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
         const page = pages[pageIndex];
         const textLayer = page.querySelector(".react-pdf__Page__textContent");
@@ -502,51 +568,66 @@ function ProcurementDetailPage() {
 
         const textSpans = textLayer.querySelectorAll("span");
 
-        // ✅ 3. วนลูปตาม <span/> ที่มีข้อความในแต่ละหน้า
         for (const span of textSpans) {
-          // ✅ 4. วนลูปเพื่อทดสอบทุกรูปแบบการค้นหา (searchPatterns)
           for (const pattern of searchPatterns) {
-            // ✅ 5. ใช้ .test() เพื่อทดสอบว่าข้อความใน span ตรงกับ pattern หรือไม่
             if (pattern.test(span.innerText)) {
-              // --- เมื่อเจอแล้ว ทำ Logic เดิม ---
               const spanRect = span.getBoundingClientRect();
               if (spanRect.width === 0 && spanRect.height === 0) continue;
 
-              const newSignatureHeight = spanRect.height * 1.5;
+              const newSignatureHeight = spanRect.height * 2.5;
               const newSignatureWidth =
                 newSignatureHeight / signatureAspectRatio.current;
-              setSignatureSize({
-                width: newSignatureWidth,
-                height: newSignatureHeight,
-              });
 
               const targetCenterX =
                 spanRect.left - wrapperRect.left + spanRect.width / 2;
               const targetCenterY =
                 spanRect.top - wrapperRect.top + spanRect.height / 2;
+
               const finalX = targetCenterX - newSignatureWidth / 2;
               const finalY = targetCenterY - newSignatureHeight / 2;
 
-              setSignaturePosition({ x: finalX, y: finalY });
+              // ✅ 3. อัปเดต Array `signatures` แทนการใช้ setSignatureSize/setSignaturePosition
+              setSignatures((prev) =>
+                prev.map((sig) =>
+                  sig.id === targetSignatureId
+                    ? {
+                        ...sig,
+                        size: {
+                          width: newSignatureWidth,
+                          height: newSignatureHeight,
+                        },
+                        position: { x: finalX, y: finalY },
+                        page: pageIndex + 1, // ✅ อัปเดตหน้าของลายเซ็นด้วย
+                      }
+                    : sig
+                )
+              );
+
+              // ✅ 4. เปลี่ยนหน้า PDF ไปยังหน้าที่เจอข้อความ
+              if (currentPage !== pageIndex + 1) {
+                setCurrentPage(pageIndex + 1);
+              }
 
               toast.success(
-                `พบข้อความที่ตรงกันบนหน้า ${pageIndex + 1} และวางลายเซ็นแล้ว`
+                `พบข้อความที่ตรงกันบนหน้า ${
+                  pageIndex + 1
+                } และย้ายลายเซ็นล่าสุดแล้ว`
               );
               page.scrollIntoView({ behavior: "smooth", block: "center" });
 
               found = true;
-              break; // หยุดลูป pattern เมื่อเจอแล้ว
+              break;
             }
           }
-          if (found) break; // หยุดลูป span เมื่อเจอแล้ว
+          if (found) break;
         }
-        if (found) break; // หยุดลูป page เมื่อเจอแล้ว
+        if (found) break;
       }
 
       if (!found) {
         toast.error(`ไม่พบข้อความที่ตรงกับรูปแบบที่กำหนดในเอกสาร`);
       }
-    }, 200); // เพิ่มเวลาหน่วงเป็น 200ms เพื่อความแน่นอน
+    }, 200);
   };
 
   if (loading) return <div>Loading details...</div>;
@@ -594,12 +675,25 @@ function ProcurementDetailPage() {
     request.history.length > 0
       ? request.history[request.history.length - 1].id
       : null;
+
+  const stepRequiresSignature =
+    request.current_step_details?.is_signature_required;
+
+  const isSignatureRequirementMet = () => {
+    if (!stepRequiresSignature) {
+      return true; // ถ้าไม่ต้องการลายเซ็น ก็ถือว่าผ่าน
+    }
+    // ถ้าต้องการลายเซ็น ให้ตรวจว่ามีไฟล์ "signed_..." อยู่ในรายการอัปโหลดหรือไม่
+    return filesToUpload.some((file) => file.name.startsWith("signed_"));
+  };
+
   const isPdfFromLastStep = request.history.some(
     (h) =>
       h.id === latestHistoryEntryId &&
       h.attachments.some((att) => att.file === selectedPdfUrl)
   );
-  const showSignButton = canApprove && isPdfFromLastStep;
+  const showSignButton =
+    canApprove && isPdfFromLastStep && stepRequiresSignature;
 
   const isSigningCompleted = () => {
     if (!selectedPdfUrl) {
@@ -674,7 +768,8 @@ function ProcurementDetailPage() {
                 </button>
               </div>
 
-              {signatureImage && (
+              {/* ✅ แก้ไข: แสดงเมื่อมีลายเซ็นใน Array อย่างน้อย 1 อัน */}
+              {signatures.length > 0 && (
                 <div className="auto-place-controls">
                   <input
                     type="text"
@@ -699,74 +794,105 @@ function ProcurementDetailPage() {
                   <FiEdit3
                     style={{ marginRight: "8px", verticalAlign: "middle" }}
                   />
-                  Sign Document
+                  ใส่ลายเซ็น
                 </button>
               )}
               <button
                 className="apply-signature-btn"
                 onClick={handleEmbedSignature}
-                disabled={!signatureImage}
+                // ✅ แก้ไข: disabled เมื่อ Array ของลายเซ็นว่าง
+                disabled={signatures.length === 0}
               >
-                Apply & Save Signature
+                <FiSave
+                  style={{ marginRight: "8px", verticalAlign: "middle" }}
+                />
+                บันทึก & วางลายเซ็น
               </button>
               <button
                 className="close-viewer-btn"
                 onClick={() => setSelectedPdfUrl(null)}
               >
-                &times; Close Viewer
+                &times; ปิดมุมมอง
               </button>
             </div>
           </div>
 
           <div className="pdf-viewer-wrapper" ref={pdfWrapperRef}>
-            {signatureImage && (
-              <Draggable
-                nodeRef={signatureRef}
-                bounds="parent"
-                position={signaturePosition}
-                onStop={(e, data) =>
-                  setSignaturePosition({ x: data.x, y: data.y })
-                }
-              >
-                <div
-                  ref={signatureRef}
-                  className="signature-container"
-                  style={{
-                    position: "absolute",
-                    cursor: "move",
-                    width: `${signatureSize.width}px`,
-                    height: `${signatureSize.height}px`,
-                  }}
-                >
-                  <ResizableBox
-                    width={signatureSize.width}
-                    height={signatureSize.height}
-                    onResize={handleResize}
-                    lockAspectRatio={true}
-                    minConstraints={[50, 25]}
-                    maxConstraints={[600, 300]}
-                    className="signature-resizable-box"
+            {/* ✅✅✅  แก้ไข Logic การแสดงผลลายเซ็นทั้งหมดที่นี่ ✅✅✅ */}
+            {signatures
+              .filter((sig) => sig.page === currentPage) // กรองลายเซ็นเฉพาะของหน้านี้
+              .map((sig) => {
+                // สร้าง Ref ใหม่สำหรับ Draggable แต่ละตัว
+                const nodeRef = React.createRef();
+                return (
+                  <Draggable
+                    key={sig.id}
+                    nodeRef={nodeRef}
+                    bounds="parent"
+                    position={sig.position}
+                    onStop={(e, data) => {
+                      setSignatures((prev) =>
+                        prev.map((s) =>
+                          s.id === sig.id
+                            ? { ...s, position: { x: data.x, y: data.y } }
+                            : s
+                        )
+                      );
+                    }}
                   >
-                    <img
-                      src={signatureImage}
-                      alt="Your Signature"
-                      draggable="false"
-                      style={{ width: "100%", height: "100%" }}
-                    />
-                  </ResizableBox>
-                </div>
-              </Draggable>
-            )}
+                    <div
+                      ref={nodeRef}
+                      className="signature-container"
+                      style={{
+                        position: "absolute",
+                        cursor: "move",
+                        width: `${sig.size.width}px`,
+                        height: `${sig.size.height}px`,
+                      }}
+                    >
+                      <ResizableBox
+                        width={sig.size.width}
+                        height={sig.size.height}
+                        onResize={(event, { size }) => {
+                          setSignatures((prev) =>
+                            prev.map((s) =>
+                              s.id === sig.id
+                                ? {
+                                    ...s,
+                                    size: {
+                                      width: size.width,
+                                      height: size.height,
+                                    },
+                                  }
+                                : s
+                            )
+                          );
+                        }}
+                        lockAspectRatio={true}
+                        // minConstraints={[50, 25]} // เอาออกแก้ bug ก่อน
+                        // maxConstraints={[600, 300]}
+                        className="signature-resizable-box"
+                      >
+                        <img
+                          src={sig.image}
+                          alt="Your Signature"
+                          draggable="false"
+                          style={{ width: "100%", height: "100%" }}
+                        />
+                      </ResizableBox>
+                    </div>
+                  </Draggable>
+                );
+              })}
+            {/* ✅✅✅ สิ้นสุดส่วนแก้ไขการแสดงผลลายเซ็น ✅✅✅ */}
+
             <div className="pdf-viewer-container" ref={pdfContainerRef}>
               <Document
                 file={selectedPdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
               >
-                {/* ตรวจสอบว่ามีจำนวนหน้าและขนาด container ก่อนแสดงผล */}
                 {numPages && containerWidth > 0 && (
                   <div className="pdf-page">
-                    {" "}
-                    {/* Div นี้ใช้เพื่อความสวยงาม (ใส่เงา) */}
                     <Page
                       key={`page_${currentPage}`}
                       pageNumber={currentPage}
@@ -800,7 +926,7 @@ function ProcurementDetailPage() {
                 </div>
                 <div className="approver-details">
                   <span>
-                    Dept: {h.approved_by_details.department_name || "N/A"}
+                    สังกัด: {h.approved_by_details.department_name || "N/A"}
                   </span>
                   {h.approved_by_details.groups.map((g) => (
                     <span key={g.id} className="group-badge">
@@ -823,7 +949,7 @@ function ProcurementDetailPage() {
                       {att.file.toLowerCase().endsWith(".pdf") && (
                         <button
                           className="view-pdf-btn"
-                          onClick={() => setSelectedPdfUrl(att.file)}
+                          onClick={() => handleViewPdf(att)}
                         >
                           View
                         </button>
@@ -893,20 +1019,32 @@ function ProcurementDetailPage() {
                   ))}
                 </div>
               )}
+
+              {stepRequiresSignature && (
+                <p className="signing-required-message">
+                  ⚠️ ขั้นตอนนี้จำเป็นต้องมีการลงนามในเอกสาร PDF ก่อนทำการอนุมัติ
+                </p>
+              )}
+
               <button
                 onClick={handleApprove}
                 className="approve-button"
-                disabled={!canApprove || isSubmitting || !signingIsDone}
+                disabled={
+                  !canApprove || isSubmitting || !isSignatureRequirementMet()
+                }
               >
-                {isSubmitting ? "Submitting..." : "Approve & Advance"}
+                {isSubmitting ? "Submitting..." : "ยืนยันการอนุมัติ"}
               </button>
 
-              {!signingIsDone && (
-                <p className="signing-required-message">
-                  Please "Apply & Save Signature" to the document before
-                  approving.
+              {stepRequiresSignature && !isSignatureRequirementMet() && (
+                <p
+                  className="signing-required-message"
+                  style={{ marginTop: "1rem" }}
+                >
+                  กรุณา "Apply & Save Signature" บนเอกสาร PDF ก่อนทำการอนุมัติ
                 </p>
               )}
+
               {!canApprove &&
                 request.current_step_details?.responsible_group_details && (
                   <details className="potential-approvers">
@@ -930,30 +1068,30 @@ function ProcurementDetailPage() {
                     )}
                   </details>
                 )}
-              {/* {canApprove && (
+              {canApprove && (
                 <button
                   type="button"
                   className="send-back-button"
                   onClick={() => setIsSendBackModalOpen(true)}
                 >
-                  Send Back for Revision
+                  ส่งงานกลับ
                 </button>
-              )} */}
+              )}
             </div>
           )}
         </div>
       </div>
       {showCancelButton && (
         <div className="cancel-section">
-          <p>If you created this request in error, you can cancel it.</p>
+          <p>กรณีส่งงานผิดพลาดและต้องการยกเลิกคำขอ</p>
           <button onClick={handleCancelRequest} className="cancel-button">
-            Cancel This Request
+            ยกเลิกคำขอนี้
           </button>
         </div>
       )}
       <div style={{ marginTop: "2rem" }}>
         <Link to="/procurement" className="nav-link">
-          ← Back to Procurement List
+          ← กลับหน้าแสดงงานทั้งหมด
         </Link>
       </div>
       <SignatureModal

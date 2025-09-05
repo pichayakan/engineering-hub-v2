@@ -148,6 +148,16 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
         if not current_step:
             return Response({"error": "This request has no current step defined."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # ตรวจสอบว่าขั้นตอนนี้บังคับลงนามหรือไม่
+        if current_step.is_signature_required:
+            # ตรวจสอบว่ามีไฟล์ที่ชื่อขึ้นต้นด้วย "signed_" ถูกส่งมาด้วยหรือไม่
+            has_signed_file = any(f.name.startswith('signed_') for f in files)
+            if not has_signed_file:
+                return Response(
+                    {"error": "A signed document is required for this step. Please sign a PDF and try again."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         responsible_pks = current_step.responsible_groups.values_list(
             'pk', flat=True)
         if (responsible_pks.exists() and not user.is_staff and not user.groups.filter(pk__in=responsible_pks).exists()):
