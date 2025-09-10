@@ -1,75 +1,99 @@
 /* frontend/src/components/ProcessStepper.css */
 .stepper-container {
-    display: flex;
-    justify-content: space-between;
-    position: relative;
-    margin: 2rem 0 3rem 0;
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin: 2rem 0 3rem 0;
 }
 
 .stepper-line {
-    position: absolute;
-    top: 20px; /* Adjust to center with the circle */
-    left: 0;
-    right: 0;
-    height: 4px;
-    background-color: var(--nt-border-color);
-    z-index: 1;
+  position: absolute;
+  top: 22px; /* Center with the circle */
+  left: 0;
+  right: 0;
+  height: 4px;
+  background-color: var(--nt-border-color);
+  z-index: 1;
 }
 
 .stepper-progress {
-    position: absolute;
-    top: 20px;
-    left: 0;
-    height: 4px;
-    background-color: #198754; /* Green for completed steps */
-    z-index: 2;
-    transition: width 0.5s ease-in-out;
+  position: absolute;
+  top: 22px;
+  left: 0;
+  height: 4px;
+  background-color: #198754; /* Green for completed steps */
+  z-index: 2;
+  transition: width 0.5s ease-in-out;
 }
 
+/* --- ✅ NEW: Animation for the current step highlight --- */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 10px 0px rgba(13, 110, 253, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px 6px rgba(13, 110, 253, 0.5);
+  }
+}
+
+/* Default style for upcoming steps */
 .step {
-    position: relative;
-    z-index: 3;
-    text-align: center;
-    width: 120px; /* Give some width to each step label */
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  width: 120px;
+  opacity: 0.6; /* Make upcoming steps slightly transparent */
+  transition: opacity 0.3s ease;
 }
 
 .step-circle {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background-color: var(--nt-white);
-    border: 4px solid var(--nt-border-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 0.75rem auto;
-    font-weight: 700;
-    transition: all 0.3s ease;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--nt-white);
+  border: 4px solid var(--nt-border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem auto;
+  font-weight: 700;
+  font-size: 1.2rem; /* Slightly larger font for numbers/checkmark */
+  transition: all 0.3s ease;
 }
 
 .step-label {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #6c757d;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #6c757d;
 }
 
-/* Step Statuses */
+/* --- ✅ UPDATED: Styles for COMPLETED steps --- */
+.step.completed {
+  opacity: 1; /* Make it fully visible */
+}
 .step.completed .step-circle {
-    background-color: #198754;
-    border-color: #198754;
-    color: var(--nt-white);
+  background-color: #198754;
+  border-color: #198754;
+  color: var(--nt-white);
+  font-size: 1.5rem; /* Make checkmark bigger */
 }
 .step.completed .step-label {
-    color: var(--nt-text-dark);
+  color: var(--nt-text-dark);
 }
 
+/* --- ✅ UPDATED: Styles for the CURRENT step (Highlight) --- */
+.step.current {
+  opacity: 1; /* Make it fully visible */
+}
 .step.current .step-circle {
-    background-color: var(--nt-yellow);
-    border-color: var(--nt-yellow);
-    color: var(--nt-text-dark);
-    transform: scale(1.1);
+  background-color: #0d6efd; /* Blue for 'in-progress' */
+  border-color: #0d6efd;
+  color: var(--nt-white);
+  transform: scale(1.1); /* Make it slightly larger */
+  animation: pulse-glow 2.5s infinite ease-in-out; /* Apply the glow animation */
 }
 .step.current .step-label {
-    color: var(--nt-text-dark);
-    font-weight: 700;
+  color: #0d6efd; /* Blue text to match the circle */
+  font-weight: 700;
 }

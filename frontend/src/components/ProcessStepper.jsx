@@ -9,19 +9,15 @@ function ProcessStepper({ steps, currentStepId, history }) {
 
   const historyByStepId = {};
   history.forEach((h) => {
-    // Store the latest history record for each step ID
     historyByStepId[h.step.id] = h;
   });
 
   const currentStepIndex = steps.findIndex((step) => step.id === currentStepId);
-  const historyStepIds = history.map((h) => h.step.id);
 
-  // Calculate progress bar width
   let progressPercentage = 0;
   if (currentStepIndex >= 0) {
     progressPercentage = (currentStepIndex / (steps.length - 1)) * 100;
   } else if (history.length >= steps.length) {
-    // Completed
     progressPercentage = 100;
   }
 
@@ -37,8 +33,6 @@ function ProcessStepper({ steps, currentStepId, history }) {
         const historyRecord = historyByStepId[step.id];
 
         if (historyRecord) {
-          // If the latest action for this step was SENT_BACK, it is now the current step.
-          // Or if it's the official currentStepId from the main request object.
           if (
             historyRecord.action === "SENT_BACK" ||
             step.id === currentStepId
@@ -49,14 +43,26 @@ function ProcessStepper({ steps, currentStepId, history }) {
           }
         }
 
-        // The official currentStepId always takes precedence
+        if (step.id === currentStepId) {
+          status = "current";
+        }
+
+        // The official currentStepId always takes precedence for the progress bar
+        const isCompletedForProgress = currentStepIndex > index;
+        if (isCompletedForProgress) {
+          status = "completed";
+        }
         if (step.id === currentStepId) {
           status = "current";
         }
 
         return (
           <div className={`step ${status}`} key={step.id}>
-            <div className="step-circle">{index + 1}</div>
+            {/* --- ✅ UPDATED LINE --- */}
+            {/* Changed to show a checkmark on completed steps */}
+            <div className="step-circle">
+              {status === "completed" ? "✓" : index + 1}
+            </div>
             <div className="step-label">{step.name}</div>
           </div>
         );
