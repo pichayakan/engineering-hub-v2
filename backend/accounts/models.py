@@ -57,6 +57,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     employee_id = models.CharField(
         max_length=50, unique=True, null=True, blank=True)
     line_user_id = models.CharField(max_length=100, blank=True, null=True)
+    telegram_chat_id = models.CharField(max_length=100, blank=True, null=True)
     notify_enabled = models.BooleanField(default=True)
 
     department = models.ForeignKey(

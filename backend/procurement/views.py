@@ -14,6 +14,7 @@ from notifications.models import Notification
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from notifications.line_utils import send_line_push_message
+from notifications.utils import send_notifications  # line & telegram
 
 from .models import (
     WorkflowTemplate,
@@ -31,7 +32,7 @@ from .serializers import (
 
 
 class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 100
+    page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 1000
 
@@ -232,10 +233,12 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 f" {link_to_task}"
             )
 
-            send_line_push_message(
-                user=user_to_notify,
-                message=line_message
-            )
+            # send_line_push_message(
+            #     user=user_to_notify,
+            #     message=line_message
+            # )
+            send_notifications(user_to_notify, line_message)
+
         else:
             # DEBUG PRINT
             print("[DEBUG] No next step found. Marking as completed.")

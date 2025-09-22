@@ -1,7 +1,7 @@
 /* frontend/src/components/HelpButton.css */
 .help-button-container {
   position: fixed;
-  bottom: 2rem;
+  bottom: 4rem;
   right: 2rem;
   z-index: 100;
 }

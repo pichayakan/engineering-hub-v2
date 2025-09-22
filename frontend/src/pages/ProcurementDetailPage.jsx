@@ -47,6 +47,7 @@ function ProcurementDetailPage() {
   const [notes, setNotes] = useState("");
   const [filesToUpload, setFilesToUpload] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fileUploadError, setFileUploadError] = useState("");
   const { requestId } = useParams();
   const { user } = useAuth();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -68,6 +69,10 @@ function ProcurementDetailPage() {
   // const [signaturePosition, setSignaturePosition] = useState(null);
 
   const [signatures, setSignatures] = useState([]);
+
+  // preview เอกสารก่อนส่งต่อ //
+  const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+  const [hasViewedPdf, setHasViewedPdf] = useState(false);
 
   const handleSaveSignature = (signatureDataUrl) => {
     const img = new Image();
@@ -143,6 +148,17 @@ function ProcurementDetailPage() {
     setLoading(true);
     fetchRequestDetails();
   }, [fetchRequestDetails]);
+
+  // ✅ ADD THIS useEffect TO CLEAN UP THE OBJECT URL
+  useEffect(() => {
+    return () => {
+      // Clean up function to revoke the URL when the component unmounts
+      // or when the previewPdfUrl state changes
+      if (previewPdfUrl) {
+        URL.revokeObjectURL(previewPdfUrl);
+      }
+    };
+  }, [previewPdfUrl]); // ✅ Dependency array to run the effect when the URL changes
 
   useEffect(() => {
     const container = pdfContainerRef.current;
@@ -274,10 +290,31 @@ function ProcurementDetailPage() {
 
   const handleFileChange = (e) => {
     if (e.target.files) {
-      setFilesToUpload((prevFiles) => [
-        ...prevFiles,
-        ...Array.from(e.target.files),
-      ]);
+      const newFiles = Array.from(e.target.files);
+      const MAX_FILENAME_LENGTH = 150; // ✅ กำหนดความยาวสูงสุดที่นี่
+
+      const tooLongFiles = newFiles.filter(
+        (file) => file.name.length > MAX_FILENAME_LENGTH
+      );
+
+      if (tooLongFiles.length > 0) {
+        setFileUploadError(
+          `ชื่อไฟล์ยาวเกิน ${MAX_FILENAME_LENGTH} ตัวอักษร: ${tooLongFiles
+            .map((f) => f.name)
+            .join(", ")}`
+        );
+        return; // หยุดการทำงานของฟังก์ชัน
+      }
+
+      setFileUploadError(""); // เคลียร์ข้อความ error หากไม่มีปัญหา
+      setFilesToUpload((prevFiles) => [...prevFiles, ...newFiles]);
+
+      const pdfFile = newFiles.find((file) => file.type === "application/pdf");
+      if (pdfFile) {
+        const url = URL.createObjectURL(pdfFile);
+        setSelectedPdfUrl(url);
+        setHasViewedPdf(true);
+      }
     }
   };
 
@@ -657,6 +694,7 @@ function ProcurementDetailPage() {
       setCanSignCurrentPdf(false);
     }
     setSelectedPdfUrl(attachment.file);
+    setHasViewedPdf(true);
   };
 
   const sla = calculateSLA(request.current_step_due_date);
@@ -762,7 +800,6 @@ function ProcurementDetailPage() {
                 </button>
               </div>
 
-              {/* ✅ แก้ไข: แสดงเมื่อมีลายเซ็นใน Array อย่างน้อย 1 อัน */}
               {signatures.length > 0 && (
                 <div className="auto-place-controls">
                   <input
@@ -797,7 +834,6 @@ function ProcurementDetailPage() {
               <button
                 className="apply-signature-btn"
                 onClick={handleEmbedSignature}
-                // ✅ แก้ไข: disabled เมื่อ Array ของลายเซ็นว่าง
                 disabled={signatures.length === 0}
               >
                 <FiSave
@@ -815,11 +851,9 @@ function ProcurementDetailPage() {
           </div>
 
           <div className="pdf-viewer-wrapper" ref={pdfWrapperRef}>
-            {/* ✅✅✅  แก้ไข Logic การแสดงผลลายเซ็นทั้งหมดที่นี่ ✅✅✅ */}
             {signatures
-              .filter((sig) => sig.page === currentPage) // กรองลายเซ็นเฉพาะของหน้านี้
+              .filter((sig) => sig.page === currentPage)
               .map((sig) => {
-                // สร้าง Ref ใหม่สำหรับ Draggable แต่ละตัว
                 const nodeRef = React.createRef();
                 return (
                   <Draggable
@@ -873,8 +907,6 @@ function ProcurementDetailPage() {
                           );
                         }}
                         lockAspectRatio={true}
-                        // minConstraints={[50, 25]} // เอาออกแก้ bug ก่อน
-                        // maxConstraints={[600, 300]}
                         className="signature-resizable-box"
                       >
                         <img
@@ -888,7 +920,6 @@ function ProcurementDetailPage() {
                   </Draggable>
                 );
               })}
-            {/* ✅✅✅ สิ้นสุดส่วนแก้ไขการแสดงผลลายเซ็น ✅✅✅ */}
 
             <div className="pdf-viewer-container" ref={pdfContainerRef}>
               <Document
@@ -1005,7 +1036,12 @@ function ProcurementDetailPage() {
                   onChange={handleFileChange}
                   className="upload-input"
                 />
+                {/* ✅ เพิ่มส่วนแสดงผลข้อความแจ้งเตือน error ของการอัปโหลดไฟล์ */}
+                {fileUploadError && (
+                  <p className="file-upload-error">{fileUploadError}</p>
+                )}
               </div>
+
               {filesToUpload.length > 0 && (
                 <div className="file-preview-list">
                   {filesToUpload.map((file, index) => (
@@ -1013,6 +1049,17 @@ function ProcurementDetailPage() {
                       <span className="file-preview-name">
                         {decodeURIComponent(file.name)}
                       </span>
+                      {file.type === "application/pdf" && (
+                        <button
+                          onClick={() => {
+                            setSelectedPdfUrl(URL.createObjectURL(file));
+                            setHasViewedPdf(true);
+                          }}
+                          className="view-pdf-btn-prominent"
+                        >
+                          Preview
+                        </button>
+                      )}
                       <button
                         onClick={() => handleRemoveFile(file.name)}
                         className="remove-file-btn"
@@ -1024,30 +1071,43 @@ function ProcurementDetailPage() {
                 </div>
               )}
 
-              {stepRequiresSignature && (
-                <p className="signing-required-message">
-                  ⚠️ ขั้นตอนนี้จำเป็นต้องมีการลงนามในเอกสาร PDF ก่อนทำการอนุมัติ
-                </p>
+              {/* ✅ รวมข้อความแจ้งเตือนให้เป็นหนึ่งเดียวและใช้เงื่อนไขแบบรวมศูนย์ */}
+              {canApprove && (
+                <>
+                  {stepRequiresSignature && !hasViewedPdf && (
+                    <p className="single-warning-message">
+                      ⚠️ กรุณากดปุ่ม "Preview" เพื่อตรวจสอบและลงนามในเอกสาร PDF
+                      ก่อนทำการอนุมัติ
+                    </p>
+                  )}
+                  {stepRequiresSignature &&
+                    hasViewedPdf &&
+                    !isSignatureRequirementMet() && (
+                      <p className="single-warning-message">
+                        ⚠️ กรุณา "บันทึก & วางลายเซ็น" บนเอกสาร PDF
+                        ก่อนทำการอนุมัติ
+                      </p>
+                    )}
+                  {!stepRequiresSignature && !hasViewedPdf && (
+                    <p className="single-warning-message">
+                      💡 กรุณากดปุ่ม "Preview" เพื่อตรวจสอบเอกสารก่อนอนุมัติ
+                    </p>
+                  )}
+                </>
               )}
 
               <button
                 onClick={handleApprove}
                 className="approve-button"
                 disabled={
-                  !canApprove || isSubmitting || !isSignatureRequirementMet()
+                  !canApprove ||
+                  isSubmitting ||
+                  (stepRequiresSignature && !isSignatureRequirementMet()) ||
+                  !hasViewedPdf
                 }
               >
                 {isSubmitting ? "Submitting..." : "ยืนยันการอนุมัติ"}
               </button>
-
-              {stepRequiresSignature && !isSignatureRequirementMet() && (
-                <p
-                  className="signing-required-message"
-                  style={{ marginTop: "1rem" }}
-                >
-                  กรุณา "Apply & Save Signature" บนเอกสาร PDF ก่อนทำการอนุมัติ
-                </p>
-              )}
 
               {!canApprove &&
                 request.current_step_details?.responsible_group_details && (

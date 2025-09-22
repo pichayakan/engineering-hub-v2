@@ -8,7 +8,8 @@ class LogEntry(models.Model):
         INFO = 'INFO', 'Information'
         WARNING = 'WARNING', 'Warning'
         ERROR = 'ERROR', 'Error'
-        LINE = 'LINE', 'Line Notification'  # Specific level for Line messages
+        LINE = 'LINE', 'Line Notification'
+        TELEGRAM = 'TELEGRAM', 'Telegram Notification'
 
     level = models.CharField(
         max_length=20, choices=LogLevel.choices, default=LogLevel.INFO)

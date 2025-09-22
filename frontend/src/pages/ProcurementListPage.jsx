@@ -13,6 +13,12 @@ import LoadingSpinner from "../components/LoadingSpinner.jsx";
 function ProcurementListPage() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // PAGINATION STATES
+  const [nextPageUrl, setNextPageUrl] = useState(null);
+  const [prevPageUrl, setPrevPageUrl] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [ordering, setOrdering] = useState("-created_at");
   const [categories, setCategories] = useState([]);
@@ -32,40 +38,52 @@ function ProcurementListPage() {
     fetchCategories();
   }, []);
 
-  const fetchRequests = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {
-        search: searchTerm,
-        ordering: ordering,
-      };
-      if (selectedCategory) {
-        params.category = selectedCategory;
-      }
+  const fetchRequests = useCallback(
+    async (url = null) => {
+      setLoading(true);
+      try {
+        const fetchUrl = url || "/api/procurement/requests/";
+        let requestParams = {};
 
-      if (statusFilter === "completed") {
-        params.is_completed = true;
-      } else if (statusFilter === "cancelled") {
-        params.is_cancelled = true;
-      } else if (statusFilter === "inprogress") {
-        params.is_completed = false;
-        params.is_cancelled = false;
-      }
+        // ✅ ใช้ params เมื่อไม่มีการระบุ URL (โหลดหน้าแรก) เท่านั้น
+        if (!url) {
+          requestParams = {
+            search: searchTerm,
+            ordering: ordering,
+          };
+          if (selectedCategory) {
+            requestParams.category = selectedCategory;
+          }
+          if (statusFilter === "completed") {
+            requestParams.is_completed = true;
+          } else if (statusFilter === "cancelled") {
+            requestParams.is_cancelled = true;
+          } else if (statusFilter === "inprogress") {
+            requestParams.is_completed = false;
+            requestParams.is_cancelled = false;
+          }
+        }
 
-      const response = await apiClient.get("/api/procurement/requests/", {
-        params,
-      });
-      setRequests(response.data.results || response.data);
-    } catch (error) {
-      console.error("Failed to fetch procurement requests", error);
-      toast.error(
-        "Failed to fetch requests: " +
-          (error.response?.data?.error || error.message)
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [searchTerm, ordering, selectedCategory, statusFilter]);
+        const response = await apiClient.get(fetchUrl, {
+          params: requestParams, // ✅ ใช้ requestParams ที่ถูกสร้างขึ้นตามเงื่อนไข
+        });
+
+        setRequests(response.data.results);
+        setNextPageUrl(response.data.next);
+        setPrevPageUrl(response.data.previous);
+        setTotalCount(response.data.count);
+      } catch (error) {
+        console.error("Failed to fetch procurement requests", error);
+        toast.error(
+          "Failed to fetch requests: " +
+            (error.response?.data?.error || error.message)
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [searchTerm, ordering, selectedCategory, statusFilter] // ✅ Dependencies ยังคงจำเป็น
+  );
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -249,6 +267,25 @@ function ProcurementListPage() {
             )}
           </tbody>
         </table>
+      </div>
+      <div className="pagination-controls">
+        <button
+          onClick={() => fetchRequests(prevPageUrl)}
+          disabled={!prevPageUrl}
+          className="pagination-button"
+        >
+          Previous
+        </button>
+        <span>
+          Showing {requests.length} of {totalCount} items
+        </span>
+        <button
+          onClick={() => fetchRequests(nextPageUrl)}
+          disabled={!nextPageUrl}
+          className="pagination-button"
+        >
+          Next
+        </button>
       </div>
       <ToastContainer />
     </div>

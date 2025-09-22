@@ -11,13 +11,37 @@ function SignatureModal({
   typedSignatureFont = "'Sarabun', sans-serif",
 }) {
   const sigPadRef = useRef(null);
-  const fileInputRef = useRef(null); // Ref for the file input
+  const fileInputRef = useRef(null);
+  const canvasContainerRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("draw");
   const [typedName, setTypedName] = useState("");
   const [typedSignatureUrl, setTypedSignatureUrl] = useState("");
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   const FIXED_SIGNATURE_URL = "/signature_worawitl-removebg.png";
+
+  useEffect(() => {
+    if (isOpen && canvasContainerRef.current) {
+      const resizeObserver = new ResizeObserver((entries) => {
+        if (entries[0]) {
+          const { width, height } = entries[0].contentRect;
+          setContainerSize({ width, height });
+        }
+      });
+      resizeObserver.observe(canvasContainerRef.current);
+      return () => resizeObserver.disconnect();
+    }
+  }, [isOpen]);
+
+  // ✅ NEW FUNCTION TO HANDLE TAB CLICKS AND RESET
+  const handleTabClick = (tabName) => {
+    setActiveTab(tabName);
+    // If we're switching back to the "draw" tab, clear the canvas
+    if (tabName === "draw" && sigPadRef.current) {
+      sigPadRef.current.clear();
+    }
+  };
 
   useEffect(() => {
     if (activeTab === "type" && typedName) {
@@ -54,13 +78,11 @@ function SignatureModal({
     }
   };
 
-  // --- ✅ ADDED: Handle image upload ---
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        // The result is a base64 Data URL, just like from the signature pad
         onSave(event.target.result);
       };
       reader.readAsDataURL(file);
@@ -73,22 +95,21 @@ function SignatureModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Provide Your Signature">
-      {/* --- ✅ ADDED: Tab Buttons --- */}
       <div className="signature-tabs">
         <button
-          onClick={() => setActiveTab("draw")}
+          onClick={() => handleTabClick("draw")}
           className={activeTab === "draw" ? "active" : ""}
         >
           Draw
         </button>
         <button
-          onClick={() => setActiveTab("type")}
+          onClick={() => handleTabClick("type")}
           className={activeTab === "type" ? "active" : ""}
         >
           Type
         </button>
         <button
-          onClick={() => setActiveTab("fixed")}
+          onClick={() => handleTabClick("fixed")}
           className={activeTab === "fixed" ? "active" : ""}
         >
           ลายเซ็น ผส.วขตป.(FIX)
@@ -98,14 +119,19 @@ function SignatureModal({
         </button>
       </div>
 
-      {/* --- ✅ MODIFIED: Conditionally render the correct input --- */}
       {activeTab === "draw" && (
-        <div className="signature-pad-container">
-          <SignatureCanvas
-            ref={sigPadRef}
-            penColor="black"
-            canvasProps={{ className: "signature-canvas" }}
-          />
+        <div className="signature-pad-container" ref={canvasContainerRef}>
+          {containerSize.width > 0 && (
+            <SignatureCanvas
+              ref={sigPadRef}
+              penColor="black"
+              canvasProps={{
+                width: containerSize.width,
+                height: containerSize.height,
+                className: "signature-canvas",
+              }}
+            />
+          )}
         </div>
       )}
 

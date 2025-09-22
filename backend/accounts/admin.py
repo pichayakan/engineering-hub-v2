@@ -13,7 +13,8 @@ class UserAdmin(BaseUserAdmin):
         "department",
         "is_staff",
         "is_active",
-        "line_user_id"
+        "line_user_id",
+        "telegram_chat_id"
     )
     list_filter = ("is_staff", "is_active", "groups", "department")
     search_fields = ("email", "username", "first_name", "last_name")
@@ -32,6 +33,7 @@ class UserAdmin(BaseUserAdmin):
                     "phone_number",
                     "department",
                     "line_user_id",
+                    "telegram_chat_id",
                     "notify_enabled"
                 )
             },

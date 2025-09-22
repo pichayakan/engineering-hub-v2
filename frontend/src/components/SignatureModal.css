@@ -49,3 +49,13 @@
 .type-signature-preview img {
   max-width: 100%;
 }
+
+.signature-pad-container {
+  width: 100%;
+  max-width: 500px; /* Optional, but good practice */
+  /* ✅ ADD A FIXED HEIGHT TO PREVENT IT FROM COLLAPSING */
+  height: 250px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
