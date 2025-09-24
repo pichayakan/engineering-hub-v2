@@ -53,6 +53,7 @@ function ProcurementDetailPage() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [renderedPdfScale, setRenderedPdfScale] = useState(1);
   const signatureAspectRatio = useRef(1);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
 
   // PDF & Signature State
   const [numPages, setNumPages] = useState(null);
@@ -762,93 +763,111 @@ function ProcurementDetailPage() {
       />
       {selectedPdfUrl && (
         <div className="document-viewer-section">
-          <div className="document-header">
-            {/* ===== LEFT SECTION ===== */}
-            <div className="header-left-controls">
-              <div className="zoom-controls">
-                <button
-                  onClick={() => setPdfScale((prev) => prev - 0.1)}
-                  disabled={pdfScale <= 0.5}
-                >
-                  <FiZoomOut />
-                </button>
-                <span
-                  onClick={() => setPdfScale(1.0)}
-                  style={{ cursor: "pointer" }}
-                >
-                  {Math.round(pdfScale * 100)}%
-                </span>
-                <button
-                  onClick={() => setPdfScale((prev) => prev + 0.1)}
-                  disabled={pdfScale >= 2.0}
-                >
-                  <FiZoomIn />
-                </button>
-              </div>
-              <div className="page-controls">
-                <button onClick={goToPreviousPage} disabled={currentPage <= 1}>
-                  &lsaquo;
-                </button>
-                <span className="page-indicator">
-                  Page {currentPage} of {numPages || "--"}
-                </span>
-                <button
-                  onClick={goToNextPage}
-                  disabled={currentPage >= numPages}
-                >
-                  &rsaquo;
-                </button>
-              </div>
+          <div
+            className={`document-header ${
+              isHeaderVisible ? "visible" : "hidden"
+            }`}
+          >
+            {isHeaderVisible && (
+              <>
+                {/* ===== LEFT SECTION ===== */}
+                <div className="header-left-controls">
+                  <div className="zoom-controls">
+                    <button
+                      onClick={() => setPdfScale((prev) => prev - 0.1)}
+                      disabled={pdfScale <= 0.5}
+                    >
+                      <FiZoomOut />
+                    </button>
+                    <span
+                      onClick={() => setPdfScale(1.0)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      {Math.round(pdfScale * 100)}%
+                    </span>
+                    <button
+                      onClick={() => setPdfScale((prev) => prev + 0.1)}
+                      disabled={pdfScale >= 2.0}
+                    >
+                      <FiZoomIn />
+                    </button>
+                  </div>
+                  <div className="page-controls">
+                    <button
+                      onClick={goToPreviousPage}
+                      disabled={currentPage <= 1}
+                    >
+                      &lsaquo;
+                    </button>
+                    <span className="page-indicator">
+                      Page {currentPage} of {numPages || "--"}
+                    </span>
+                    <button
+                      onClick={goToNextPage}
+                      disabled={currentPage >= numPages}
+                    >
+                      &rsaquo;
+                    </button>
+                  </div>
 
-              {signatures.length > 0 && (
-                <div className="auto-place-controls">
-                  <input
-                    type="text"
-                    id="signatureSearch"
-                    name="signatureSearch"
-                    placeholder="ค้นหาชื่อเพื่อวางลายเซ็น..."
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    disabled
-                  />
-                  <button onClick={handleFindAndPlace}>
-                    <FiSearch /> ค้นหา & วางตำแหน่ง
+                  {signatures.length > 0 && (
+                    <div className="auto-place-controls">
+                      {/* <input
+                        type="text"
+                        id="signatureSearch"
+                        name="signatureSearch"
+                        placeholder="ค้นหาชื่อเพื่อวางลายเซ็น..."
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                        disabled
+                      /> */}
+                      <button onClick={handleFindAndPlace}>
+                        <FiSearch /> ค้นหา & วางตำแหน่ง
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* ===== RIGHT SECTION ===== */}
+                <div className="header-right-actions">
+                  {showSignButton && (
+                    <button
+                      className="sign-document-btn"
+                      onClick={handleOpenSignatureModal}
+                    >
+                      <FiEdit3
+                        style={{ marginRight: "8px", verticalAlign: "middle" }}
+                      />
+                      ใส่ลายเซ็น
+                    </button>
+                  )}
+                  <button
+                    className="apply-signature-btn"
+                    onClick={handleEmbedSignature}
+                    disabled={signatures.length === 0}
+                  >
+                    <FiSave
+                      style={{ marginRight: "8px", verticalAlign: "middle" }}
+                    />
+                    บันทึก
+                  </button>
+                  <button
+                    className="close-viewer-btn"
+                    onClick={() => setSelectedPdfUrl(null)}
+                  >
+                    &times; ปิดมุมมอง
                   </button>
                 </div>
-              )}
-            </div>
-
-            {/* ===== RIGHT SECTION ===== */}
-            <div className="header-right-actions">
-              {showSignButton && (
-                <button
-                  className="sign-document-btn"
-                  onClick={handleOpenSignatureModal}
-                >
-                  <FiEdit3
-                    style={{ marginRight: "8px", verticalAlign: "middle" }}
-                  />
-                  ใส่ลายเซ็น
-                </button>
-              )}
-              <button
-                className="apply-signature-btn"
-                onClick={handleEmbedSignature}
-                disabled={signatures.length === 0}
-              >
-                <FiSave
-                  style={{ marginRight: "8px", verticalAlign: "middle" }}
-                />
-                บันทึก & วางลายเซ็น
-              </button>
-              <button
-                className="close-viewer-btn"
-                onClick={() => setSelectedPdfUrl(null)}
-              >
-                &times; ปิดมุมมอง
-              </button>
-            </div>
+              </>
+            )}
           </div>
+          {/* ปุ่ม toggle เฉพาะ mobile */}
+          <button
+            className="header-toggle-btn"
+            onClick={() => setIsHeaderVisible((prev) => !prev)}
+          >
+            {isHeaderVisible ? "▲ ซ่อนเมนู pdf" : "▼ แสดงเมนู pdf"}
+          </button>
 
           <div className="pdf-viewer-wrapper" ref={pdfWrapperRef}>
             {signatures

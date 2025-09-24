@@ -519,5 +519,41 @@
   cursor: not-allowed;
 }
 
+.header-toggle-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .header-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed; /* ✅ ลอยอิสระ */
+    bottom: 50%; /* ✅ ลอยด้านล่าง */
+    right: 20px; /* ✅ ชิดขวา */
+    width: 50px;
+    height: 50px;
+    border-radius: 50%; /* ✅ ปุ่มวงกลม */
+    background: #0d6efd;
+    color: #fff;
+    border: none;
+    font-size: 0.6rem;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 999; /* ✅ ให้อยู่บนสุด */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: background 0.2s ease, transform 0.1s ease;
+  }
+
+  .header-toggle-btn:hover {
+    background: #0b5ed7;
+    transform: translateY(-2px);
+  }
+
+  .header-toggle-btn:active {
+    transform: scale(0.95);
+  }
+}
+
 /* ลบโค้ดที่ซ้ำซ้อนออก */
 /* .signing-required-message, .view-required-message, .preview-cta-message */
