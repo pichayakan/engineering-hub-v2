@@ -241,7 +241,8 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                             f"กรุณาตรวจสอบและดำเนินการที่: \n\n"
                             f"{link_to_task}"
                         )
-                        # send_notifications(user_to_notify, line_message) # ยกเลิก comment เพื่อใช้งานจริง
+                        # ยกเลิก comment เพื่อใช้งานจริง
+                        send_notifications(user_to_notify, line_message)
             else:
                 # ถ้าไม่มี Step ถัดไป ให้ปิดงาน
                 instance.current_step = None
