@@ -26,7 +26,7 @@ class StepInline(admin.TabularInline):
     model = Step
     extra = 1  # Show 1 empty slot for a new step by default
     fields = ("order", "name", "responsible_groups",
-              "duration_days", "is_signature_required")
+              "duration_days", "is_signature_required", "requires_document_number")
     filter_horizontal = ("responsible_groups",)
 
 
@@ -46,6 +46,7 @@ class ProcurementRequestAdmin(admin.ModelAdmin):
         "current_step",
         "created_by",
         "is_completed",
+        "is_cancelled",
     )
     list_filter = (
         "category",  # ✅ ADDED
@@ -59,5 +60,37 @@ class ProcurementRequestAdmin(admin.ModelAdmin):
     raw_id_fields = ("project", "category", "created_by")
 
 
-# Register other models if you want to see them in admin
-admin.site.register(RequestHistory)
+@admin.register(RequestHistory)
+class RequestHistoryAdmin(admin.ModelAdmin):
+    """
+    Admin interface for viewing approval history.
+    """
+    # --- กำหนด field ที่จะแสดงในหน้า List View ---
+    list_display = (
+        'procurement_request',
+        'step',
+        'approved_by',
+        'timestamp',
+        'document_number'  # ✅ เพิ่ม document_number ที่นี่
+    )
+
+    # --- เพิ่ม Filter ด้านข้าง ---
+    list_filter = ('step', 'action')
+
+    # --- เพิ่มช่องค้นหา ---
+    search_fields = (
+        'procurement_request__title',  # ค้นหาจากชื่องานหลัก
+        'document_number',           # ค้นหาจากเลขที่เอกสาร
+        'notes'
+    )
+
+    # ทำให้ field ที่เป็น ForeignKey แสดงผลได้ดีขึ้น
+    raw_id_fields = ('procurement_request', 'approved_by')
+
+    def has_change_permission(self, request, obj=None):
+        # ป้องกันการแก้ไขข้อมูล History โดยตรงจากหน้า Admin
+        return False
+
+    def has_add_permission(self, request):
+        # ป้องกันการสร้าง History โดยตรงจากหน้า Admin
+        return False

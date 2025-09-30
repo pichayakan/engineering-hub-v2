@@ -1,6 +1,7 @@
 # backend/procurement/views.py
 import os
 import re
+from django.db import transaction
 from .utils import generate_signed_filename
 from django.core.files.base import ContentFile
 from rest_framework import viewsets, permissions, status
@@ -28,6 +29,7 @@ from .serializers import (
     WorkflowTemplateSerializer,
     ProcurementRequestSerializer,
     ProcurementCategorySerializer,
+    ProcurementListSerializer,
 )
 
 
@@ -44,7 +46,8 @@ def procurement_summary_view(request):
     API endpoint for procurement dashboard summary data.
     """
     user = request.user
-    ongoing_qs = ProcurementRequest.objects.filter(is_completed=False)
+    ongoing_qs = ProcurementRequest.objects.filter(
+        is_completed=False, is_cancelled=False)
     ongoing_count = ongoing_qs.count()
 
     # Placeholder for overdue
@@ -53,6 +56,7 @@ def procurement_summary_view(request):
     # Completed this month
     completed_this_month_count = ProcurementRequest.objects.filter(
         is_completed=True,
+        is_cancelled=False,
         # updated_at__year=timezone.now().year, # This requires an updated_at field
         # updated_at__month=timezone.now().month
     ).count()
@@ -96,7 +100,7 @@ class WorkflowTemplateViewSet(viewsets.ReadOnlyModelViewSet):
 
 class ProcurementRequestViewSet(viewsets.ModelViewSet):
     queryset = ProcurementRequest.objects.all().order_by("-created_at")
-    serializer_class = ProcurementRequestSerializer
+    # serializer_class = ProcurementRequestSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -109,10 +113,20 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
     # Fields available for text searching (e.g., ?search=test)
     search_fields = ['title', 'project__name',
-                     'created_by__username', 'category__name']
+                     'created_by__username', 'category__name', 'document_number', 'history__document_number']
 
     # Fields available for ordering (e.g., ?ordering=title)
     ordering_fields = ['created_at', 'title']
+
+    def get_serializer_class(self):
+        """
+        เลือกใช้ Serializer ตาม action:
+        - ถ้าเป็น 'list' (ดูรายการทั้งหมด) ให้ใช้ ProcurementListSerializer
+        - ถ้าเป็น action อื่นๆ (เช่น 'retrieve', 'create') ให้ใช้ ProcurementRequestSerializer
+        """
+        if self.action == 'list':
+            return ProcurementListSerializer
+        return ProcurementRequestSerializer
 
     def perform_create(self, serializer):
         workflow = serializer.validated_data.get("workflow_template")
@@ -136,124 +150,114 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="advance-step")
     def advance_step(self, request, pk=None):
-        print("\n--- [DEBUG] advance_step called ---")  # DEBUG PRINT
-        procurement_request = self.get_object()
+        print("--- DATA RECEIVED FROM FRONTEND ---")  # ✨ เพิ่มบรรทัดนี้
+        print(request.data)                        # ✨ และบรรทัดนี้
+        print("---------------------------------")
+        instance = self.get_object()  # เปลี่ยนชื่อตัวแปรให้สั้นลง
         user = request.user
         notes = request.data.get("notes", "")
         files = request.FILES.getlist("files")
+        document_number_to_save = ""  # เตรียมตัวแ แปรไว้ก่อน
 
-        if procurement_request.is_completed:
+        if instance.is_completed:
             return Response({"error": "This request is already completed."}, status=status.HTTP_400_BAD_REQUEST)
 
-        current_step = procurement_request.current_step
+        current_step = instance.current_step
         if not current_step:
             return Response({"error": "This request has no current step defined."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ตรวจสอบว่าขั้นตอนนี้บังคับลงนามหรือไม่
-        if current_step.is_signature_required:
-            # ตรวจสอบว่ามีไฟล์ที่ชื่อขึ้นต้นด้วย "signed_" ถูกส่งมาด้วยหรือไม่
-            has_signed_file = any(f.name.startswith('signed_') for f in files)
-            if not has_signed_file:
-                return Response(
-                    {"error": "A signed document is required for this step. Please sign a PDF and try again."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
+        # --- Permission Check ---
         responsible_pks = current_step.responsible_groups.values_list(
             'pk', flat=True)
         if (responsible_pks.exists() and not user.is_staff and not user.groups.filter(pk__in=responsible_pks).exists()):
             return Response({"error": "You do not have permission to approve this step."}, status=status.HTTP_403_FORBIDDEN)
 
-        history_entry = RequestHistory.objects.create(
-            procurement_request=procurement_request, step=current_step, approved_by=user, notes=notes
-        )
+        # --- ✨ 2. เพิ่ม Logic ตรวจสอบเลขที่หนังสือ ---
+        if current_step.requires_document_number:
+            doc_number = request.data.get('document_number')
+            if not doc_number or not doc_number.strip():
+                return Response(
+                    {'error': 'ขั้นตอนนี้จำเป็นต้องระบุเลขที่หนังสือ'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            document_number_to_save = doc_number.strip()
 
-        Notification.objects.create(
-            recipient=user,
-            message=f"คุณได้อนุมัติขั้นตอน'{current_step.name}' สำหรับงาน '{procurement_request.title}'.",
-            link=f"/procurement/requests/{procurement_request.id}",
-            is_read=True  # Mark as read since the user initiated the action
-        )
-
-        for file in files:
-            ProcurementAttachment.objects.create(
-                procurement_request=procurement_request, history_entry=history_entry,
-                file=file, uploaded_by=user, name=file.name
-            )
-
-        next_step = Step.objects.filter(
-            workflow_template=procurement_request.workflow_template, order__gt=current_step.order).order_by("order").first()
-
-        if next_step:
-            print(f"[DEBUG] Found next step: {next_step.name}")  # DEBUG PRINT
-            procurement_request.current_step = next_step
-            procurement_request.save()
-
-            responsible_groups = next_step.responsible_groups.all()
-            # DEBUG PRINT
-            print(
-                f"[DEBUG] Responsible groups for next step: {list(responsible_groups)}")
-
-            if not responsible_groups:
-                print(
-                    "[DEBUG] No responsible groups found for the next step. No notifications will be sent.")
-
-            for group in responsible_groups:
-                print(f"[DEBUG] Processing group: {group.name}")  # DEBUG PRINT
-                users_in_group = group.user_set.all()
-                # DEBUG PRINT
-                print(f"[DEBUG] Users in this group: {list(users_in_group)}")
-
-                if not users_in_group:
-                    print(f"[DEBUG] No users in group '{group.name}'.")
-
-                for user_to_notify in users_in_group:
-                    # DEBUG PRINT
-                    print(
-                        f"[DEBUG] CREATING NOTIFICATION for user: {user_to_notify.username}")
-                    Notification.objects.create(
-                        recipient=user_to_notify,
-                        message=f"มีงานใหม่ '{procurement_request.title}' รอการอนุมัติจากคุณ",
-                        link=f"/procurement/requests/{procurement_request.id}"
-                    )
-            print("[DEBUG] Notification logic finished.")  # DEBUG PRINT
-            # Create and send Line notification
-            requester_name = f"{procurement_request.created_by.first_name} {procurement_request.created_by.last_name}"
-            recipient_name = f"{user_to_notify.first_name} {user_to_notify.last_name}"
-            # 👈 Replace with your actual domain
-            link_to_task = f"http://202.139.196.7/procurement/requests/{procurement_request.id}"
-
-            line_message = (
-                f"เรียน คุณ {recipient_name},\n\n"
-                f"มีงานใหม่รอการอนุมัติจากท่าน\n"
-                f"เรื่อง: {procurement_request.title}\n"
-                f"สร้างโดย: {requester_name}\n"
-                f"ขั้นตอนปัจจุบัน: {next_step.name}\n\n"
-                f"กรุณาตรวจสอบและดำเนินการที่: \n\n"
-                f" {link_to_task}"
-            )
-
-            # send_line_push_message(
-            #     user=user_to_notify,
-            #     message=line_message
-            # )
-            send_notifications(user_to_notify, line_message)
-
-        else:
-            # DEBUG PRINT
-            print("[DEBUG] No next step found. Marking as completed.")
-            procurement_request.current_step = None
-            procurement_request.is_completed = True
-            procurement_request.save()
-
-            if procurement_request.created_by != user:
-                Notification.objects.create(
-                    recipient=procurement_request.created_by,
-                    message=f"งาน '{procurement_request.title}' ได้รับการอนุมัติแล้ว",
-                    link=f"/procurement/requests/{procurement_request.id}"
+        # --- Signature Check ---
+        if current_step.is_signature_required:
+            if not any(f.name.startswith('signed_') for f in files):
+                return Response(
+                    {"error": "ขั้นตอนนี้ต้องระบุเลขหนังสือด้วยครับ"},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
-        return Response(self.get_serializer(procurement_request).data)
+        # ✨ 1. ใช้ transaction.atomic เพื่อให้แน่ใจว่าทุกอย่างสำเร็จพร้อมกัน
+        with transaction.atomic():
+            # ✨ 3. บันทึกเลขที่หนังสือลงใน History
+            history_entry = RequestHistory.objects.create(
+                procurement_request=instance,
+                step=current_step,
+                approved_by=user,
+                notes=notes,
+                document_number=document_number_to_save  # เพิ่ม field นี้
+            )
+
+            for file in files:
+                ProcurementAttachment.objects.create(
+                    procurement_request=instance,
+                    history_entry=history_entry,
+                    file=file,
+                    uploaded_by=user,
+                    name=file.name
+                )
+
+            next_step = Step.objects.filter(
+                workflow_template=instance.workflow_template, order__gt=current_step.order
+            ).order_by("order").first()
+
+            if next_step:
+                instance.current_step = next_step
+
+                # แจ้งเตือนผู้รับผิดชอบใน Step ถัดไป
+                for group in next_step.responsible_groups.all():
+                    for user_to_notify in group.user_set.all():
+                        Notification.objects.create(
+                            recipient=user_to_notify,
+                            message=f"มีงานใหม่ '{instance.title}' รอการอนุมัติจากคุณ",
+                            link=f"/procurement/requests/{instance.id}"
+                        )
+
+                        # ✨ 4. ย้าย Logic การแจ้งเตือน Line เข้ามาใน Loop
+                        requester_name = f"{instance.created_by.first_name} {instance.created_by.last_name}"
+                        recipient_name = f"{user_to_notify.first_name} {user_to_notify.last_name}"
+                        # 👈 ควรเปลี่ยนเป็น Domain จริง
+                        link_to_task = f"http://202.139.196.7/procurement/requests/{instance.id}"
+
+                        line_message = (
+                            f"เรียน คุณ {recipient_name},\n\n"
+                            f"มีงานใหม่รอการอนุมัติจากท่าน\n"
+                            f"เรื่อง: {instance.title}\n"
+                            f"สร้างโดย: {requester_name}\n"
+                            f"ขั้นตอนปัจจุบัน: {next_step.name}\n\n"
+                            f"กรุณาตรวจสอบและดำเนินการที่: \n\n"
+                            f"{link_to_task}"
+                        )
+                        # send_notifications(user_to_notify, line_message) # ยกเลิก comment เพื่อใช้งานจริง
+            else:
+                # ถ้าไม่มี Step ถัดไป ให้ปิดงาน
+                instance.current_step = None
+                instance.is_completed = True
+
+                # แจ้งเตือนผู้สร้างงานว่างานเสร็จแล้ว
+                if instance.created_by != user:
+                    Notification.objects.create(
+                        recipient=instance.created_by,
+                        message=f"งาน '{instance.title}' ได้รับการอนุมัติครบทุกขั้นตอนแล้ว",
+                        link=f"/procurement/requests/{instance.id}"
+                    )
+
+            instance.save()  # บันทึกการเปลี่ยนแปลงทั้งหมด
+
+        return Response(self.get_serializer(instance).data)
 
     @action(detail=True, methods=['post'], url_path='cancel')
     def cancel_request(self, request, pk=None):

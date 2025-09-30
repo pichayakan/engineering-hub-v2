@@ -166,6 +166,7 @@ function ProcurementListPage() {
             <tr>
               <th>Title</th>
               <th>Project</th>
+              <th>เลขที่หนังสือ</th>
               <th>Category</th>
               <th>Current Step</th>
               <th>SLA</th>
@@ -216,6 +217,9 @@ function ProcurementListPage() {
                       </Link>
                     </td>
                     <td data-label="Project">{req.project_name || "N/A"}</td>
+                    <td data-label="เลขที่เอกสารอ้างอิง">
+                      {req.history_document_numbers || "N/A"}
+                    </td>
                     <td data-label="Category">
                       <span className="category-badge">
                         {req.category_details?.name || "N/A"}

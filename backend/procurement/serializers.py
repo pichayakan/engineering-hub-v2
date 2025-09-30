@@ -52,6 +52,7 @@ class StepSerializer(serializers.ModelSerializer):
             "responsible_groups",
             "responsible_group_details",
             "is_signature_required",
+            "requires_document_number",
         ]
 
 
@@ -97,8 +98,59 @@ class RequestHistorySerializer(serializers.ModelSerializer):
             "approved_by_details",
             "timestamp",
             "notes",
+            "document_number",  # ✅ เพิ่ม document_number"
             "attachments",
         ]
+
+
+class ProcurementListSerializer(serializers.ModelSerializer):
+    """
+    Serializer สำหรับหน้า List ที่ส่งข้อมูลเฉพาะที่จำเป็น
+    และเพิ่ม field สรุปเลขที่เอกสาร
+    """
+    category_details = ProcurementCategorySerializer(
+        source="category", read_only=True
+    )
+    current_step_details = StepSerializer(
+        source="current_step", read_only=True
+    )
+    created_by_details = UserListSerializer(
+        source="created_by", read_only=True
+    )
+    project_name = serializers.CharField(
+        source="project.name", read_only=True, allow_null=True
+    )
+
+    # --- Field ที่เราจะคำนวณขึ้นมาใหม่ ---
+    history_document_numbers = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProcurementRequest
+        fields = (
+            'id',
+            'title',
+            'project_name',
+            'category_details',
+            'current_step_details',
+            'created_by_details',
+            'created_at',
+            'is_completed',
+            'is_cancelled',
+            'history_document_numbers'  # <-- field สรุปของเรา
+        )
+
+    def get_history_document_numbers(self, obj):
+        """
+        รวบรวม document_number ทั้งหมดจาก history ที่มีค่า (ไม่ว่าง)
+        แล้วนำมาต่อกันด้วย ", "
+        """
+        numbers = obj.history.exclude(
+            document_number__isnull=True
+        ).exclude(
+            document_number__exact=''
+        ).values_list('document_number', flat=True)
+
+        return ", ".join(numbers)
 
 
 class ProcurementRequestSerializer(serializers.ModelSerializer):
@@ -132,6 +184,7 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
             "project_name",
             "category",  # ✅ ADDED THIS
             "category_details",  # ✅ ADDED THIS
+            "document_number",
             "workflow_template",
             "current_step",
             "current_step_details",

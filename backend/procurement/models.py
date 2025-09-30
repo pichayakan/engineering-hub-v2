@@ -59,6 +59,12 @@ class Step(models.Model):
         default=False, help_text="ขั้นตอนนี้บังคับให้ต้องมีการลงนามในเอกสาร PDF หรือไม่"
     )
 
+    requires_document_number = models.BooleanField(
+        "บังคับใส่เลขที่หนังสือ",
+        default=False,
+        help_text="ติ๊กเลือกหากขั้นตอนนี้จำเป็นต้องมีการกรอกเลขที่หนังสือ"
+    )
+
     class Meta:
         ordering = ["workflow_template", "order"]
         unique_together = ("workflow_template", "order")
@@ -88,6 +94,8 @@ class ProcurementRequest(models.Model):
         blank=True,
         related_name="procurement_requests",
     )
+    document_number = models.CharField(
+        "เลขที่หนังสือ", max_length=100, blank=True, null=True)
     workflow_template = models.ForeignKey(
         WorkflowTemplate, on_delete=models.PROTECT)
     current_step = models.ForeignKey(
@@ -140,6 +148,12 @@ class RequestHistory(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True, null=True)
+    document_number = models.CharField(
+        "เลขที่หนังสือ",
+        max_length=100,
+        blank=True,
+        null=True
+    )
 
     class Meta:
         ordering = ["timestamp"]

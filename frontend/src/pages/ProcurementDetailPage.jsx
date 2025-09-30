@@ -54,6 +54,7 @@ function ProcurementDetailPage() {
   const [renderedPdfScale, setRenderedPdfScale] = useState(1);
   const signatureAspectRatio = useRef(1);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [documentNumber, setDocumentNumber] = useState("");
 
   // PDF & Signature State
   const [numPages, setNumPages] = useState(null);
@@ -261,15 +262,35 @@ function ProcurementDetailPage() {
         "Are you sure you want to approve and advance to the next step?"
       )
     ) {
-      return; // Stop the function if the user clicks "Cancel"
+      return; // หยุดการทำงานถ้าผู้ใช้กด "Cancel"
     }
+
     if (isSubmitting) return;
     setIsSubmitting(true);
+
     const formData = new FormData();
     formData.append("notes", notes);
+
+    // ✨ --- เพิ่มโค้ดส่วนนี้เข้าไป --- ✨
+    // ตรวจสอบว่าขั้นตอนนี้บังคับให้กรอกเลขที่หนังสือหรือไม่
+    if (request.current_step_details?.requires_document_number) {
+      // ถ้าบังคับ และผู้ใช้ได้กรอกข้อมูลแล้ว
+      if (documentNumber && documentNumber.trim() !== "") {
+        // ให้แนบข้อมูลเลขที่หนังสือลงไปใน formData
+        formData.append("document_number", documentNumber);
+      } else {
+        // ถ้าจำเป็นแต่ยังไม่ได้กรอก ให้แจ้งเตือนและหยุดการทำงาน
+        alert("Please enter the required document number for this step.");
+        setIsSubmitting(false); // ปลดล็อกปุ่ม
+        return;
+      }
+    }
+    // ✨ --- สิ้นสุดส่วนที่เพิ่ม --- ✨
+
     filesToUpload.forEach((file) => {
       formData.append("files", file);
     });
+
     try {
       const response = await apiClient.post(
         `/api/procurement/requests/${requestId}/advance-step/`,
@@ -281,6 +302,7 @@ function ProcurementDetailPage() {
       setRequest(response.data);
       setNotes("");
       setFilesToUpload([]);
+      setDocumentNumber(""); // ✨ เคลียร์ค่าใน state หลังส่งสำเร็จ
     } catch (error) {
       console.error("Failed to approve step", error);
       alert(error.response?.data?.error || "Could not approve step.");
@@ -748,6 +770,11 @@ function ProcurementDetailPage() {
     <div className="procurement-detail-container">
       <div className="detail-header">
         <h1>{request.title}</h1>
+        {request.document_number && (
+          <p>
+            <strong>เลขที่หนังสือ:</strong> {request.document_number}
+          </p>
+        )}
         <p>
           Created by: {request.created_by_details.username} on{" "}
           {new Date(request.created_at).toLocaleDateString()}
@@ -989,6 +1016,11 @@ function ProcurementDetailPage() {
                   ))}
                 </div>
                 {h.notes && <p className="history-notes">{h.notes}</p>}
+                {h.document_number && (
+                  <p className="history-step-doc-number">
+                    <strong>เลขที่เอกสารอ้างอิง:</strong> {h.document_number}
+                  </p>
+                )}
                 <div className="history-attachments">
                   {h.attachments.map((att) => (
                     <div key={att.id} className="attachment-item">
@@ -1035,6 +1067,17 @@ function ProcurementDetailPage() {
                 </p>
                 <p className={`sla-remaining ${sla.className}`}>{sla.text}</p>
               </div>
+              {request.current_step_details?.requires_document_number && (
+                <div className="form-group">
+                  <label htmlFor="documentNumber">เลขที่หนังสือ (จำเป็น)</label>
+                  <input
+                    type="text"
+                    id="documentNumber"
+                    value={documentNumber}
+                    onChange={(e) => setDocumentNumber(e.target.value)}
+                  />
+                </div>
+              )}
               <div className="form-group">
                 <label htmlFor="approval_notes">
                   Approval Notes (Optional)
