@@ -53,6 +53,7 @@ class StepSerializer(serializers.ModelSerializer):
             "responsible_group_details",
             "is_signature_required",
             "requires_document_number",
+            "requires_attachment",
         ]
 
 

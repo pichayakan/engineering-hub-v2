@@ -734,6 +734,9 @@ function ProcurementDetailPage() {
   const stepRequiresSignature =
     request.current_step_details?.is_signature_required;
 
+  const stepRequiresAttachment =
+    request.current_step_details?.requires_attachment;
+
   const isSignatureRequirementMet = () => {
     if (!stepRequiresSignature) {
       return true; // ถ้าไม่ต้องการลายเซ็น ก็ถือว่าผ่าน
@@ -1090,7 +1093,14 @@ function ProcurementDetailPage() {
                 ></textarea>
               </div>
               <div className="form-group">
-                <label htmlFor="approval_attachments">Attach Files</label>
+                <label htmlFor="approval_attachments">
+                  Attach Files
+                  {stepRequiresAttachment && (
+                    <span style={{ color: "red", marginLeft: "4px" }}>
+                      (จำเป็น)
+                    </span>
+                  )}
+                </label>
                 <input
                   type="file"
                   id="approval_attachments"
@@ -1158,6 +1168,18 @@ function ProcurementDetailPage() {
                 </>
               )}
 
+              {canApprove && (
+                <>
+                  {stepRequiresAttachment && filesToUpload.length === 0 && (
+                    <p className="single-warning-message">
+                      ⚠️ ขั้นตอนนี้บังคับให้ต้องแนบไฟล์ กรุณาเลือกไฟล์อย่างน้อย
+                      1 รายการ
+                    </p>
+                  )}
+                  {/* ... ข้อความแจ้งเตือนอื่นๆ ... */}
+                </>
+              )}
+
               <button
                 onClick={handleApprove}
                 className="approve-button"
@@ -1165,7 +1187,7 @@ function ProcurementDetailPage() {
                   !canApprove ||
                   isSubmitting ||
                   (stepRequiresSignature && !isSignatureRequirementMet()) ||
-                  !hasViewedPdf
+                  (stepRequiresAttachment && filesToUpload.length === 0)
                 }
               >
                 {isSubmitting ? "Submitting..." : "ยืนยันการอนุมัติ"}

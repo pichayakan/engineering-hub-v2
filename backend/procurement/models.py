@@ -65,6 +65,12 @@ class Step(models.Model):
         help_text="ติ๊กเลือกหากขั้นตอนนี้จำเป็นต้องมีการกรอกเลขที่หนังสือ"
     )
 
+    requires_attachment = models.BooleanField(
+        "บังคับแนบไฟล์",
+        default=False,
+        help_text="ติ๊กเลือกหากขั้นตอนนี้บังคับให้ต้องแนบไฟล์ประกอบอย่างน้อย 1 ไฟล์"
+    )
+
     class Meta:
         ordering = ["workflow_template", "order"]
         unique_together = ("workflow_template", "order")

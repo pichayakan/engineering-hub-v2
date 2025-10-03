@@ -190,6 +190,14 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+        # ✅ --- เพิ่ม Logic ตรวจสอบการแนบไฟล์ ---
+        if current_step.requires_attachment:
+            if not files:  # ตรวจสอบว่ามีไฟล์แนบมาหรือไม่
+                return Response(
+                    {'error': 'ขั้นตอนนี้จำเป็นต้องแนบไฟล์ประกอบ'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         # ✨ 1. ใช้ transaction.atomic เพื่อให้แน่ใจว่าทุกอย่างสำเร็จพร้อมกัน
         with transaction.atomic():
             # ✨ 3. บันทึกเลขที่หนังสือลงใน History
