@@ -22,9 +22,9 @@
   border-color: #dee2e6;
 }
 .status-badge-wf.status-IN_PROGRESS {
-  background-color: #cff4fc;
-  color: #055160;
-  border-color: #9eeaf9;
+  background-color: #fff3cd; /* เปลี่ยนพื้นหลังเป็นสีเหลืองอ่อน */
+  color: #664d03; /* เปลี่ยนสีตัวอักษรเป็นสีน้ำตาลเข้ม */
+  border-color: #ffecb5; /* เปลี่ยนสีขอบเป็นสีเหลืองนวล */
 }
 .status-badge-wf.status-COMPLETED {
   background-color: #d1e7dd;
@@ -39,8 +39,13 @@
 
 /* --- Row and Cell Content Styles --- */
 .status-row-COMPLETED {
-  background-color: #f8f9fa;
-  color: #6c757d;
+  background-color: #e9f5ee; /* เปลี่ยนพื้นหลังจากสีเทาเป็นสีเขียวที่สว่างและชัดเจน */
+  color: #0c4128; /* ปรับสีตัวอักษรให้เข้มขึ้นเล็กน้อยเพื่อความคมชัด */
+}
+
+/* ทำให้ Link ที่อยู่ในแถว Completed มีสีเขียวไปด้วย */
+.status-row-COMPLETED a {
+  color: #0f5132;
 }
 
 /* A generic wrapper for content inside cells that need vertical stacking */
@@ -52,21 +57,35 @@
 }
 
 .action-button-link {
-  background: none;
-  border: none;
-  color: #0d6efd;
+  /* --- Style Changes for Prominence --- */
+  background-color: #e7f1ff; /* 1. เปลี่ยนจากพื้นหลังใสเป็นสีฟ้าอ่อน */
+  color: #0a58ca; /* 2. ปรับสีตัวอักษรให้เข้มขึ้น */
+  border: 1px solid #b6d4fe; /* 3. เพิ่มเส้นขอบสีฟ้า */
+  border-radius: 12px; /* 4. ทำให้ขอบมนดูเหมือนปุ่ม */
+  padding: 0.2rem 0.6rem; /* 5. เพิ่ม padding ให้ปุ่มมีขนาดใหญ่ขึ้น */
+  font-size: 0.75rem; /* ปรับขนาดฟอนต์ให้เหมาะสม */
+  font-weight: 600; /* ทำให้ตัวอักษรหนาขึ้น */
+  text-decoration: none; /* เอาเส้นใต้ที่เคยมีออก */
+
+  /* --- Spacing Change --- */
+  margin-right: 0.75rem; /* 6. เปลี่ยนจาก margin-left เป็น margin-right เพื่อสร้างระยะห่างด้านขวา */
+
+  /* --- Other properties --- */
   cursor: pointer;
-  padding: 0;
-  font-size: 0.8rem;
-  margin-left: 0.75rem;
-  font-weight: 500;
   display: inline-block;
-  opacity: 0.5;
-  transition: opacity 0.2s ease;
+  transition: all 0.2s ease; /* ทำให้การเปลี่ยนแปลง (เช่น hover) นุ่มนวล */
 }
-.tasks-table tr:hover .action-button-link {
+
+.action-button-link:hover {
+  background-color: #d1e3ff; /* 7. เมื่อเอาเมาส์ไปชี้ สีพื้นหลังจะเข้มขึ้น */
+  border-color: #a1c9ff;
+  transform: translateY(-1px); /* 8. เพิ่ม animation ให้ปุ่มดูลอยขึ้นเล็กน้อย */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* เพิ่มเงาเล็กน้อย */
+}
+
+/* เพิ่มให้ปุ่มแสดงผลตลอดเวลา ไม่ต้องรอ hover */
+.tasks-table .action-button-link {
   opacity: 1;
-  text-decoration: underline;
 }
 
 /* This class is now on the inner div */

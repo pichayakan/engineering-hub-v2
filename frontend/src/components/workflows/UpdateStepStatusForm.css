@@ -11,6 +11,29 @@
   color: #333;
 }
 
+/* --- ✅ เพิ่ม input[type="date"] เข้าไปใน selector นี้ --- */
+.update-status-form select,
+.update-status-form textarea,
+.update-status-form input[type="file"],
+.update-status-form input[type="date"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: "Sarabun", sans-serif;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* --- ✅ เพิ่ม input[type="date"]:focus เข้าไปใน selector นี้ --- */
+.update-status-form select:focus,
+.update-status-form textarea:focus,
+.update-status-form input[type="date"]:focus {
+  outline: none;
+  border-color: var(--nt-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25);
+}
+
 /* --- ✅ Consistent styling for form elements --- */
 .update-status-form select,
 .update-status-form textarea,
@@ -104,5 +127,11 @@
   color: #dc3545;
   font-weight: bold;
   font-size: 1.2rem;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(100%); /* ทำให้สีของไอคอนเป็นสีขาว */
+  /* filter: brightness(0) invert(1); */ /* อีกทางเลือกที่อาจจะให้ผลดีกว่า */
   cursor: pointer;
 }

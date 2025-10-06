@@ -115,6 +115,11 @@ class StepStatus(models.Model):
         null=True, blank=True
     )
     completed_at = models.DateTimeField(null=True, blank=True)
+    actual_completed_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="วันที่ปิดงานจริง"
+    )
     due_date = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True, null=True)
 

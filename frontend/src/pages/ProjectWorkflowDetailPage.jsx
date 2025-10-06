@@ -209,14 +209,17 @@ function ProjectWorkflowDetailPage() {
           <thead>
             <tr>
               <th style={{ width: "3%" }}>#</th>
-              <th style={{ width: "25%" }}>Step Name</th>
+              <th style={{ width: "22%" }}>Step Name</th>{" "}
+              {/* ปรับความกว้างเล็กน้อย */}
               <th style={{ width: "15%" }}>Responsible Group</th>
               <th style={{ width: "10%" }}>Due Date (SLA)</th>
               <th style={{ width: "10%" }}>Status</th>
-              <th style={{ width: "5%" }}>Notes</th> {/* ✅ ADDED */}
+              <th style={{ width: "5%" }}>Notes</th>
               <th style={{ width: "10%" }}>Completed By</th>
-              <th style={{ width: "10%" }}>Completed At</th>
-              <th style={{ width: "12%" }}>Attachments</th>
+              <th style={{ width: "10%" }}>Actual Date</th>
+              <th style={{ width: "10%" }}>System Date</th>{" "}
+              {/* เปลี่ยนชื่อ Completed At */}
+              <th style={{ width: "10%" }}>Attachments</th>
             </tr>
           </thead>
           <tbody>
@@ -244,16 +247,16 @@ function ProjectWorkflowDetailPage() {
                 <tr key={status.id} className={`status-row-${status.status}`}>
                   <td>{status.step.order}</td>
                   <td>
-                    {status.step.name}
                     {canUpdate && (
                       <button
                         className="action-button-link"
                         onClick={() => handleOpenStepModal(status)}
-                        disabled={status.status === "COMPLETED"}
+                        // disabled={status.status === "COMPLETED"}
                       >
                         Update
                       </button>
                     )}
+                    {status.step.name}
                   </td>
                   <td>
                     {status.step.responsible_group_details?.length > 0
@@ -294,6 +297,7 @@ function ProjectWorkflowDetailPage() {
                     )}
                   </td>
                   <td>{status.completed_by_details?.username || "---"}</td>
+                  <td>{formatDate(status.actual_completed_date)}</td>
                   <td>{formatDate(status.completed_at)}</td>
                   <td>
                     <div className="cell-content-wrapper attachments-cell">
@@ -334,7 +338,7 @@ function ProjectWorkflowDetailPage() {
             stepStatus={currentStep}
             onSubmit={handleUpdateStepSubmit}
             onCancel={handleCloseStepModal}
-            readOnly={currentStep.status === "COMPLETED"}
+            // readOnly={currentStep.status === "COMPLETED"}
           />
         )}
       </Modal>
