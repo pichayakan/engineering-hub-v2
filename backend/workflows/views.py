@@ -1,6 +1,10 @@
 # workflows/views.py
 from django.utils import timezone  # ✅ IMPORT
 from datetime import date, timedelta  # ✅ IMPORT
+from django.db.models import Count, Q
+from django.db.models.functions import TruncMonth
+from dateutil.relativedelta import relativedelta
+from collections import defaultdict
 from rest_framework import viewsets, permissions, mixins, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
@@ -108,8 +112,143 @@ class StepStatusViewSet(mixins.RetrieveModelMixin,
                 name=file.name,
             )
 
+        # หลังจากบันทึก StepStatus แล้ว ให้ตรวจสอบสถานะของ Workflow หลัก
+        workflow = step_status.workflow
+        total_steps = workflow.step_statuses.count()
+        completed_steps = workflow.step_statuses.filter(
+            status='COMPLETED').count()
+
+        # นับจำนวน Step ทั้งหมด และ Step ที่เสร็จแล้ว
+        total_steps = workflow.step_statuses.count()
+        completed_steps = workflow.step_statuses.filter(
+            status='COMPLETED').count()
+
+        if total_steps > 0 and total_steps == completed_steps:
+            workflow.is_completed = True
+            # ✅ 2. บันทึกวันที่โปรเจกต์เสร็จสิ้น
+            workflow.completed_at = timezone.now()
+        else:
+            workflow.is_completed = False
+            # ✅ 3. ล้างค่าวันที่ ถ้าโปรเจกต์ถูกเปลี่ยนกลับเป็นไม่เสร็จ
+            workflow.completed_at = None
+
+        workflow.save()
+        # --- ✅ END: ADD THIS LOGIC ---
+
         serializer = self.get_serializer(step_status)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def workflow_status_breakdown(request):
+    """
+    Provides data for the status breakdown donut chart.
+    Counts active workflows based on their SLA status.
+    """
+    # ✅ 1. รับค่า fiscal_year จาก request
+    fiscal_year = request.query_params.get('fiscal_year', None)
+
+    today = date.today()
+    seven_days_from_now = today + timedelta(days=7)
+
+    active_workflows = ProjectWorkflow.objects.filter(is_completed=False)
+
+    # ✅ 2. กรองข้อมูลด้วย fiscal_year ถ้ามี
+    if fiscal_year:
+        active_workflows = active_workflows.filter(fiscal_year=fiscal_year)
+
+    # Overdue workflows
+    overdue_pks = StepStatus.objects.filter(
+        workflow__in=active_workflows,
+        status__in=['PENDING', 'IN_PROGRESS'],
+        due_date__isnull=False,
+        due_date__lt=today
+    ).values_list('workflow__pk', flat=True).distinct()
+    overdue_count = len(overdue_pks)
+
+    # Nearing SLA workflows (excluding those already overdue)
+    nearing_sla_pks = StepStatus.objects.filter(
+        workflow__in=active_workflows,
+        status__in=['PENDING', 'IN_PROGRESS'],
+        due_date__isnull=False,
+        due_date__gte=today,
+        due_date__lte=seven_days_from_now
+    ).values_list('workflow__pk', flat=True).distinct()
+    nearing_sla_count = len(set(nearing_sla_pks) - set(overdue_pks))
+
+    # In Progress (On Time)
+    total_active_count = active_workflows.count()
+    on_time_count = total_active_count - overdue_count - nearing_sla_count
+
+    data = {
+        'on_time': on_time_count,
+        'nearing_sla': nearing_sla_count,
+        'overdue': overdue_count,
+    }
+    return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def workflow_performance_trend(request):
+    """
+    Provides data for the performance trend bar chart.
+    Counts created vs completed workflows.
+    Filters by fiscal_year if provided, otherwise shows last 6 months.
+    """
+    # ✅ 1. รับค่า fiscal_year จาก request
+    fiscal_year = request.query_params.get('fiscal_year', None)
+
+    labels = []
+    created_data_query = ProjectWorkflow.objects.all()
+    # Query จาก ProjectWorkflow โดยตรง
+    completed_data_query = ProjectWorkflow.objects.filter(
+        is_completed=True,
+        completed_at__isnull=False
+    )
+
+    if fiscal_year:
+        year = int(fiscal_year)
+        created_data_query = created_data_query.filter(created_at__year=year)
+        completed_data_query = completed_data_query.filter(
+            completed_at__year=year)
+
+        for i in range(1, 13):
+            labels.append(datetime.date(year, i, 1).strftime('%b %Y'))
+    else:
+        start_of_period = date.today().replace(day=1) - relativedelta(months=5)
+        created_data_query = created_data_query.filter(
+            created_at__gte=start_of_period)
+        completed_data_query = completed_data_query.filter(
+            completed_at__gte=start_of_period)
+
+        for i in range(6):
+            labels.append(
+                (start_of_period + relativedelta(months=i)).strftime('%b %Y'))
+
+    # Query 'created'
+    created_data = created_data_query.annotate(month=TruncMonth('created_at')).values(
+        'month').annotate(count=Count('id')).order_by('month')
+
+    # Query 'completed' (ใช้ completed_at)
+    completed_data = completed_data_query.annotate(month=TruncMonth(
+        'completed_at')).values('month').annotate(count=Count('id')).order_by('month')
+
+    created_counts = {item['month'].strftime(
+        '%b %Y'): item['count'] for item in created_data}
+    completed_counts = {item['month'].strftime(
+        '%b %Y'): item['count'] for item in completed_data}
+
+    final_created = [created_counts.get(label, 0) for label in labels]
+    final_completed = [completed_counts.get(label, 0) for label in labels]
+
+    data = {
+        'labels': labels,
+        'created_data': final_created,
+        'completed_data': final_completed,
+    }
+    return Response(data)
 
 
 @api_view(['GET'])

@@ -38,6 +38,11 @@ class ProjectWorkflow(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="วันที่โปรเจกต์เสร็จสิ้น"
+    )
 
     def recalculate_due_dates(self):
         """Helper method to recalculate all step due dates based on the start_date."""

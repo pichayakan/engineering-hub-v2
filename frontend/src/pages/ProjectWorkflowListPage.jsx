@@ -6,6 +6,7 @@ import SummaryCard from "../components/SummaryCard";
 import ProgressBar from "../components/ProgressBar";
 import EmptyState from "../components/EmptyState";
 import PaginationControls from "../components/PaginationControls";
+import DashboardCharts from "../components/dashboard/DashboardCharts";
 import { formatDate } from "../utils/formatDate";
 import {
   FiActivity,
@@ -127,18 +128,20 @@ function ProjectWorkflowListPage() {
               icon={<FiCheckCircle />}
             />
             <SummaryCard
-              title="Nearing SLA"
+              title="ใกล้ครบกำหนด SLA"
               value={summary.nearing_sla_count}
               icon={<FiClock />}
             />
             <SummaryCard
-              title="Overdue"
+              title="ขั้นตอนที่เกินเวลา"
               value={summary.overdue_count}
               icon={<FiAlertTriangle />}
             />
           </div>
         )}
       </div>
+
+      <DashboardCharts fiscalYear={fiscalYear} />
 
       <div className="filter-controls">
         <select
