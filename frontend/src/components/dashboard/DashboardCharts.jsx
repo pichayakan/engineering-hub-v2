@@ -1,33 +1,36 @@
-// frontend/src/components/dashboard/DashboardCharts.jsx
-
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import apiClient from "../../api";
-import Chart from "chart.js/auto";
-import "./DashboardCharts.css";
+// ✅ 1. IMPORT components จาก Recharts
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  Bar,
+} from "recharts";
+import "./DashboardCharts.css"; // ใช้ CSS เดิมได้
 
-// ✅ 1. รับ fiscalYear เป็น prop
 const DashboardCharts = ({ fiscalYear }) => {
-  const statusChartRef = useRef(null);
-  const trendChartRef = useRef(null);
+  const [statusData, setStatusData] = useState([]);
+  const [trendData, setTrendData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ✅ 2. เพิ่ม fiscalYear ใน dependency array ของ useEffect
   useEffect(() => {
-    let statusChartInstance = null;
-    let trendChartInstance = null;
-
     const fetchChartData = async () => {
       try {
         setLoading(true);
-
-        // ✅ 3. สร้าง object สำหรับ params ที่จะส่งไปกับ API
         const params = {};
         if (fiscalYear) {
           params.fiscal_year = fiscalYear;
         }
 
-        // ✅ 4. ส่ง params ไปกับ API call
         const [statusRes, trendRes] = await Promise.all([
           apiClient.get("/api/workflows/summary/status-breakdown/", { params }),
           apiClient.get("/api/workflows/summary/performance-trend/", {
@@ -35,79 +38,21 @@ const DashboardCharts = ({ fiscalYear }) => {
           }),
         ]);
 
-        // --- Create/Update Status Breakdown Chart (Donut) ---
-        if (statusChartRef.current && statusRes.data) {
-          // ถ้ามีกราฟอยู่แล้วให้ทำลายทิ้งก่อนสร้างใหม่
-          if (Chart.getChart(statusChartRef.current)) {
-            Chart.getChart(statusChartRef.current).destroy();
-          }
-          const statusCtx = statusChartRef.current.getContext("2d");
-          statusChartInstance = new Chart(statusCtx, {
-            type: "doughnut",
-            data: {
-              labels: ["On Time", "Nearing SLA", "Overdue"],
-              datasets: [
-                {
-                  data: [
-                    statusRes.data.on_time,
-                    statusRes.data.nearing_sla,
-                    statusRes.data.overdue,
-                  ],
-                  backgroundColor: ["#198754", "#ffc107", "#dc3545"],
-                  hoverOffset: 4,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: { position: "top" },
-                title: {
-                  display: true,
-                  text: `Active Status (${fiscalYear || "All Years"})`,
-                },
-              },
-            },
-          });
-        }
+        // ✅ 2. แปลงข้อมูล Status ให้ Recharts ใช้งานได้
+        const statusChartData = [
+          { name: "On Time", value: statusRes.data.on_time },
+          { name: "Nearing SLA", value: statusRes.data.nearing_sla },
+          { name: "Overdue", value: statusRes.data.overdue },
+        ].filter((item) => item.value > 0); // กรองเอาเฉพาะที่มีค่ามากกว่า 0
+        setStatusData(statusChartData);
 
-        // --- Create/Update Performance Trend Chart (Bar) ---
-        if (trendChartRef.current && trendRes.data) {
-          // ถ้ามีกราฟอยู่แล้วให้ทำลายทิ้งก่อนสร้างใหม่
-          if (Chart.getChart(trendChartRef.current)) {
-            Chart.getChart(trendChartRef.current).destroy();
-          }
-          const trendCtx = trendChartRef.current.getContext("2d");
-          trendChartInstance = new Chart(trendCtx, {
-            type: "bar",
-            data: {
-              labels: trendRes.data.labels,
-              datasets: [
-                {
-                  label: "Created",
-                  data: trendRes.data.created_data,
-                  backgroundColor: "#0d6efd",
-                },
-                {
-                  label: "Completed",
-                  data: trendRes.data.completed_data,
-                  backgroundColor: "#198754",
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: { position: "top" },
-                title: {
-                  display: true,
-                  text: `Performance Trend (${fiscalYear || "Last 6 Months"})`,
-                },
-              },
-              scales: { y: { beginAtZero: true } },
-            },
-          });
-        }
+        // ✅ 3. แปลงข้อมูล Trend ให้ Recharts ใช้งานได้
+        const trendChartData = trendRes.data.labels.map((label, index) => ({
+          month: label.split(" ")[0], // เอาแค่ชื่อเดือนย่อๆ
+          Created: trendRes.data.created_data[index],
+          Completed: trendRes.data.completed_data[index],
+        }));
+        setTrendData(trendChartData);
       } catch (err) {
         setError("Failed to load chart data.");
         console.error(err);
@@ -117,21 +62,59 @@ const DashboardCharts = ({ fiscalYear }) => {
     };
 
     fetchChartData();
-
-    // ไม่ต้องมี cleanup function แล้ว เพราะเราจัดการ instance ของ chart ก่อนสร้างใหม่
-    // return () => { ... };
-  }, [fiscalYear]); // <-- ✅ 2. ใส่ fiscalYear ที่นี่
+  }, [fiscalYear]);
 
   if (loading) return <div>Loading charts...</div>;
   if (error) return <div className="chart-error">{error}</div>;
 
+  const STATUS_COLORS = ["#198754", "#ffc107", "#dc3545"];
+
   return (
     <div className="dashboard-charts-grid">
       <div className="chart-container">
-        <canvas ref={statusChartRef}></canvas>
+        <h5 className="chart-title">
+          Active Workflow Status ({fiscalYear || "All Years"})
+        </h5>
+        <ResponsiveContainer width="100%" height={300}>
+          <PieChart>
+            <Pie
+              data={statusData}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+              label={({ name, percent }) =>
+                `${name} ${(percent * 100).toFixed(0)}%`
+              }
+            >
+              {statusData.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={STATUS_COLORS[index % STATUS_COLORS.length]}
+                />
+              ))}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </ResponsiveContainer>
       </div>
       <div className="chart-container">
-        <canvas ref={trendChartRef}></canvas>
+        <h5 className="chart-title">
+          Performance Trend ({fiscalYear || "Last 6 Months"})
+        </h5>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={trendData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="Created" fill="#0d6efd" />
+            <Bar dataKey="Completed" fill="#198754" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

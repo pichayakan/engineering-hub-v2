@@ -192,21 +192,21 @@ def workflow_status_breakdown(request):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def workflow_performance_trend(request):
+    """
+    Provides data for the performance trend bar chart.
+    Counts created vs completed workflows.
+    Filters by fiscal_year if provided, otherwise shows last 6 months.
+    """
+    # ✅ 1. รับค่า fiscal_year จาก request
     fiscal_year = request.query_params.get('fiscal_year', None)
 
     labels = []
-
-    # ✅ --- START: REVISED DATE LOGIC ---
-    # Find the latest creation date in the database to use as a reference
-    latest_workflow = ProjectWorkflow.objects.order_by('-created_at').first()
-    # If no workflows, use the current date as a fallback
-    reference_date = latest_workflow.created_at.date(
-    ) if latest_workflow else date.today()
-    # ✅ --- END: REVISED DATE LOGIC ---
-
     created_data_query = ProjectWorkflow.objects.all()
+    # Query จาก ProjectWorkflow โดยตรง
     completed_data_query = ProjectWorkflow.objects.filter(
-        is_completed=True, completed_at__isnull=False)
+        is_completed=True,
+        completed_at__isnull=False
+    )
 
     if fiscal_year:
         year = int(fiscal_year)
@@ -217,20 +217,21 @@ def workflow_performance_trend(request):
         for i in range(1, 13):
             labels.append(datetime.date(year, i, 1).strftime('%b %Y'))
     else:
-        # Use the reference_date instead of date.today()
-        start_of_period = reference_date.replace(
-            day=1) - relativedelta(months=5)
+        start_of_period = date.today().replace(day=1) - relativedelta(months=5)
         created_data_query = created_data_query.filter(
             created_at__gte=start_of_period)
         completed_data_query = completed_data_query.filter(
-            completed_at__gte=start_of_period, completed_at__lte=reference_date)
+            completed_at__gte=start_of_period)
 
         for i in range(6):
             labels.append(
                 (start_of_period + relativedelta(months=i)).strftime('%b %Y'))
 
+    # Query 'created'
     created_data = created_data_query.annotate(month=TruncMonth('created_at')).values(
         'month').annotate(count=Count('id')).order_by('month')
+
+    # Query 'completed' (ใช้ completed_at)
     completed_data = completed_data_query.annotate(month=TruncMonth(
         'completed_at')).values('month').annotate(count=Count('id')).order_by('month')
 
