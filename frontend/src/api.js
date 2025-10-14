@@ -4,7 +4,7 @@ import axios from "axios";
 const apiClient = axios.create({
   //baseURL: "http://202.139.196.7:8000",
   //baseURL: "http://localhost:8000",
-  baseURL: "http://202.139.196.7"
+  baseURL: "http://202.139.196.7",
 });
 
 apiClient.interceptors.request.use(
@@ -41,7 +41,7 @@ apiClient.interceptors.response.use(
           const response = await axios.post(
             //"http://localhost:8000/api/token/refresh/",
             //"http://202.139.196.7:8000/api/token/refresh/",
-            "http://202.139.196.7/api/token/refresh/"
+            "http://202.139.196.7/api/token/refresh/",
             {
               refresh: authTokens.refresh,
             }
