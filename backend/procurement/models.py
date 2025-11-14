@@ -26,6 +26,17 @@ class WorkflowTemplate(models.Model):
     """
     แม่แบบของกระบวนการทำงาน เช่น "จัดหาพัสดุไม่เกิน 5 แสนบาท"
     """
+    class TemplateTypes(models.TextChoices):
+        PROCUREMENT = 'PROCUREMENT', 'Workflow ทั่วไป'
+        WORKFLOW = 'WORKFLOW', 'งานจัดซื้อจัดจ้าง'
+
+    template_type = models.CharField(
+        max_length=20,
+        choices=TemplateTypes.choices,
+        default=TemplateTypes.PROCUREMENT,  # ตั้งค่าเริ่มต้นให้เป็น Procurement
+        verbose_name="ประเภทแม่แบบ"
+    )
+    # --- --------------------------- ---
 
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)

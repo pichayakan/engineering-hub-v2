@@ -9,7 +9,13 @@ import "./Workflows.css";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { FiSearch, FiMinusCircle, FiMessageSquare } from "react-icons/fi";
+// ✅ 1. เพิ่ม FiEdit icon
+import {
+  FiSearch,
+  FiMinusCircle,
+  FiMessageSquare,
+  FiEdit,
+} from "react-icons/fi";
 
 import { useAuth } from "../context/AuthContext";
 import { formatDate } from "../utils/formatDate";
@@ -25,6 +31,10 @@ const WorkflowDetails = ({ workflow }) => {
 
   return (
     <div className="workflow-details-grid">
+      <div>
+        <span>Category</span>
+        <strong>{workflow.category?.name || "---"}</strong>
+      </div>
       <div>
         <span>PR Number</span>
         <strong>{workflow.pr_number || "---"}</strong>
@@ -104,6 +114,7 @@ function ProjectWorkflowDetailPage() {
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
+      // อัปเดต State ของ workflow เพื่อให้ข้อมูลในตารางเปลี่ยนตาม
       setWorkflow((prev) => ({
         ...prev,
         step_statuses: prev.step_statuses.map((ss) =>
@@ -128,10 +139,7 @@ function ProjectWorkflowDetailPage() {
         `/api/workflows/projects/${workflowId}/`,
         updatedData
       );
-      setWorkflow((prevWorkflow) => ({
-        ...prevWorkflow,
-        ...response.data,
-      }));
+      setWorkflow(response.data);
       toast.success("Workflow details updated successfully!");
       handleCloseEditModal();
     } catch (error) {
@@ -140,10 +148,46 @@ function ProjectWorkflowDetailPage() {
     }
   };
 
+  // --- ✅ 2. เพิ่ม HANDLERS สำหรับ DURATION OVERRIDE ---
+  const handleOpenDurationModal = (stepStatus) => {
+    // ดึงค่าปัจจุบัน (ถ้ามี override ใช้อันนั้น, ถ้าไม่มีใช้ค่าจาก template)
+    const currentDuration =
+      stepStatus.duration_override ?? stepStatus.step.duration_days;
+
+    const newDuration = window.prompt(
+      `Enter new duration (in days) for step:\n"${stepStatus.step.name}"\n\n(Leave blank to use template default: ${stepStatus.step.duration_days} days)`,
+      currentDuration ?? ""
+    );
+
+    if (newDuration !== null) {
+      // ผู้ใช้ไม่กด Cancel
+      handleSetDurationSubmit(stepStatus, newDuration);
+    }
+  };
+
+  const handleSetDurationSubmit = async (stepStatus, newDuration) => {
+    try {
+      const response = await apiClient.post(
+        `/api/workflows/step-statuses/${stepStatus.id}/set-duration/`,
+        { duration: newDuration }
+      );
+
+      // --- 🔴 THIS IS THE CRITICAL FIX 🔴 ---
+      // API (views.py) จะส่ง workflow ทั้งก้อนที่คำนวณใหม่แล้วกลับมา
+      // เราต้องใช้ข้อมูลนี้อัปเดต State เพื่อให้ React วาดตารางใหม่
+      setWorkflow(response.data);
+      // --- -------------------------- ---
+
+      toast.success(`Duration updated. Due dates recalculated.`);
+    } catch (error) {
+      console.error("Failed to set duration", error);
+      toast.error(error.response?.data?.error || "Failed to set duration.");
+    }
+  };
+
   const getSlaStatus = (dueDateStr) => {
     if (!dueDateStr) return { text: "No SLA", className: "sla-pending" };
 
-    // Set both dates to midnight to compare the dates only, ignoring time
     const dueDate = new Date(dueDateStr);
     dueDate.setHours(0, 0, 0, 0);
 
@@ -209,16 +253,14 @@ function ProjectWorkflowDetailPage() {
           <thead>
             <tr>
               <th style={{ width: "3%" }}>#</th>
-              <th style={{ width: "22%" }}>Step Name</th>{" "}
-              {/* ปรับความกว้างเล็กน้อย */}
+              <th style={{ width: "22%" }}>Step Name</th>
               <th style={{ width: "15%" }}>Responsible Group</th>
               <th style={{ width: "10%" }}>Due Date (SLA)</th>
               <th style={{ width: "10%" }}>Status</th>
               <th style={{ width: "5%" }}>Notes</th>
               <th style={{ width: "10%" }}>Completed By</th>
               <th style={{ width: "10%" }}>Actual Date</th>
-              <th style={{ width: "10%" }}>System Date</th>{" "}
-              {/* เปลี่ยนชื่อ Completed At */}
+              <th style={{ width: "10%" }}>System Date</th>
               <th style={{ width: "10%" }}>Attachments</th>
             </tr>
           </thead>
@@ -228,15 +270,11 @@ function ProjectWorkflowDetailPage() {
 
               const checkUserPermission = () => {
                 if (user?.is_staff) return true;
-
                 const responsibleGroupIds = status.step.responsible_groups;
                 if (!responsibleGroupIds || responsibleGroupIds.length === 0) {
                   return true;
                 }
-
-                // user.groups is already an array of IDs, so we use it directly.
                 const userGroupIds = user?.groups || [];
-
                 return userGroupIds.some((userGroupId) =>
                   responsibleGroupIds.includes(userGroupId)
                 );
@@ -251,7 +289,6 @@ function ProjectWorkflowDetailPage() {
                       <button
                         className="action-button-link"
                         onClick={() => handleOpenStepModal(status)}
-                        // disabled={status.status === "COMPLETED"}
                       >
                         Update
                       </button>
@@ -267,6 +304,8 @@ function ProjectWorkflowDetailPage() {
                         ))
                       : "---"}
                   </td>
+
+                  {/* --- ✅ 3. แก้ไข TD ของ DUE DATE --- */}
                   <td className={`sla-text ${sla.className}`}>
                     <div className="cell-content-wrapper">
                       {status.due_date ? (
@@ -277,13 +316,24 @@ function ProjectWorkflowDetailPage() {
                       ) : (
                         "N/A"
                       )}
+                      {/* เพิ่มปุ่มแก้ไข Duration */}
+                      {canUpdate && (
+                        <button
+                          className="action-button-link"
+                          style={{ marginLeft: "5px", fontSize: "1.1rem" }}
+                          title="Set custom duration (days)"
+                          onClick={() => handleOpenDurationModal(status)}
+                        >
+                          <FiEdit />
+                        </button>
+                      )}
                     </div>
                   </td>
+
                   <td>
                     <StatusBadge status={status.status} />
                   </td>
                   <td className="notes-cell">
-                    {/* --- ✅ THIS IS THE FIX --- */}
                     {status.notes && (
                       <span
                         onClick={() => handleOpenStepModal(status)}
@@ -338,7 +388,6 @@ function ProjectWorkflowDetailPage() {
             stepStatus={currentStep}
             onSubmit={handleUpdateStepSubmit}
             onCancel={handleCloseStepModal}
-            // readOnly={currentStep.status === "COMPLETED"}
           />
         )}
       </Modal>

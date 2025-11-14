@@ -5,7 +5,7 @@ from .models import (
     Step,
     ProcurementRequest,
     RequestHistory,
-    ProcurementCategory  # ✅ IMPORTED
+    ProcurementCategory,
 )
 
 
@@ -32,7 +32,9 @@ class StepInline(admin.TabularInline):
 
 @admin.register(WorkflowTemplate)
 class WorkflowTemplateAdmin(admin.ModelAdmin):
-    list_display = ("name", "description", "is_active")
+    list_display = ("name", "template_type", "description", "is_active")
+    list_filter = ("template_type", "is_active")
+    search_fields = ("name",)
     inlines = [StepInline]  # Embed the Step editor
 
 

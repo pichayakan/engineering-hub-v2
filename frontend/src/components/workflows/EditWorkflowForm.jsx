@@ -1,6 +1,7 @@
 // frontend/src/pages/workflows/components/EditWorkflowForm.jsx
 import React, { useState, useEffect } from "react";
 import "./EditWorkflowForm.css";
+import apiClient from "../../api";
 
 function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
@@ -8,8 +9,25 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
     pr_number: "",
     budget_amount: "",
     fiscal_year: "",
-    start_date: "", // ✅ ADDED
+    start_date: "",
+    category: "", // ✅ 2. เพิ่ม category ใน state
   });
+
+  // ✅ 3. เพิ่ม State สำหรับเก็บรายการ Category ทั้งหมด
+  const [categories, setCategories] = useState([]);
+
+  // ✅ 4. เพิ่ม useEffect สำหรับดึงข้อมูล Category ทั้งหมด
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await apiClient.get("/api/workflows/categories/");
+        setCategories(response.data.results || response.data);
+      } catch (error) {
+        console.error("Failed to fetch workflow categories", error);
+      }
+    };
+    fetchCategories();
+  }, []); // ทำงานครั้งเดียว
 
   useEffect(() => {
     if (workflow) {
@@ -18,10 +36,10 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
         pr_number: workflow.pr_number || "",
         budget_amount: workflow.budget_amount || "",
         fiscal_year: workflow.fiscal_year || "",
-        // ✅ ADDED: Format date for the input field
         start_date: workflow.start_date
           ? new Date(workflow.start_date).toISOString().split("T")[0]
           : "",
+        category: workflow.category?.id || "", // ✅ 5. ตั้งค่า category ปัจจุบัน
       });
     }
   }, [workflow]);
@@ -37,6 +55,7 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
       ...formData,
       budget_amount: formData.budget_amount || null,
       fiscal_year: formData.fiscal_year || null,
+      category: formData.category || null, // ✅ 6. ส่ง category ที่เลือก
     };
     onSubmit(payload);
   };
@@ -54,7 +73,27 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
         />
       </div>
 
-      {/* --- ✅ ADDED: Start Date input --- */}
+      {/* --- ✅ 7. เพิ่ม Dropdown สำหรับ Category --- */}
+      <div className="form-group">
+        <label htmlFor="category">Workflow Category</label>
+        <select
+          name="category"
+          id="category"
+          value={formData.category}
+          onChange={handleChange}
+          required
+        >
+          <option value="" disabled>
+            -- Select a Category --
+          </option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="form-group">
         <label htmlFor="start_date">Workflow Start Date</label>
         <input

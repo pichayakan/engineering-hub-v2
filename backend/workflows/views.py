@@ -9,14 +9,17 @@ from rest_framework import viewsets, permissions, mixins, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from .models import ProjectWorkflow, StepStatus, StepAttachment
+from .models import ProjectWorkflow, StepStatus, StepAttachment, WorkflowCategory
 from .serializers import (
     ProjectWorkflowListSerializer,
     ProjectWorkflowDetailSerializer,
     ProjectWorkflowCreateSerializer,  # ✅ IMPORT THE NEW SERIALIZER
     StepStatusSerializer,
     ProjectWorkflowUpdateSerializer,
+    WorkflowCategorySerializer
 )
+from procurement.models import WorkflowTemplate
+from procurement.serializers import WorkflowTemplateSerializer
 import datetime
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
@@ -34,7 +37,7 @@ class ProjectWorkflowViewSet(viewsets.ModelViewSet):
 
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['fiscal_year']
+    filterset_fields = ['fiscal_year', 'category']
 
     # --- ✅ MODIFY THIS METHOD ---
     def get_serializer_class(self):
@@ -50,6 +53,36 @@ class ProjectWorkflowViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    def update(self, request, *args, **kwargs):
+        """
+        Override 'update' (PUT/PATCH) to return the full Detail Serializer.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+
+        # ใช้ Serializer "Update" (ก้อนเล็ก) เพื่อ Validate ข้อมูลที่เข้ามา
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been used, we need to clear it
+            instance._prefetched_objects_cache = {}
+
+        # แต่ตอนส่งข้อมูลกลับ ให้ใช้ Serializer "Detail" (ก้อนใหญ่)
+        detail_serializer = ProjectWorkflowDetailSerializer(instance)
+        return Response(detail_serializer.data)
+
+
+class WorkflowCategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint for workflow categories.
+    """
+    queryset = WorkflowCategory.objects.all()
+    serializer_class = WorkflowCategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
 
 class StepStatusViewSet(mixins.RetrieveModelMixin,
                         mixins.UpdateModelMixin,
@@ -58,6 +91,32 @@ class StepStatusViewSet(mixins.RetrieveModelMixin,
     serializer_class = StepStatusSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    @action(detail=True, methods=['post'], url_path='set-duration')
+    def set_duration_override(self, request, pk=None):
+        step_status = self.get_object()
+        new_duration_str = request.data.get('duration')
+
+        if new_duration_str is None:
+            return Response({'error': 'duration is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # อนุญาตให้ส่งค่าว่างเพื่อ "ล้าง" override ได้
+            if new_duration_str == "" or new_duration_str is None:
+                step_status.duration_override = None
+            else:
+                step_status.duration_override = int(new_duration_str)
+        except (ValueError, TypeError):
+            return Response({'error': 'Invalid duration, must be an integer.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        step_status.save()
+
+        # สั่งคำนวณ Due Date ใหม่ทั้งหมดทั้งเส้น
+        step_status.workflow.recalculate_due_dates()
+
+        # ส่งข้อมูล workflow ทั้งหมดกลับไปให้ Frontend อัปเดต
+        serializer = ProjectWorkflowDetailSerializer(step_status.workflow)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='update-status')
     def update_status(self, request, pk=None):
@@ -114,26 +173,56 @@ class StepStatusViewSet(mixins.RetrieveModelMixin,
 
         # หลังจากบันทึก StepStatus แล้ว ให้ตรวจสอบสถานะของ Workflow หลัก
         workflow = step_status.workflow
-        total_steps = workflow.step_statuses.count()
-        completed_steps = workflow.step_statuses.filter(
-            status='COMPLETED').count()
+        # total_steps = workflow.step_statuses.count()
+        # completed_steps = workflow.step_statuses.filter(
+        #     status='COMPLETED').count()
 
-        # นับจำนวน Step ทั้งหมด และ Step ที่เสร็จแล้ว
-        total_steps = workflow.step_statuses.count()
-        completed_steps = workflow.step_statuses.filter(
-            status='COMPLETED').count()
+        # # นับจำนวน Step ทั้งหมด และ Step ที่เสร็จแล้ว
+        # total_steps = workflow.step_statuses.count()
+        # completed_steps = workflow.step_statuses.filter(
+        #     status='COMPLETED').count()
 
-        if total_steps > 0 and total_steps == completed_steps:
-            workflow.is_completed = True
-            # ✅ 2. บันทึกวันที่โปรเจกต์เสร็จสิ้น
-            workflow.completed_at = timezone.now()
+        # if total_steps > 0 and total_steps == completed_steps:
+        #     workflow.is_completed = True
+        #     # ✅ 2. บันทึกวันที่โปรเจกต์เสร็จสิ้น
+        #     workflow.completed_at = timezone.now()
+        # else:
+        #     workflow.is_completed = False
+        #     # ✅ 3. ล้างค่าวันที่ ถ้าโปรเจกต์ถูกเปลี่ยนกลับเป็นไม่เสร็จ
+        #     workflow.completed_at = None
+
+        # workflow.save()
+        # # --- ✅ END: ADD THIS LOGIC ---
+
+        # --- ✅ NEW COMPLETION LOGIC ---
+        # 1.
+        last_step_in_template = workflow.template.steps.order_by(
+            '-order').first()
+
+        if last_step_in_template:
+            # 2.
+            try:
+                final_step_status = workflow.step_statuses.get(
+                    step=last_step_in_template)
+
+                # 3.
+                if final_step_status.status == 'COMPLETED':
+                    workflow.is_completed = True
+                    workflow.completed_at = timezone.now()
+                else:
+                    workflow.is_completed = False
+                    workflow.completed_at = None
+            except StepStatus.DoesNotExist:
+                # (ไม่ควรเกิดขึ้น แต่ใส่ไว้กันพลาด)
+                workflow.is_completed = False
+                workflow.completed_at = None
         else:
+            # (กรณี Template ไม่มี Step)
             workflow.is_completed = False
-            # ✅ 3. ล้างค่าวันที่ ถ้าโปรเจกต์ถูกเปลี่ยนกลับเป็นไม่เสร็จ
             workflow.completed_at = None
 
         workflow.save()
-        # --- ✅ END: ADD THIS LOGIC ---
+        # --- ✅ END NEW LOGIC ---
 
         serializer = self.get_serializer(step_status)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -249,6 +338,21 @@ def workflow_performance_trend(request):
         'completed_data': final_completed,
     }
     return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def workflow_template_list_view(request):
+    """
+    API นี้จะดึงเฉพาะ Template ที่ถูกกำหนดค่าเป็น 'WORKFLOW' เท่านั้น
+    """
+    templates = WorkflowTemplate.objects.filter(
+        is_active=True,
+        template_type=WorkflowTemplate.TemplateTypes.WORKFLOW
+    ).order_by('name')
+
+    serializer = WorkflowTemplateSerializer(templates, many=True)
+    return Response(serializer.data)
 
 
 @api_view(['GET'])

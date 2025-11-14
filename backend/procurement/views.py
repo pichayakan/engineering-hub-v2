@@ -93,7 +93,10 @@ class WorkflowTemplateViewSet(viewsets.ReadOnlyModelViewSet):
     (Managed via Django Admin)
     """
 
-    queryset = WorkflowTemplate.objects.filter(is_active=True)
+    queryset = WorkflowTemplate.objects.filter(
+        is_active=True,
+        template_type=WorkflowTemplate.TemplateTypes.PROCUREMENT
+    )
     serializer_class = WorkflowTemplateSerializer
     permission_classes = [permissions.IsAuthenticated]
 

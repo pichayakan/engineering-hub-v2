@@ -57,7 +57,23 @@ function ProjectWorkflowListPage() {
   const [paginationData, setPaginationData] = useState(null);
   const [workflowsUrl, setWorkflowsUrl] = useState("/api/workflows/projects/");
 
+  const [categories, setCategories] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState("");
+
   const yearOptions = generateYearOptions();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        // (API Endpoint นี้เราสร้างไว้ในขั้นตอนก่อนหน้า)
+        const res = await apiClient.get("/api/workflows/categories/");
+        setCategories(res.data.results || res.data);
+      } catch (error) {
+        console.error("Failed to fetch categories", error);
+      }
+    };
+    fetchCategories();
+  }, []); // ทำงานครั้งเดียวตอนเปิดหน้า
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -66,6 +82,9 @@ function ProjectWorkflowListPage() {
         const params = new URLSearchParams();
         if (fiscalYear) {
           params.append("fiscal_year", fiscalYear);
+        }
+        if (categoryFilter) {
+          params.append("category", categoryFilter);
         }
         const queryString = params.toString();
 
@@ -94,7 +113,7 @@ function ProjectWorkflowListPage() {
       }
     };
     fetchDashboardData();
-  }, [fiscalYear, workflowsUrl]);
+  }, [fiscalYear, workflowsUrl, categoryFilter]);
 
   const handlePageChange = (url) => {
     if (url) {
@@ -158,6 +177,20 @@ function ProjectWorkflowListPage() {
             </option>
           ))}
         </select>
+        <select
+          value={categoryFilter}
+          onChange={(e) => {
+            setCategoryFilter(e.target.value);
+            setWorkflowsUrl("/api/workflows/projects/"); // Reset Paging
+          }}
+        >
+          <option value="">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="list-section" style={{ marginTop: "1rem" }}>
@@ -167,6 +200,7 @@ function ProjectWorkflowListPage() {
             <thead>
               <tr>
                 <th>Title</th>
+                <th>Category</th>
                 <th>PR Number</th>
                 <th>Start Date</th>
                 <th>Current Step</th>
@@ -179,6 +213,11 @@ function ProjectWorkflowListPage() {
               {workflows.length > 0 ? (
                 workflows.map((flow) => {
                   const sla = getSlaStatus(flow.current_step?.due_date);
+                  const total = flow.total_step_count || 0;
+                  const current = flow.completed_step_count || 0;
+                  // (ป้องกันการหารด้วย 0 และปัดเศษ)
+                  const percentage =
+                    total > 0 ? Math.round((current / total) * 100) : 0;
                   return (
                     <tr
                       key={flow.id}
@@ -192,6 +231,7 @@ function ProjectWorkflowListPage() {
                           {flow.title}
                         </Link>
                       </td>
+                      <td>{flow.category?.name || "---"}</td>
                       <td>{flow.pr_number || "---"}</td>
                       <td>{formatDate(flow.start_date)}</td>
                       <td>
@@ -206,11 +246,19 @@ function ProjectWorkflowListPage() {
                       <td className={`sla-text ${sla.className}`}>
                         {flow.is_completed ? "---" : sla.text}
                       </td>
-                      <td>
+                      {/* <td>
                         <ProgressBar
                           current={flow.completed_step_count}
                           total={flow.total_step_count}
                         />
+                      </td> */}
+                      <td>
+                        <div className="progress-cell-wrapper">
+                          <ProgressBar current={current} total={total} />
+                          <span className="progress-percentage">
+                            {percentage}%
+                          </span>
+                        </div>
                       </td>
                       <td>
                         <span
@@ -229,7 +277,7 @@ function ProjectWorkflowListPage() {
               ) : (
                 <tr>
                   {/* ✅ Updated colspan to 7 */}
-                  <td colSpan="7">
+                  <td colSpan="8">
                     <EmptyState message="No workflows found for the selected filter." />
                   </td>
                 </tr>

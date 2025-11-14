@@ -91,3 +91,25 @@
   color: #0f5132;
   font-weight: 500;
 }
+
+.progress-cell-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* เว้นช่องไฟระหว่าง Bar กับ Text */
+}
+
+/* --- 2. (ทางเลือก) ทำให้ Bar ใช้พื้นที่ที่เหลือ --- */
+/* (คุณอาจต้องปรับ .progress-bar-container ให้เข้ากับ Component ProgressBar ของคุณ) */
+.progress-cell-wrapper .progress-bar-container {
+  flex-grow: 1; /* ให้ Progress Bar ขยายเต็มพื้นที่ */
+}
+
+/* --- ✅ 3. เพิ่ม Style ให้ตัวเลข % --- */
+.progress-percentage {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6c757d; /* สีเทาเข้ม */
+  flex-shrink: 0; /* ไม่ให้ตัวเลขถูกบีบ */
+  min-width: 35px; /* (ทางเลือก) จองที่ไว้กันตัวเลขกระโดด */
+  text-align: right;
+}

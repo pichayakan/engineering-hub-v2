@@ -1,6 +1,6 @@
 # backend/workflows/serializers.py
 from rest_framework import serializers
-from .models import ProjectWorkflow, StepStatus, StepAttachment
+from .models import ProjectWorkflow, StepStatus, StepAttachment, WorkflowCategory
 from procurement.serializers import StepSerializer, GroupSerializer
 from accounts.serializers import UserListSerializer
 
@@ -40,29 +40,36 @@ class StepStatusSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class WorkflowCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkflowCategory
+        fields = ['id', 'name']
+
+
 class ProjectWorkflowCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectWorkflow
         fields = ['id', 'title', 'template', 'pr_number',
-                  'budget_amount', 'fiscal_year', 'start_date']
+                  'budget_amount', 'fiscal_year', 'start_date', 'category']
 
 
 class ProjectWorkflowUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectWorkflow
         fields = ['title', 'pr_number', 'budget_amount',
-                  'fiscal_year', 'is_completed', 'start_date']
+                  'fiscal_year', 'is_completed', 'start_date', 'category']
 
 
 class ProjectWorkflowListSerializer(serializers.ModelSerializer):
     completed_step_count = serializers.IntegerField(read_only=True)
     total_step_count = serializers.IntegerField(read_only=True)
     current_step = StepStatusSerializer(read_only=True)
+    category = WorkflowCategorySerializer(read_only=True)
 
     class Meta:
         model = ProjectWorkflow
         fields = [
-            'id', 'title', 'template', 'pr_number', 'budget_amount',
+            'id', 'title', 'template', 'category', 'pr_number', 'budget_amount',
             'fiscal_year', 'created_at', 'start_date',
             'is_completed', 'completed_step_count', 'total_step_count', 'current_step'
         ]
@@ -72,6 +79,7 @@ class ProjectWorkflowDetailSerializer(serializers.ModelSerializer):
     step_statuses = StepStatusSerializer(many=True, read_only=True)
     created_by_details = UserListSerializer(
         source='created_by', read_only=True)
+    category = WorkflowCategorySerializer(read_only=True)
 
     class Meta:
         model = ProjectWorkflow
