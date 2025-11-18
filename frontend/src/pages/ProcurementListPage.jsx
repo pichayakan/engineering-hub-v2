@@ -19,6 +19,9 @@ function ProcurementListPage() {
   const [prevPageUrl, setPrevPageUrl] = useState(null);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10; // กำหนดจำนวนต่อหน้า (ให้ตรงกับ Backend)
+
   const [searchTerm, setSearchTerm] = useState("");
   const [ordering, setOrdering] = useState("-created_at");
   const [categories, setCategories] = useState([]);
@@ -42,11 +45,19 @@ function ProcurementListPage() {
     async (url = null) => {
       setLoading(true);
       try {
-        const fetchUrl = url || "/api/procurement/requests/";
+        let fetchUrl = url;
         let requestParams = {};
 
-        // ✅ ใช้ params เมื่อไม่มีการระบุ URL (โหลดหน้าแรก) เท่านั้น
+        // --- กรณีที่ 1: โหลดหน้าแรก หรือ มีการเปลี่ยน Filter/Search ---
+        // (เมื่อ url เป็น null หรือ undefined)
         if (!url) {
+          // 1.1 รีเซ็ตไปหน้า 1 เสมอ
+          setCurrentPage(1);
+
+          // 1.2 ตั้ง Base URL
+          fetchUrl = "/api/procurement/requests/";
+
+          // 1.3 สร้าง Params ใหม่ทั้งหมดจาก State ปัจจุบัน
           requestParams = {
             search: searchTerm,
             ordering: ordering,
@@ -63,9 +74,25 @@ function ProcurementListPage() {
             requestParams.is_cancelled = false;
           }
         }
+        // --- กรณีที่ 2: การเปลี่ยนหน้า (Next / Previous) ---
+        // (เมื่อมี url ส่งเข้ามา เช่น http://.../?page=2&search=test)
+        else {
+          // 2.1 ไม่ต้องสร้าง requestParams ใหม่ (เพราะ URL มีครบแล้ว)
+          // 2.2 คำนวณเลขหน้าปัจจุบันจาก URL เพื่อนำไปแสดงผล (Showing...)
+          try {
+            const urlObj = new URL(url);
+            const pageParam = urlObj.searchParams.get("page");
+            // ถ้ามี param 'page' ให้ใช้ค่านั้น, ถ้าไม่มี (เช่นกลับมาหน้า 1) ให้ถือเป็น 1
+            setCurrentPage(pageParam ? parseInt(pageParam) : 1);
+          } catch (e) {
+            console.warn("URL parse failed, resetting page:", e);
+            setCurrentPage(1);
+          }
+        }
 
+        // --- ส่ง Request ---
         const response = await apiClient.get(fetchUrl, {
-          params: requestParams, // ✅ ใช้ requestParams ที่ถูกสร้างขึ้นตามเงื่อนไข
+          params: requestParams,
         });
 
         setRequests(response.data.results);
@@ -82,7 +109,7 @@ function ProcurementListPage() {
         setLoading(false);
       }
     },
-    [searchTerm, ordering, selectedCategory, statusFilter] // ✅ Dependencies ยังคงจำเป็น
+    [searchTerm, ordering, selectedCategory, statusFilter]
   );
 
   useEffect(() => {
@@ -112,6 +139,9 @@ function ProcurementListPage() {
     if (diffDays === 0) return { text: "Due Today", className: "sla-due-soon" };
     return { text: `${diffDays}d left`, className: "sla-on-time" };
   };
+
+  const startItem = (currentPage - 1) * PAGE_SIZE + 1;
+  const endItem = Math.min(startItem + requests.length - 1, totalCount);
 
   if (loading) {
     return <LoadingSpinner message="Loading procurement requests..." />;
@@ -280,9 +310,14 @@ function ProcurementListPage() {
         >
           Previous
         </button>
+
         <span>
-          Showing {requests.length} of {totalCount} items
+          {/* แสดงผลแบบช่วง: Showing 11-20 of 96 items */}
+          {totalCount > 0
+            ? `Showing ${startItem}-${endItem} of ${totalCount} items`
+            : "No items found"}
         </span>
+
         <button
           onClick={() => fetchRequests(nextPageUrl)}
           disabled={!nextPageUrl}

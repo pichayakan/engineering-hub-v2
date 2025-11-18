@@ -25,7 +25,7 @@ function ProcurementDashboardPage() {
       setLoading(true);
       try {
         // --- ✅ MODIFIED: Add view_mode to API calls ---
-        const params = { view_mode: viewMode };
+        const params = { view_mode: viewMode, page_size: 100 };
 
         const [summaryRes, tasksRes] = await Promise.all([
           apiClient.get("/api/procurement/summary/", { params }),

@@ -1268,6 +1268,23 @@ function ProcurementDetailPage() {
           onCancel={() => setIsSendBackModalOpen(false)}
         />
       </Modal>
+      {isSubmitting && (
+        <div className="submission-overlay">
+          <div className="submission-content">
+            <div className="submission-spinner"></div>
+            <h3>กำลังบันทึกข้อมูล...</h3>
+            <p>ระบบกำลังอัปโหลดไฟล์และประมวลผล</p>
+            {filesToUpload.length > 0 && (
+              <p style={{ marginTop: "0.5rem" }}>
+                (เนื่องจากมีไฟล์แนบ อาจใช้เวลาสักครู่)
+              </p>
+            )}
+            <p className="submission-warning">
+              ⚠️ กรุณาอย่าปิดหน้าต่าง หรือกดปุ่มย้อนกลับ
+            </p>
+          </div>
+        </div>
+      )}
       <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );
