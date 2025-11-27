@@ -11,6 +11,7 @@ class UserAdmin(BaseUserAdmin):
         "first_name",
         "last_name",
         "department",
+        "get_groups",  # ✅ 1. เพิ่มชื่อฟังก์ชันตรงนี้
         "is_staff",
         "is_active",
         "line_user_id",
@@ -32,6 +33,7 @@ class UserAdmin(BaseUserAdmin):
                     "employee_id",
                     "phone_number",
                     "department",
+                    "signature",
                     "line_user_id",
                     "telegram_chat_id",
                     "notify_enabled"
@@ -74,6 +76,14 @@ class UserAdmin(BaseUserAdmin):
         ),
     )
     readonly_fields = ("last_login", "date_joined")
+
+    # --- ✅ 2. สร้างฟังก์ชันสำหรับดึงรายชื่อ Group ---
+    def get_groups(self, obj):
+        # ดึงชื่อกลุ่มทั้งหมดมาต่อกันด้วยเครื่องหมายจุลภาค
+        return ", ".join([g.name for g in obj.groups.all()])
+
+    # ตั้งชื่อคอลัมน์ที่จะแสดงในหน้า Admin
+    get_groups.short_description = 'Groups'
 
 
 @admin.register(Department)

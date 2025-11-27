@@ -46,7 +46,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "id", "email", "username", "first_name", "last_name", "phone_number",
-            "employee_id", "role", "is_staff", "department", "department_name", "groups",
+            "employee_id", "role", "is_staff", "department", "department_name", "groups", "signature"
         ]
 
 
@@ -103,7 +103,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'id', 'username', 'first_name', 'last_name', 'email',
             'is_staff', 'role', 'department_name', 'groups',
             'employee_id',  # ADDED
-            'phone_number',  # ADDED
+            'phone_number', "signature"
         ]
 
 # --- (MemberWorkloadSerializer & DepartmentWorkloadSerializer remain unchanged) ---

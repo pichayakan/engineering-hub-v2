@@ -76,6 +76,25 @@ function ProcurementDetailPage() {
   const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
   const [hasViewedPdf, setHasViewedPdf] = useState(false);
 
+  const handleTestPdf = async () => {
+    try {
+      toast.info("Generating PDF...");
+
+      // เรียก API แบบ responseType: 'blob' เพื่อรับไฟล์
+      const response = await apiClient.get(
+        `/api/procurement/requests/${requestId}/test-generate-pdf/`,
+        { responseType: "blob" }
+      );
+
+      // ใช้ฟังก์ชัน download ที่มีอยู่แล้วในไฟล์ของคุณ
+      download(response.data, `test_pdf_${requestId}.pdf`);
+      toast.success("PDF Generated!");
+    } catch (error) {
+      console.error("PDF Error:", error);
+      toast.error("Failed to generate PDF");
+    }
+  };
+
   const handleSaveSignature = (signatureDataUrl) => {
     const img = new Image();
     img.src = signatureDataUrl;
@@ -773,6 +792,22 @@ function ProcurementDetailPage() {
     <div className="procurement-detail-container">
       <div className="detail-header">
         <h1>{request.title}</h1>
+        {/* <div style={{ marginTop: "1rem" }}>
+          <button
+            onClick={handleTestPdf}
+            style={{
+              backgroundColor: "#6c757d",
+              color: "white",
+              border: "none",
+              padding: "5px 10px",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "0.85rem",
+            }}
+          >
+            🛠️ Test Generate PDF
+          </button>
+        </div> */}
         {request.document_number && (
           <p>
             <strong>เลขที่หนังสือ:</strong> {request.document_number}
@@ -1263,7 +1298,8 @@ function ProcurementDetailPage() {
         title="Send Back for Revision"
       >
         <SendBackModal
-          history={request.history}
+          steps={workflow.steps}
+          currentStep={request.current_step_details}
           onSendBack={handleSendBack}
           onCancel={() => setIsSendBackModalOpen(false)}
         />

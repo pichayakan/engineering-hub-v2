@@ -14,33 +14,44 @@ function ProcurementListPage() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // PAGINATION STATES
+  // --- PAGINATION STATES ---
   const [nextPageUrl, setNextPageUrl] = useState(null);
   const [prevPageUrl, setPrevPageUrl] = useState(null);
   const [totalCount, setTotalCount] = useState(0);
-
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10; // กำหนดจำนวนต่อหน้า (ให้ตรงกับ Backend)
+  const PAGE_SIZE = 10; // ต้องตรงกับ Backend (StandardResultsSetPagination)
 
+  // --- FILTER STATES ---
   const [searchTerm, setSearchTerm] = useState("");
   const [ordering, setOrdering] = useState("-created_at");
+
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
+
   const [statusFilter, setStatusFilter] = useState("");
 
+  const [departments, setDepartments] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState("");
+
+  // --- 1. Fetch Filter Data (Categories & Departments) ---
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchFilters = async () => {
       try {
-        const response = await apiClient.get("/api/procurement/categories/");
-        setCategories(response.data.results || response.data);
+        const [catRes, deptRes] = await Promise.all([
+          apiClient.get("/api/procurement/categories/"),
+          apiClient.get("/api/auth/departments/"),
+        ]);
+        setCategories(catRes.data.results || catRes.data);
+        setDepartments(deptRes.data.results || deptRes.data);
       } catch (error) {
-        console.error("Failed to fetch categories", error);
-        toast.error("Could not load categories for filtering.");
+        console.error("Failed to fetch filters", error);
+        toast.error("Could not load filter options.");
       }
     };
-    fetchCategories();
+    fetchFilters();
   }, []);
 
+  // --- 2. Main Fetch Function ---
   const fetchRequests = useCallback(
     async (url = null) => {
       setLoading(true);
@@ -48,49 +59,42 @@ function ProcurementListPage() {
         let fetchUrl = url;
         let requestParams = {};
 
-        // --- กรณีที่ 1: โหลดหน้าแรก หรือ มีการเปลี่ยน Filter/Search ---
-        // (เมื่อ url เป็น null หรือ undefined)
+        // กรณีที่ 1: โหลดหน้าแรก หรือ เปลี่ยน Filter (url เป็น null)
         if (!url) {
-          // 1.1 รีเซ็ตไปหน้า 1 เสมอ
-          setCurrentPage(1);
-
-          // 1.2 ตั้ง Base URL
+          setCurrentPage(1); // รีเซ็ตไปหน้า 1
           fetchUrl = "/api/procurement/requests/";
 
-          // 1.3 สร้าง Params ใหม่ทั้งหมดจาก State ปัจจุบัน
+          // สร้าง params ใหม่
           requestParams = {
             search: searchTerm,
             ordering: ordering,
           };
-          if (selectedCategory) {
-            requestParams.category = selectedCategory;
-          }
-          if (statusFilter === "completed") {
-            requestParams.is_completed = true;
-          } else if (statusFilter === "cancelled") {
+
+          if (selectedCategory) requestParams.category = selectedCategory;
+          if (selectedDepartment)
+            requestParams.requesting_department = selectedDepartment; // ✅ ส่งค่าแผนก
+
+          if (statusFilter === "completed") requestParams.is_completed = true;
+          else if (statusFilter === "cancelled")
             requestParams.is_cancelled = true;
-          } else if (statusFilter === "inprogress") {
+          else if (statusFilter === "inprogress") {
             requestParams.is_completed = false;
             requestParams.is_cancelled = false;
           }
         }
-        // --- กรณีที่ 2: การเปลี่ยนหน้า (Next / Previous) ---
-        // (เมื่อมี url ส่งเข้ามา เช่น http://.../?page=2&search=test)
+        // กรณีที่ 2: กด Next/Prev (มี url ส่งมาแล้ว)
         else {
-          // 2.1 ไม่ต้องสร้าง requestParams ใหม่ (เพราะ URL มีครบแล้ว)
-          // 2.2 คำนวณเลขหน้าปัจจุบันจาก URL เพื่อนำไปแสดงผล (Showing...)
+          // พยายามแกะเลขหน้าจาก URL เพื่อแสดงผล
           try {
             const urlObj = new URL(url);
             const pageParam = urlObj.searchParams.get("page");
-            // ถ้ามี param 'page' ให้ใช้ค่านั้น, ถ้าไม่มี (เช่นกลับมาหน้า 1) ให้ถือเป็น 1
             setCurrentPage(pageParam ? parseInt(pageParam) : 1);
-          } catch (e) {
-            console.warn("URL parse failed, resetting page:", e);
+          } catch {
             setCurrentPage(1);
           }
+          // ไม่ต้อง set requestParams เพราะ URL มี query string ครบแล้ว
         }
 
-        // --- ส่ง Request ---
         const response = await apiClient.get(fetchUrl, {
           params: requestParams,
         });
@@ -109,9 +113,10 @@ function ProcurementListPage() {
         setLoading(false);
       }
     },
-    [searchTerm, ordering, selectedCategory, statusFilter]
+    [searchTerm, ordering, selectedCategory, statusFilter, selectedDepartment] // ✅ dependency ครบ
   );
 
+  // --- 3. Debounce Search & Auto Fetch on Filter Change ---
   useEffect(() => {
     const handler = setTimeout(() => {
       fetchRequests();
@@ -123,6 +128,7 @@ function ProcurementListPage() {
     setSearchTerm(value);
   }, []);
 
+  // --- Helpers ---
   const calculateSLA = (dueDateStr) => {
     if (!dueDateStr) return { text: "-", className: "" };
     const today = new Date();
@@ -140,23 +146,34 @@ function ProcurementListPage() {
     return { text: `${diffDays}d left`, className: "sla-on-time" };
   };
 
+  const getStatus = (req) => {
+    if (req.is_cancelled)
+      return { text: "Cancelled", className: "status-cancelled" };
+    if (req.is_completed)
+      return { text: "Completed", className: "status-completed" };
+    return { text: "In Progress", className: "status-inprogress" };
+  };
+
+  // --- Calculation for "Showing X-Y of Z" ---
   const startItem = (currentPage - 1) * PAGE_SIZE + 1;
   const endItem = Math.min(startItem + requests.length - 1, totalCount);
 
-  if (loading) {
+  if (loading && requests.length === 0) {
     return <LoadingSpinner message="Loading procurement requests..." />;
   }
 
   return (
     <div>
       <div className="page-header">
-        <h1>งานภายในส่วนงานวิศวกรรมฯ(วขตป.)</h1>
+        <h1>งานส่งถึง : ส่วนงานวิศวกรรมฯ(วขตป.)</h1>
         <Link to="/procurement/new" className="create-request-btn">
           + Create New Request
         </Link>
       </div>
+
       <div className="list-controls">
         <SearchInput value={searchTerm} onChange={handleSearchChange} />
+
         <select
           className="sort-select"
           value={statusFilter}
@@ -167,6 +184,7 @@ function ProcurementListPage() {
           <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
         </select>
+
         <select
           className="sort-select"
           value={selectedCategory}
@@ -179,6 +197,21 @@ function ProcurementListPage() {
             </option>
           ))}
         </select>
+
+        {/* --- ✅ Dropdown เลือกแผนก --- */}
+        <select
+          className="sort-select"
+          value={selectedDepartment}
+          onChange={(e) => setSelectedDepartment(e.target.value)}
+        >
+          <option value="">Filter by: All Departments</option>
+          {departments.map((dept) => (
+            <option key={dept.id} value={dept.name}>
+              {dept.name}
+            </option>
+          ))}
+        </select>
+
         <select
           className="sort-select"
           value={ordering}
@@ -190,14 +223,17 @@ function ProcurementListPage() {
           <option value="-title">Sort by: Title (Z-A)</option>
         </select>
       </div>
+
       <div className="tasks-table-wrapper">
         <table className="tasks-table">
           <thead>
             <tr>
               <th>Title</th>
+              <th>template</th>
               <th>Project</th>
               <th>เลขที่หนังสือ</th>
               <th>Category</th>
+              <th>Department</th> {/* ✅ เพิ่มหัวตาราง */}
               <th>Current Step</th>
               <th>SLA</th>
               <th>Created By</th>
@@ -209,27 +245,11 @@ function ProcurementListPage() {
             {requests.length > 0 ? (
               requests.map((req) => {
                 const sla = calculateSLA(req.current_step_due_date);
-
-                // --- ✅ THIS IS THE FIX ---
-                // Helper function to get status text and class
-                const getStatus = () => {
-                  if (req.is_cancelled) {
-                    return { text: "Cancelled", className: "status-cancelled" };
-                  }
-                  if (req.is_completed) {
-                    return { text: "Completed", className: "status-completed" };
-                  }
-                  return {
-                    text: "In Progress",
-                    className: "status-inprogress",
-                  };
-                };
-                const status = getStatus();
+                const status = getStatus(req);
 
                 return (
                   <tr
                     key={req.id}
-                    // ✅ Apply a class for cancelled rows as well
                     className={
                       req.is_completed
                         ? "is-completed"
@@ -246,6 +266,11 @@ function ProcurementListPage() {
                         {req.title}
                       </Link>
                     </td>
+                    <td data-label="Template">
+                      <span className="template-name-cell">
+                        {req.template_name || "N/A"}
+                      </span>
+                    </td>
                     <td data-label="Project">{req.project_name || "N/A"}</td>
                     <td data-label="เลขที่เอกสารอ้างอิง">
                       {req.history_document_numbers || "N/A"}
@@ -255,8 +280,13 @@ function ProcurementListPage() {
                         {req.category_details?.name || "N/A"}
                       </span>
                     </td>
+
+                    {/* ✅ เพิ่มข้อมูลแผนก */}
+                    <td data-label="Department">
+                      {req.requesting_department || "-"}
+                    </td>
+
                     <td data-label="Current Step">
-                      {/* Show 'Cancelled' if applicable */}
                       <span
                         className={`status-badge status-${
                           req.current_step_details?.name.replace(/\s+/g, "-") ||
@@ -281,7 +311,6 @@ function ProcurementListPage() {
                       {formatDate(req.created_at, true) || "N/A"}
                     </td>
                     <td data-label="Status">
-                      {/* ✅ Use the new getStatus function */}
                       <span className={`status-badge ${status.className}`}>
                         {status.text}
                       </span>
@@ -292,7 +321,7 @@ function ProcurementListPage() {
             ) : (
               <tr>
                 <td
-                  colSpan="8"
+                  colSpan="10"
                   style={{ textAlign: "center", padding: "2rem" }}
                 >
                   No procurement requests found.
@@ -302,6 +331,7 @@ function ProcurementListPage() {
           </tbody>
         </table>
       </div>
+
       <div className="pagination-controls">
         <button
           onClick={() => fetchRequests(prevPageUrl)}
@@ -312,7 +342,6 @@ function ProcurementListPage() {
         </button>
 
         <span>
-          {/* แสดงผลแบบช่วง: Showing 11-20 of 96 items */}
           {totalCount > 0
             ? `Showing ${startItem}-${endItem} of ${totalCount} items`
             : "No items found"}

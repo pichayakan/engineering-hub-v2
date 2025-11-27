@@ -26,7 +26,8 @@ class StepInline(admin.TabularInline):
     model = Step
     extra = 1  # Show 1 empty slot for a new step by default
     fields = ("order", "name", "responsible_groups",
-              "duration_days", "is_signature_required", "requires_document_number", "requires_attachment")
+              "duration_days", "is_signature_required", "requires_document_number", "requires_attachment",
+              "should_generate_pdf")
     filter_horizontal = ("responsible_groups",)
 
 
@@ -42,6 +43,7 @@ class WorkflowTemplateAdmin(admin.ModelAdmin):
 class ProcurementRequestAdmin(admin.ModelAdmin):
     list_display = (
         "title",
+        "requesting_department",
         "category",  # ✅ ADDED
         "project",
         "workflow_template",
@@ -51,13 +53,15 @@ class ProcurementRequestAdmin(admin.ModelAdmin):
         "is_cancelled",
     )
     list_filter = (
+        "requesting_department",
         "category",  # ✅ ADDED
         "workflow_template",
         "is_completed",
         "current_step"
     )
     # ✅ ADDED CATEGORY SEARCH
-    search_fields = ("title", "project__name", "category__name")
+    search_fields = ("title", "project__name",
+                     "category__name", "requesting_department",)
     # Optional: Makes ForeignKey fields easier to select
     raw_id_fields = ("project", "category", "created_by")
 

@@ -474,6 +474,26 @@ auto-place-controls button:hover {
     text-align: center;
   }
 }
+
+.template-name-cell {
+  font-size: 0.85rem; /* ลดขนาดฟอนต์ */
+  color: #6c757d; /* สีเทาเข้ม (Muted text) */
+  font-weight: 500; /* ตัวหนาปานกลาง */
+  font-style: italic; /* ตัวเอียง (เพื่อให้ดูต่างจากข้อมูลอื่น) */
+  white-space: nowrap; /* ไม่ให้ตัดบรรทัด (ถ้าต้องการ) */
+  max-width: 150px; /* จำกัดความกว้างสูงสุด */
+  overflow: hidden; /* ซ่อนส่วนเกิน */
+  text-overflow: ellipsis; /* แสดง ... ถ้าข้อความยาวเกิน */
+}
+
+/* (Optional) Responsive: บนมือถือให้แสดงเต็ม */
+@media screen and (max-width: 768px) {
+  .template-name-cell {
+    white-space: normal;
+    max-width: none;
+    font-size: 0.9rem;
+  }
+}
 /* ใช้สไตล์ตารางร่วมกับ AllTasksPage.css */
 /* คุณสามารถ copy สไตล์ .tasks-table-wrapper และ .tasks-table มาไว้ที่นี่ได้ */
 /* หรือ import './AllTasksPage.css'; ที่ด้านบนของ ProcurementListPage.jsx */

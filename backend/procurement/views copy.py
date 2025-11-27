@@ -106,7 +106,7 @@ class WorkflowTemplateViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ProcurementRequestViewSet(viewsets.ModelViewSet):
-    # queryset = ProcurementRequest.objects.all().order_by("-created_at")
+    queryset = ProcurementRequest.objects.all().order_by("-created_at")
     # serializer_class = ProcurementRequestSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -125,30 +125,6 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
     # Fields available for ordering (e.g., ?ordering=title)
     ordering_fields = ['created_at', 'title']
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = ProcurementRequest.objects.all().order_by("-created_at")
-
-        # 1. Superuser: เห็นหมด
-        if user.is_superuser:
-            return queryset
-
-        # 2. เช็คแผนก (สำคัญ)
-        if not user.department:
-            # กรณี User ไม่มีแผนก -> ให้เห็นเฉพาะที่ตัวเองสร้าง
-            return queryset.filter(created_by=user)
-
-        user_dept_name = user.department.name
-        CENTRAL_DEPT_NAME = "ส่วนวิศวกรรมและบริหารโครงข่าย (วขตป.)"
-
-        # 3. ถ้าเป็น "วขตป." -> เห็นหมดทุกงาน
-        if user_dept_name == CENTRAL_DEPT_NAME:
-            return queryset
-
-        # 4. ถ้าเป็นแผนกอื่น -> เห็นเฉพาะงานที่ "Requesting Department" ตรงกับแผนกตัวเอง
-        # (ตัด Logic เรื่อง Group ออกไปเลย ตามที่คุณต้องการ)
-        return queryset.filter(requesting_department=user_dept_name)
 
     def get_serializer_class(self):
         """

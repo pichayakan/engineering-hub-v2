@@ -8,10 +8,13 @@ djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
 drf-nested-routers==0.94.2
 idna==3.10
+pillow==12.0.0
 PyJWT==2.9.0
+python-dateutil==2.9.0.post0
+reportlab==4.4.5
 requests==2.32.5
+six==1.17.0
 sqlparse==0.5.3
 typing_extensions==4.14.0
 tzdata==2025.2
 urllib3==2.5.0
-python-dateutil==2.9.0.post0

@@ -182,17 +182,28 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
+    # --- Frontend (Port 5173) ---
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://202.139.196.7:5173",
     "http://192.168.17.2:5173",
+
+    # --- IIS / Production Access (Port 80 - ไม่ต้องระบุ Port) ---
     "http://localhost",
     "http://127.0.0.1",
     "http://202.139.196.7",
     "http://192.168.17.2",
+
+    # --- ✅ Backend Direct Access (Port 8000 - ควรเพิ่ม) ---
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://202.139.196.7:8000",
+    "http://192.168.17.2:8000",
 ]
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

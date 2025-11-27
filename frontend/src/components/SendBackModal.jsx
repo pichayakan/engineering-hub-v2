@@ -2,15 +2,25 @@
 import React, { useState } from "react";
 import Select from "react-select";
 
-function SendBackModal({ history, onSendBack, onCancel }) {
+// ✅ เปลี่ยน Props: รับ steps (ทั้งหมด) และ currentStep แทน history
+function SendBackModal({ steps, currentStep, onSendBack, onCancel }) {
   const [targetStep, setTargetStep] = useState(null);
   const [notes, setNotes] = useState("");
 
-  // Create options from the approval history, excluding the very first step
-  const stepOptions = history.slice(0, -1).map((h) => ({
-    value: h.step.id,
-    label: `${h.step.order}: ${h.step.name}`,
+  // --- ✅ LOGIC ใหม่: กรองจาก Steps ทั้งหมด ---
+  // 1. กรองเอาเฉพาะ Step ที่ลำดับ (Order) น้อยกว่า Step ปัจจุบัน
+  // 2. เรียงลำดับจากน้อยไปมาก
+  const availableSteps = steps
+    ? steps
+        .filter((s) => s.order < currentStep.order)
+        .sort((a, b) => a.order - b.order)
+    : [];
+
+  const stepOptions = availableSteps.map((s) => ({
+    value: s.id,
+    label: `${s.order}: ${s.name}`,
   }));
+  // ----------------------------------------
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -33,6 +43,7 @@ function SendBackModal({ history, onSendBack, onCancel }) {
           value={targetStep}
           onChange={setTargetStep}
           required
+          placeholder="-- Select Step --"
         />
       </div>
       <div className="form-group">
@@ -42,6 +53,7 @@ function SendBackModal({ history, onSendBack, onCancel }) {
           onChange={(e) => setNotes(e.target.value)}
           rows="4"
           required
+          placeholder="ระบุเหตุผลที่ส่งกลับแก้ไข..."
         ></textarea>
       </div>
       <div className="form-actions">

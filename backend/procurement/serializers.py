@@ -122,6 +122,10 @@ class ProcurementListSerializer(serializers.ModelSerializer):
         source="project.name", read_only=True, allow_null=True
     )
 
+    template_name = serializers.CharField(
+        source="workflow_template.name", read_only=True, allow_null=True
+    )
+
     # --- Field ที่เราจะคำนวณขึ้นมาใหม่ ---
     history_document_numbers = serializers.SerializerMethodField()
 
@@ -137,7 +141,9 @@ class ProcurementListSerializer(serializers.ModelSerializer):
             'created_at',
             'is_completed',
             'is_cancelled',
-            'history_document_numbers'  # <-- field สรุปของเรา
+            'history_document_numbers',
+            'requesting_department',
+            'template_name'
         )
 
     def get_history_document_numbers(self, obj):

@@ -60,6 +60,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     telegram_chat_id = models.CharField(max_length=100, blank=True, null=True)
     notify_enabled = models.BooleanField(default=True)
 
+    signature = models.ImageField(
+        upload_to='signatures/',
+        null=True,
+        blank=True,
+        verbose_name="ลายเซ็น (รูปภาพ)"
+    )
+
     department = models.ForeignKey(
         'Department',
         on_delete=models.SET_NULL,

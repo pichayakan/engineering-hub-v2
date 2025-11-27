@@ -82,6 +82,12 @@ class Step(models.Model):
         help_text="ติ๊กเลือกหากขั้นตอนนี้บังคับให้ต้องแนบไฟล์ประกอบอย่างน้อย 1 ไฟล์"
     )
 
+    should_generate_pdf = models.BooleanField(
+        "สร้างใบปะหน้าอัตโนมัติ",
+        default=False,
+        help_text="หากเลือก ระบบจะสร้าง PDF บันทึกข้อความอัตโนมัติและแนบไฟล์ให้เมื่ออนุมัติผ่านขั้นตอนนี้"
+    )
+
     class Meta:
         ordering = ["workflow_template", "order"]
         unique_together = ("workflow_template", "order")
@@ -110,6 +116,13 @@ class ProcurementRequest(models.Model):
         null=True,
         blank=True,
         related_name="procurement_requests",
+    )
+
+    requesting_department = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="หน่วยงานที่ขอ"
     )
     document_number = models.CharField(
         "เลขที่หนังสือ", max_length=100, blank=True, null=True)
