@@ -8,7 +8,7 @@ import SignatureModal from "../components/SignatureModal.jsx";
 import "./ProcurementDetailPage.css";
 import ConfirmModal from "../components/ConfirmModal";
 
-import SendBackModal from "../components//SendBackModal"; // ✅ IMPORT
+import SendBackModal from "../components/SendBackModal";
 import Modal from "../components/Modal";
 
 import { Document, Page, pdfjs } from "react-pdf";
@@ -27,6 +27,8 @@ import {
   FiSearch,
   FiEdit3,
   FiSave,
+  FiPlus,
+  FiMinus,
 } from "react-icons/fi";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
@@ -61,16 +63,15 @@ function ProcurementDetailPage() {
   const [selectedPdfUrl, setSelectedPdfUrl] = useState(null);
   const [canSignCurrentPdf, setCanSignCurrentPdf] = useState(false);
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
-  // const [signatureSize, setSignatureSize] = useState({
-  //   width: 200,
-  //   height: 100,
-  // });
-  // const [signatureImage, setSignatureImage] = useState(null);
   const [pdfPageDetails, setPdfPageDetails] = useState(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  // const [signaturePosition, setSignaturePosition] = useState(null);
 
   const [signatures, setSignatures] = useState([]);
+
+  // --- ✅ 1. เพิ่ม State สำหรับการแก้ไขลายเซ็น ---
+  const [editingSignatureId, setEditingSignatureId] = useState(null);
+  const [signatureToEdit, setSignatureToEdit] = useState(null);
+  // -------------------------------------------
 
   // preview เอกสารก่อนส่งต่อ //
   const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
@@ -80,13 +81,11 @@ function ProcurementDetailPage() {
     try {
       toast.info("Generating PDF...");
 
-      // เรียก API แบบ responseType: 'blob' เพื่อรับไฟล์
       const response = await apiClient.get(
         `/api/procurement/requests/${requestId}/test-generate-pdf/`,
         { responseType: "blob" }
       );
 
-      // ใช้ฟังก์ชัน download ที่มีอยู่แล้วในไฟล์ของคุณ
       download(response.data, `test_pdf_${requestId}.pdf`);
       toast.success("PDF Generated!");
     } catch (error) {
@@ -95,29 +94,107 @@ function ProcurementDetailPage() {
     }
   };
 
-  const handleSaveSignature = (signatureDataUrl) => {
+  // --- ✅ 2. ปรับปรุง handleSaveSignature ให้รองรับ Object และการ Edit ---
+  const handleSaveSignature = (signatureData) => {
+    // แยกข้อมูล (รองรับทั้งแบบ string เก่า และ object ใหม่ {image, type, text})
+    const imageSrc = signatureData.image || signatureData;
+    const sigType = signatureData.type || "draw";
+    const sigText = signatureData.text || "";
+
     const img = new Image();
-    img.src = signatureDataUrl;
+    img.src = imageSrc;
     img.onload = () => {
       const initialWidth = 200;
       const aspectRatio = img.height / img.width;
-      signatureAspectRatio.current = aspectRatio; // useRef ยังใช้ได้เหมือนเดิม
+      signatureAspectRatio.current = aspectRatio;
 
-      const newSignature = {
-        id: `sig-${Date.now()}`,
-        page: currentPage,
-        image: signatureDataUrl,
-        position: { x: 50, y: 50 },
-        size: {
-          width: initialWidth,
-          height: initialWidth * aspectRatio,
-        },
-      };
+      if (editingSignatureId) {
+        // --- 🅰️ กรณีแก้ไข (Update Existing) ---
+        setSignatures((prev) =>
+          prev.map((sig) =>
+            sig.id === editingSignatureId
+              ? {
+                  ...sig,
+                  image: imageSrc,
+                  text: sigText, // อัปเดตข้อความ
+                  type: sigType, // อัปเดตประเภท
+                  // ปรับขนาดความสูงใหม่ตามรูปใหม่ แต่คงความกว้างเดิมไว้
+                  size: {
+                    width: sig.size.width,
+                    height: sig.size.width * aspectRatio,
+                  },
+                }
+              : sig
+          )
+        );
+        // Reset state
+        setEditingSignatureId(null);
+        setSignatureToEdit(null);
+      } else {
+        // --- 🅱️ กรณีสร้างใหม่ (Create New) ---
+        const newSignature = {
+          id: `sig-${Date.now()}`,
+          page: currentPage,
+          image: imageSrc,
+          text: sigText, // เก็บข้อความไว้
+          type: sigType, // เก็บประเภทไว้
+          position: { x: 50, y: 50 },
+          size: {
+            width: initialWidth,
+            height: initialWidth * aspectRatio,
+          },
+        };
+        setSignatures((prev) => [...prev, newSignature]);
+      }
 
-      // ✅ เพิ่ม Object ลายเซ็นใหม่เข้าไปใน Array
-      setSignatures((prev) => [...prev, newSignature]);
       handleCloseSignatureModal();
     };
+  };
+
+  // --- ✅ 3. เพิ่มฟังก์ชันเปิด Modal เพื่อแก้ไข ---
+  const handleEditSignature = (signature) => {
+    // อนุญาตให้แก้ไขเฉพาะแบบ Type (เพราะแบบอื่นไม่มี text ให้แก้)
+    if (signature.type === "type") {
+      setEditingSignatureId(signature.id);
+      setSignatureToEdit({
+        type: signature.type,
+        text: signature.text,
+      });
+      setIsSignatureModalOpen(true);
+    } else {
+      toast.info(
+        "ลายเซ็นรูปแบบนี้ไม่รองรับการแก้ไขข้อความ (ต้องลบและสร้างใหม่)"
+      );
+    }
+  };
+
+  // --- ✅ 4. ฟังก์ชันปรับขนาดลายเซ็น (+/-) ---
+  const handleResizeSignature = (id, scaleFactor) => {
+    setSignatures((prev) =>
+      prev.map((sig) => {
+        if (sig.id === id) {
+          const newWidth = sig.size.width * scaleFactor;
+          const newHeight = sig.size.height * scaleFactor;
+
+          if (newWidth < 50 || newWidth > 800) return sig;
+
+          return {
+            ...sig,
+            size: {
+              width: newWidth,
+              height: newHeight,
+            },
+          };
+        }
+        return sig;
+      })
+    );
+  };
+
+  const handleCloseSignatureModal = () => {
+    setIsSignatureModalOpen(false);
+    setEditingSignatureId(null);
+    setSignatureToEdit(null);
   };
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -129,12 +206,12 @@ function ProcurementDetailPage() {
         `/api/procurement/requests/${requestId}/send-back/`,
         data
       );
-      setRequest(response.data); // Update the page with the new state
+      setRequest(response.data);
       setIsSendBackModalOpen(false);
-      // You can add a success toast message here
+      toast.success("ส่งงานกลับแก้ไขเรียบร้อยแล้ว");
     } catch (error) {
       console.error("Failed to send back step", error);
-      // You can add an error toast message here
+      toast.error("ไม่สามารถส่งงานกลับได้");
     }
   };
 
@@ -170,16 +247,13 @@ function ProcurementDetailPage() {
     fetchRequestDetails();
   }, [fetchRequestDetails]);
 
-  // ✅ ADD THIS useEffect TO CLEAN UP THE OBJECT URL
   useEffect(() => {
     return () => {
-      // Clean up function to revoke the URL when the component unmounts
-      // or when the previewPdfUrl state changes
       if (previewPdfUrl) {
         URL.revokeObjectURL(previewPdfUrl);
       }
     };
-  }, [previewPdfUrl]); // ✅ Dependency array to run the effect when the URL changes
+  }, [previewPdfUrl]);
 
   useEffect(() => {
     const container = pdfContainerRef.current;
@@ -195,7 +269,6 @@ function ProcurementDetailPage() {
     setIsConfirmModalOpen(true);
   };
 
-  // This is the new function that runs when the user confirms
   const executeCancellation = async () => {
     try {
       const response = await apiClient.post(
@@ -208,23 +281,13 @@ function ProcurementDetailPage() {
         error.response?.data?.error || "Could not cancel the request."
       );
     } finally {
-      setIsConfirmModalOpen(false); // Close the modal
+      setIsConfirmModalOpen(false);
     }
   };
 
-  // const onDocumentLoadSuccess = (pdf) => {
-  //   setNumPages(pdf.numPages);
-  //   pdf.getPage(1).then((page) => {
-  //     setPdfPageDetails({
-  //       originalWidth: page.originalWidth,
-  //       originalHeight: page.originalHeight,
-  //     });
-  //   });
-  // };
-
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
-    setCurrentPage(1); // << สำคัญ: รีเซ็ตเป็นหน้า 1 เสมอ
+    setCurrentPage(1);
   };
 
   const goToPreviousPage = () => {
@@ -238,33 +301,9 @@ function ProcurementDetailPage() {
   };
 
   const handleOpenSignatureModal = () => setIsSignatureModalOpen(true);
-  const handleCloseSignatureModal = () => setIsSignatureModalOpen(false);
-  // const handleSaveSignature = (signatureDataUrl) => {
-  //   const img = new Image();
-  //   img.src = signatureDataUrl;
-  //   img.onload = () => {
-  //     const initialWidth = 200;
-  //     const aspectRatio = img.height / img.width;
-
-  //     signatureAspectRatio.current = aspectRatio;
-
-  //     setSignatureSize({
-  //       width: initialWidth,
-  //       height: initialWidth * aspectRatio,
-  //     });
-  //   };
-  //   const container = pdfWrapperRef.current;
-  //   if (container) {
-  //     setSignaturePosition({ x: 50, y: container.scrollTop + 50 });
-  //   } else {
-  //     setSignaturePosition({ x: 50, y: 50 });
-  //   }
-  //   setSignatureImage(signatureDataUrl);
-  //   handleCloseSignatureModal();
-  // };
 
   const handleResize = (event, { size }) => {
-    setSignatureSize({ width: size.width, height: size.height });
+    // setSignatureSize({ width: size.width, height: size.height });
   };
 
   const onPageLoadSuccess = (page) => {
@@ -281,7 +320,7 @@ function ProcurementDetailPage() {
         "Are you sure you want to approve and advance to the next step?"
       )
     ) {
-      return; // หยุดการทำงานถ้าผู้ใช้กด "Cancel"
+      return;
     }
 
     if (isSubmitting) return;
@@ -290,21 +329,15 @@ function ProcurementDetailPage() {
     const formData = new FormData();
     formData.append("notes", notes);
 
-    // ✨ --- เพิ่มโค้ดส่วนนี้เข้าไป --- ✨
-    // ตรวจสอบว่าขั้นตอนนี้บังคับให้กรอกเลขที่หนังสือหรือไม่
     if (request.current_step_details?.requires_document_number) {
-      // ถ้าบังคับ และผู้ใช้ได้กรอกข้อมูลแล้ว
       if (documentNumber && documentNumber.trim() !== "") {
-        // ให้แนบข้อมูลเลขที่หนังสือลงไปใน formData
         formData.append("document_number", documentNumber);
       } else {
-        // ถ้าจำเป็นแต่ยังไม่ได้กรอก ให้แจ้งเตือนและหยุดการทำงาน
         alert("Please enter the required document number for this step.");
-        setIsSubmitting(false); // ปลดล็อกปุ่ม
+        setIsSubmitting(false);
         return;
       }
     }
-    // ✨ --- สิ้นสุดส่วนที่เพิ่ม --- ✨
 
     filesToUpload.forEach((file) => {
       formData.append("files", file);
@@ -321,7 +354,7 @@ function ProcurementDetailPage() {
       setRequest(response.data);
       setNotes("");
       setFilesToUpload([]);
-      setDocumentNumber(""); // ✨ เคลียร์ค่าใน state หลังส่งสำเร็จ
+      setDocumentNumber("");
     } catch (error) {
       console.error("Failed to approve step", error);
       alert(error.response?.data?.error || "Could not approve step.");
@@ -333,7 +366,7 @@ function ProcurementDetailPage() {
   const handleFileChange = (e) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      const MAX_FILENAME_LENGTH = 150; // ✅ กำหนดความยาวสูงสุดที่นี่
+      const MAX_FILENAME_LENGTH = 150;
 
       const tooLongFiles = newFiles.filter(
         (file) => file.name.length > MAX_FILENAME_LENGTH
@@ -345,10 +378,10 @@ function ProcurementDetailPage() {
             .map((f) => f.name)
             .join(", ")}`
         );
-        return; // หยุดการทำงานของฟังก์ชัน
+        return;
       }
 
-      setFileUploadError(""); // เคลียร์ข้อความ error หากไม่มีปัญหา
+      setFileUploadError("");
       setFilesToUpload((prevFiles) => [...prevFiles, ...newFiles]);
 
       const pdfFile = newFiles.find((file) => file.type === "application/pdf");
@@ -421,7 +454,6 @@ function ProcurementDetailPage() {
         const wrapperRect = pdfWrapper.getBoundingClientRect();
         const canvasRect = pageCanvas.getBoundingClientRect();
 
-        // ✅ [KEY FIX] ดึงค่า CSS Style ของ Wrapper เพื่อหาค่า Padding
         const wrapperStyle = window.getComputedStyle(pdfWrapper);
         const wrapperPaddingLeft = parseFloat(wrapperStyle.paddingLeft);
         const wrapperPaddingTop = parseFloat(wrapperStyle.paddingTop);
@@ -431,7 +463,6 @@ function ProcurementDetailPage() {
         );
 
         for (const sig of signaturesOnThisPage) {
-          // ... (ส่วนโหลดรูปภาพเหมือนเดิม) ...
           const sigResponse = await fetch(sig.image);
           const contentType = sigResponse.headers.get("Content-Type") || "";
           const signatureImageBytes = await sigResponse.arrayBuffer();
@@ -450,41 +481,26 @@ function ProcurementDetailPage() {
           const page = allPages[sig.page - 1];
           const pageDimensions = page.getSize();
 
-          // ✅ [KEY FIX] ใช้สูตรคำนวณใหม่ที่รวมค่า Padding เข้าไปด้วย
-
-          // 1. หาตำแหน่งของลายเซ็นบนหน้าจอ (Viewport)
-          // โดยอ้างอิงจากขอบของ wrapper + padding + ตำแหน่งของลายเซ็นเอง
           const signatureScreenX =
             wrapperRect.left + wrapperPaddingLeft + sig.position.x;
           const signatureScreenY =
             wrapperRect.top + wrapperPaddingTop + sig.position.y;
 
-          // 2. หาตำแหน่งของลายเซ็นที่สัมพันธ์กับขอบของ Canvas
-          // โดยการนำตำแหน่งบนหน้าจอของลายเซ็น ลบด้วยตำแหน่งบนหน้าจอของ Canvas
           const signatureRelativeX_px = signatureScreenX - canvasRect.left;
           const signatureRelativeY_px = signatureScreenY - canvasRect.top;
 
-          // 3. แปลงค่าจาก Pixel (หน้าจอ) ไปเป็น Point (PDF)
           const pointsPerPixel = pageDimensions.width / canvasRect.width;
           const sigWidthPts = sig.size.width * pointsPerPixel;
           const sigHeightPts = sig.size.height * pointsPerPixel;
-          // ✅ [KEY FIX] กำหนดค่า Offset เป็นหน่วย "Pixel" ที่นี่
-          // ลองเริ่มจากค่าน้อยๆ เช่น 5-15 แล้วค่อยๆ ปรับหาค่าที่เหมาะสม
-          const X_OFFSET_PIXELS = 50; // ค่าบวก: เลื่อนไปทางขวา
-          const Y_OFFSET_PIXELS = 50; // ค่าบวก: เลื่อนลงล่าง
 
-          // ✅ [KEY FIX] นำค่า Offset (Pixel) ไปบวกก่อนที่จะแปลงเป็น Point
+          const X_OFFSET_PIXELS = 50;
+          const Y_OFFSET_PIXELS = 50;
+
           let xPts = (signatureRelativeX_px + X_OFFSET_PIXELS) * pointsPerPixel;
           let yPts =
             pageDimensions.height -
             (signatureRelativeY_px + Y_OFFSET_PIXELS) * pointsPerPixel -
             sigHeightPts;
-
-          // const X_OFFSET_POINTS = 33; // ค่าบวก: เลื่อนไปทางขวา
-          // const Y_OFFSET_POINTS = 33; // ค่าบวก: เลื่อนลงล่าง
-
-          // xPts += X_OFFSET_POINTS;
-          // yPts -= Y_OFFSET_POINTS; // แกน Y ต้องใช้เครื่องหมายลบเพื่อเลื่อนลง
 
           const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
           xPts = clamp(xPts, 0, pageDimensions.width - sigWidthPts);
@@ -499,7 +515,6 @@ function ProcurementDetailPage() {
         }
       }
 
-      // ... (ส่วนบันทึกไฟล์และเคลียร์ state เหมือนเดิม) ...
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -527,92 +542,12 @@ function ProcurementDetailPage() {
     }
   };
 
-  // const handleFindAndPlace = () => {
-  //   if (!searchText) {
-  //     toast.error("กรุณาพิมพ์ชื่อเพื่อค้นหา");
-  //     return;
-  //   }
-
-  //   const pdfWrapper = pdfWrapperRef.current;
-  //   if (!pdfWrapper) {
-  //     toast.error("ไม่พบ PDF wrapper");
-  //     return;
-  //   }
-
-  //   // Wait for text layer to render
-  //   setTimeout(() => {
-  //     const pages = pdfWrapper.querySelectorAll(".react-pdf__Page");
-  //     if (!pages || pages.length === 0) {
-  //       toast.error("ไม่พบหน้าของ PDF");
-  //       return;
-  //     }
-
-  //     for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-  //       const page = pages[pageIndex];
-  //       const textLayer = page.querySelector(".react-pdf__Page__textContent");
-  //       if (!textLayer) {
-  //         console.warn(`Text layer not found for page ${pageIndex + 1}`);
-  //         continue;
-  //       }
-
-  //       if (!textLayer.children.length) {
-  //         console.warn(
-  //           `Text layer for page ${pageIndex + 1} is empty or not rendered`
-  //         );
-  //         continue;
-  //       }
-
-  //       const textSpans = textLayer.querySelectorAll("span");
-  //       for (const span of textSpans) {
-  //         if (span.innerText.includes(searchText)) {
-  //           const pageRect = page.getBoundingClientRect();
-  //           const textRect = span.getBoundingClientRect();
-
-  //           console.log("Page Rect:", {
-  //             left: pageRect.left,
-  //             top: pageRect.top,
-  //             width: pageRect.width,
-  //             height: pageRect.height,
-  //           });
-  //           console.log("Text Rect:", {
-  //             left: textRect.left,
-  //             top: textRect.top,
-  //             width: textRect.width,
-  //             height: textRect.height,
-  //           });
-
-  //           const newX = (textRect.left - pageRect.left) / pdfScale;
-  //           const newY = (textRect.top - pageRect.top) / pdfScale;
-
-  //           console.log(`Found "${searchText}" at position:`, {
-  //             x: newX,
-  //             y: newY,
-  //             page: pageIndex + 1,
-  //             scale: pdfScale,
-  //           });
-
-  //           setSignaturePosition({ x: newX, y: newY, page: pageIndex + 1 });
-  //           toast.success(
-  //             `พบ "${searchText}" บนหน้า ${pageIndex + 1} และวางลายเซ็นแล้ว`
-  //           );
-  //           page.scrollIntoView({ behavior: "smooth" });
-  //           return;
-  //         }
-  //       }
-  //     }
-
-  //     toast.error(`ไม่พบ "${searchText}" ในเอกสาร`);
-  //   }, 500); // Delay to ensure text layer rendering
-  // };
-  // console.log("Current pdfScale:", pdfScale);
-
   const handleFindAndPlace = () => {
     if (!searchText || searchText.trim() === "") {
       toast.error("กรุณาพิมพ์ข้อความในช่องค้นหาเพื่อระบุตำแหน่ง");
       return;
     }
 
-    // ✅ [BUG FIX] เปลี่ยน Logic ให้หาลายเซ็น "ตัวล่าสุด" ที่ยังไม่ถูกจัดวาง
     const unplacedSignatures = signatures.filter((sig) => !sig.placed);
     if (unplacedSignatures.length === 0) {
       toast.error("ไม่พบลายเซ็นที่รอการจัดวาง (กรุณาเพิ่มลายเซ็นใหม่)");
@@ -628,7 +563,6 @@ function ProcurementDetailPage() {
         return;
       }
 
-      // ✅ [FINAL FIX] แก้ไขให้หาเฉพาะหน้าที่แสดงผลอยู่ ณ ปัจจุบันเพียงหน้าเดียว
       const pageElement = pdfWrapper.querySelector(".react-pdf__Page");
 
       if (!pageElement) {
@@ -758,9 +692,8 @@ function ProcurementDetailPage() {
 
   const isSignatureRequirementMet = () => {
     if (!stepRequiresSignature) {
-      return true; // ถ้าไม่ต้องการลายเซ็น ก็ถือว่าผ่าน
+      return true;
     }
-    // ถ้าต้องการลายเซ็น ให้ตรวจว่ามีไฟล์ "signed_..." อยู่ในรายการอัปโหลดหรือไม่
     return filesToUpload.some((file) => file.name.startsWith("signed_"));
   };
 
@@ -786,12 +719,16 @@ function ProcurementDetailPage() {
     user.id === request.created_by &&
     !request.is_completed &&
     !request.is_cancelled;
-  console.log(request.created_by);
 
   return (
     <div className="procurement-detail-container">
       <div className="detail-header">
         <h1>{request.title}</h1>
+        {request.category_details && (
+          <span className="category-badge-detail">
+            {request.category_details.name}
+          </span>
+        )}
         {/* <div style={{ marginTop: "1rem" }}>
           <button
             onClick={handleTestPdf}
@@ -835,7 +772,6 @@ function ProcurementDetailPage() {
           >
             {isHeaderVisible && (
               <>
-                {/* ===== LEFT SECTION ===== */}
                 <div className="header-left-controls">
                   <div className="zoom-controls">
                     <button
@@ -877,15 +813,6 @@ function ProcurementDetailPage() {
 
                   {signatures.length > 0 && (
                     <div className="auto-place-controls">
-                      {/* <input
-                        type="text"
-                        id="signatureSearch"
-                        name="signatureSearch"
-                        placeholder="ค้นหาชื่อเพื่อวางลายเซ็น..."
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        disabled
-                      /> */}
                       <button onClick={handleFindAndPlace}>
                         <FiSearch /> ค้นหา & วางตำแหน่ง
                       </button>
@@ -893,7 +820,6 @@ function ProcurementDetailPage() {
                   )}
                 </div>
 
-                {/* ===== RIGHT SECTION ===== */}
                 <div className="header-right-actions">
                   {showSignButton && (
                     <button
@@ -926,7 +852,6 @@ function ProcurementDetailPage() {
               </>
             )}
           </div>
-          {/* ปุ่ม toggle เฉพาะ mobile */}
           <button
             className="header-toggle-btn"
             onClick={() => setIsHeaderVisible((prev) => !prev)}
@@ -972,6 +897,55 @@ function ProcurementDetailPage() {
                       >
                         &times;
                       </button>
+
+                      {/* --- ✅ 4. เพิ่มปุ่มแก้ไข (แสดงเฉพาะแบบ Type) --- */}
+                      {sig.type === "type" && (
+                        <button
+                          onClick={() => handleEditSignature(sig)}
+                          title="แก้ไขข้อความ"
+                          style={{
+                            position: "absolute",
+                            top: "-12px",
+                            left: "-12px",
+                            zIndex: 12,
+                            width: "24px",
+                            height: "24px",
+                            backgroundColor: "#0d6efd",
+                            color: "white",
+                            border: "1px solid white",
+                            borderRadius: "50%",
+                            fontSize: "12px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                            marginLeft: "28px",
+                          }}
+                        >
+                          ✎
+                        </button>
+                      )}
+
+                      <div className="signature-zoom-controls">
+                        <button
+                          onClick={() => handleResizeSignature(sig.id, 1.1)} // ขยาย 10%
+                          className="zoom-btn"
+                          title="ขยาย"
+                        >
+                          <FiPlus size={12} />
+                        </button>
+                        <button
+                          onClick={() => handleResizeSignature(sig.id, 0.9)} // ลด 10%
+                          className="zoom-btn"
+                          title="ย่อ"
+                        >
+                          <FiMinus size={12} />
+                        </button>
+                      </div>
+
+                      {/* ------------------------------------------- */}
+
                       <ResizableBox
                         width={sig.size.width}
                         height={sig.size.height}
@@ -1143,7 +1117,6 @@ function ProcurementDetailPage() {
                   onChange={handleFileChange}
                   className="upload-input"
                 />
-                {/* ✅ เพิ่มส่วนแสดงผลข้อความแจ้งเตือน error ของการอัปโหลดไฟล์ */}
                 {fileUploadError && (
                   <p className="file-upload-error">{fileUploadError}</p>
                 )}
@@ -1178,7 +1151,6 @@ function ProcurementDetailPage() {
                 </div>
               )}
 
-              {/* ✅ รวมข้อความแจ้งเตือนให้เป็นหนึ่งเดียวและใช้เงื่อนไขแบบรวมศูนย์ */}
               {canApprove && (
                 <>
                   {stepRequiresSignature && !hasViewedPdf && (
@@ -1211,7 +1183,6 @@ function ProcurementDetailPage() {
                       1 รายการ
                     </p>
                   )}
-                  {/* ... ข้อความแจ้งเตือนอื่นๆ ... */}
                 </>
               )}
 
@@ -1277,12 +1248,17 @@ function ProcurementDetailPage() {
           ← กลับหน้าแสดงงานทั้งหมด
         </Link>
       </div>
+
+      {/* --- ✅ 5. ส่งค่า initialData ไปให้ Modal --- */}
       <SignatureModal
         isOpen={isSignatureModalOpen}
         onClose={handleCloseSignatureModal}
         onSave={handleSaveSignature}
         typedSignatureFont="'Sarabun', sans-serif"
+        initialData={signatureToEdit}
       />
+      {/* -------------------------------------- */}
+
       <ConfirmModal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}

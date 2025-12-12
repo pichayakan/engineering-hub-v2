@@ -9,17 +9,42 @@ function SignatureModal({
   onClose,
   onSave,
   typedSignatureFont = "'Sarabun', sans-serif",
+  initialData = null, // ✅ 1. รับข้อมูลเริ่มต้น (ถ้ามี)
 }) {
   const sigPadRef = useRef(null);
   const fileInputRef = useRef(null);
   const canvasContainerRef = useRef(null);
 
-  const [activeTab, setActiveTab] = useState("draw");
-  const [typedName, setTypedName] = useState("");
+  // ✅ 2. ตั้งค่าเริ่มต้นจาก initialData
+  const [activeTab, setActiveTab] = useState(
+    initialData?.type === "type" ? "type" : "draw"
+  );
+  const [typedName, setTypedName] = useState(
+    initialData?.type === "type" ? initialData.text : ""
+  );
+
   const [typedSignatureUrl, setTypedSignatureUrl] = useState("");
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   const FIXED_SIGNATURE_URL = "/signature_worawitl-removebg.png";
+
+  // ✅ 3. Reset state เมื่อเปิด Modal ใหม่ หรือ initialData เปลี่ยน
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        if (initialData.type === "type") {
+          setActiveTab("type");
+          setTypedName(initialData.text || "");
+        } else {
+          setActiveTab("draw");
+        }
+      } else {
+        // กรณีสร้างใหม่
+        setTypedName("");
+        setActiveTab("draw");
+      }
+    }
+  }, [isOpen, initialData]);
 
   useEffect(() => {
     if (isOpen && canvasContainerRef.current) {
@@ -34,26 +59,46 @@ function SignatureModal({
     }
   }, [isOpen]);
 
-  // ✅ NEW FUNCTION TO HANDLE TAB CLICKS AND RESET
   const handleTabClick = (tabName) => {
     setActiveTab(tabName);
-    // If we're switching back to the "draw" tab, clear the canvas
     if (tabName === "draw" && sigPadRef.current) {
       sigPadRef.current.clear();
     }
   };
 
+  // --- Logic วาดข้อความ (เหมือนเดิม) ---
   useEffect(() => {
     if (activeTab === "type" && typedName) {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-      canvas.width = 400;
-      canvas.height = 100;
-      ctx.font = `normal 40px ${typedSignatureFont}`;
+
+      const fontSize = 40;
+      const lineHeight = fontSize * 1.5;
+      const lines = typedName.split("\n");
+
+      ctx.font = `normal ${fontSize}px ${typedSignatureFont}`;
+      let maxWidth = 0;
+      lines.forEach((line) => {
+        const metrics = ctx.measureText(line);
+        if (metrics.width > maxWidth) maxWidth = metrics.width;
+      });
+
+      canvas.width = Math.max(600, maxWidth + 100);
+      canvas.height = Math.max(200, lines.length * lineHeight + 60);
+
+      ctx.font = `normal ${fontSize}px ${typedSignatureFont}`;
       ctx.fillStyle = "blue";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(typedName, canvas.width / 2, canvas.height / 2);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+
+      const totalTextHeight = lines.length * lineHeight;
+      const startY = (canvas.height - totalTextHeight) / 2;
+      const startX = (canvas.width - maxWidth) / 2;
+
+      lines.forEach((line, index) => {
+        ctx.fillText(line, startX, startY + index * lineHeight);
+      });
+
       setTypedSignatureUrl(canvas.toDataURL("image/png"));
     }
   }, [typedName, activeTab, typedSignatureFont]);
@@ -67,15 +112,26 @@ function SignatureModal({
   };
 
   const handleSave = () => {
+    let signatureData = null;
+    let textData = null; // ✅ เก็บข้อความด้วย
+
     if (activeTab === "draw") {
       if (sigPadRef.current.isEmpty()) return alert("Please draw a signature.");
-      onSave(sigPadRef.current.toDataURL("image/png"));
+      signatureData = sigPadRef.current.toDataURL("image/png");
     } else if (activeTab === "type") {
-      if (!typedName) return alert("Please type your name.");
-      onSave(typedSignatureUrl);
+      if (!typedName) return alert("Please type your text.");
+      signatureData = typedSignatureUrl;
+      textData = typedName; // ✅ เก็บข้อความที่พิมพ์
     } else if (activeTab === "fixed") {
-      onSave(FIXED_SIGNATURE_URL);
+      signatureData = FIXED_SIGNATURE_URL;
     }
+
+    // ✅ ส่งกลับเป็น Object ที่มีข้อมูลครบถ้วน
+    onSave({
+      image: signatureData,
+      type: activeTab,
+      text: textData,
+    });
   };
 
   const handleImageUpload = (e) => {
@@ -83,7 +139,7 @@ function SignatureModal({
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        onSave(event.target.result);
+        onSave({ image: event.target.result, type: "upload" });
       };
       reader.readAsDataURL(file);
     }
@@ -94,7 +150,11 @@ function SignatureModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Provide Your Signature">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={initialData ? "Edit Signature" : "Provide Your Signature"} // เปลี่ยน Title ตามสถานะ
+    >
       <div className="signature-tabs">
         <button
           onClick={() => handleTabClick("draw")}
@@ -137,12 +197,13 @@ function SignatureModal({
 
       {activeTab === "type" && (
         <div className="type-signature-container">
-          <input
-            type="text"
+          <textarea
             className="type-signature-input"
-            placeholder="Type your full name"
+            placeholder="Type your text here... (e.g. เรียน ..., อนุมัติ)"
             value={typedName}
             onChange={(e) => setTypedName(e.target.value)}
+            rows={5}
+            style={{ whiteSpace: "pre-wrap" }}
           />
           {typedName && (
             <div className="type-signature-preview">
@@ -170,7 +231,7 @@ function SignatureModal({
           Clear
         </button>
         <button onClick={handleSave} className="btn-save">
-          Save Signature
+          {initialData ? "Update Signature" : "Save Signature"}
         </button>
       </div>
 
