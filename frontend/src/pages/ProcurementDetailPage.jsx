@@ -27,8 +27,6 @@ import {
   FiSearch,
   FiEdit3,
   FiSave,
-  FiPlus,
-  FiMinus,
 } from "react-icons/fi";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
@@ -166,29 +164,6 @@ function ProcurementDetailPage() {
         "ลายเซ็นรูปแบบนี้ไม่รองรับการแก้ไขข้อความ (ต้องลบและสร้างใหม่)"
       );
     }
-  };
-
-  // --- ✅ 4. ฟังก์ชันปรับขนาดลายเซ็น (+/-) ---
-  const handleResizeSignature = (id, scaleFactor) => {
-    setSignatures((prev) =>
-      prev.map((sig) => {
-        if (sig.id === id) {
-          const newWidth = sig.size.width * scaleFactor;
-          const newHeight = sig.size.height * scaleFactor;
-
-          if (newWidth < 50 || newWidth > 800) return sig;
-
-          return {
-            ...sig,
-            size: {
-              width: newWidth,
-              height: newHeight,
-            },
-          };
-        }
-        return sig;
-      })
-    );
   };
 
   const handleCloseSignatureModal = () => {
@@ -729,7 +704,7 @@ function ProcurementDetailPage() {
             {request.category_details.name}
           </span>
         )}
-        {/* <div style={{ marginTop: "1rem" }}>
+        <div style={{ marginTop: "1rem" }}>
           <button
             onClick={handleTestPdf}
             style={{
@@ -744,7 +719,7 @@ function ProcurementDetailPage() {
           >
             🛠️ Test Generate PDF
           </button>
-        </div> */}
+        </div>
         {request.document_number && (
           <p>
             <strong>เลขที่หนังสือ:</strong> {request.document_number}
@@ -926,24 +901,6 @@ function ProcurementDetailPage() {
                           ✎
                         </button>
                       )}
-
-                      <div className="signature-zoom-controls">
-                        <button
-                          onClick={() => handleResizeSignature(sig.id, 1.1)} // ขยาย 10%
-                          className="zoom-btn"
-                          title="ขยาย"
-                        >
-                          <FiPlus size={12} />
-                        </button>
-                        <button
-                          onClick={() => handleResizeSignature(sig.id, 0.9)} // ลด 10%
-                          className="zoom-btn"
-                          title="ย่อ"
-                        >
-                          <FiMinus size={12} />
-                        </button>
-                      </div>
-
                       {/* ------------------------------------------- */}
 
                       <ResizableBox
