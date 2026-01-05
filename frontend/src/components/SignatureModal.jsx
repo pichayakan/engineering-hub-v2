@@ -3,19 +3,19 @@ import React, { useState, useRef, useEffect } from "react";
 import Modal from "./Modal";
 import SignatureCanvas from "react-signature-canvas";
 import "./SignatureModal.css";
+import { FiPenTool, FiRefreshCw, FiMinusCircle } from "react-icons/fi"; // เปลี่ยนไอคอนนิดหน่อย
 
 function SignatureModal({
   isOpen,
   onClose,
   onSave,
   typedSignatureFont = "'Sarabun', sans-serif",
-  initialData = null, // ✅ 1. รับข้อมูลเริ่มต้น (ถ้ามี)
+  initialData = null,
 }) {
   const sigPadRef = useRef(null);
   const fileInputRef = useRef(null);
   const canvasContainerRef = useRef(null);
 
-  // ✅ 2. ตั้งค่าเริ่มต้นจาก initialData
   const [activeTab, setActiveTab] = useState(
     initialData?.type === "type" ? "type" : "draw"
   );
@@ -23,12 +23,16 @@ function SignatureModal({
     initialData?.type === "type" ? initialData.text : ""
   );
 
+  // --- ✅ State เครื่องมือและขนาดเส้น ---
+  const [currentTool, setCurrentTool] = useState("pen"); // 'pen' | 'whiteout'
+  const [brushSize, setBrushSize] = useState(2.5); // ขนาดเริ่มต้น
+  // ------------------------------------
+
   const [typedSignatureUrl, setTypedSignatureUrl] = useState("");
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   const FIXED_SIGNATURE_URL = "/signature_worawitl-removebg.png";
 
-  // ✅ 3. Reset state เมื่อเปิด Modal ใหม่ หรือ initialData เปลี่ยน
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
@@ -37,11 +41,15 @@ function SignatureModal({
           setTypedName(initialData.text || "");
         } else {
           setActiveTab("draw");
+          // Reset default
+          setCurrentTool("pen");
+          setBrushSize(2.5);
         }
       } else {
-        // กรณีสร้างใหม่
         setTypedName("");
         setActiveTab("draw");
+        setCurrentTool("pen");
+        setBrushSize(2.5);
       }
     }
   }, [isOpen, initialData]);
@@ -63,42 +71,48 @@ function SignatureModal({
     setActiveTab(tabName);
     if (tabName === "draw" && sigPadRef.current) {
       sigPadRef.current.clear();
+      setCurrentTool("pen");
+      setBrushSize(2.5);
     }
   };
 
-  // --- Logic วาดข้อความ (เหมือนเดิม) ---
+  // --- ✅ ฟังก์ชันเปลี่ยนเครื่องมือ ---
+  const handleToolChange = (tool) => {
+    setCurrentTool(tool);
+    // ตั้งค่าขนาดเริ่มต้นให้เหมาะสมกับเครื่องมือ
+    if (tool === "whiteout") {
+      setBrushSize(15); // ลบคำผิดควรเส้นใหญ่
+    } else {
+      setBrushSize(2.5); // ปากกาควรเส้นเล็ก
+    }
+  };
+
+  // ... (Logic วาดข้อความ type mode เหมือนเดิม) ...
   useEffect(() => {
     if (activeTab === "type" && typedName) {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-
       const fontSize = 40;
       const lineHeight = fontSize * 1.5;
       const lines = typedName.split("\n");
-
       ctx.font = `normal ${fontSize}px ${typedSignatureFont}`;
       let maxWidth = 0;
       lines.forEach((line) => {
         const metrics = ctx.measureText(line);
         if (metrics.width > maxWidth) maxWidth = metrics.width;
       });
-
       canvas.width = Math.max(600, maxWidth + 100);
       canvas.height = Math.max(200, lines.length * lineHeight + 60);
-
       ctx.font = `normal ${fontSize}px ${typedSignatureFont}`;
       ctx.fillStyle = "blue";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-
       const totalTextHeight = lines.length * lineHeight;
       const startY = (canvas.height - totalTextHeight) / 2;
       const startX = (canvas.width - maxWidth) / 2;
-
       lines.forEach((line, index) => {
         ctx.fillText(line, startX, startY + index * lineHeight);
       });
-
       setTypedSignatureUrl(canvas.toDataURL("image/png"));
     }
   }, [typedName, activeTab, typedSignatureFont]);
@@ -106,6 +120,7 @@ function SignatureModal({
   const handleClear = () => {
     if (activeTab === "draw") {
       sigPadRef.current.clear();
+      // ไม่ต้อง reset tool ก็ได้ ให้ใช้ tool เดิมต่อ
     } else if (activeTab === "type") {
       setTypedName("");
     }
@@ -113,7 +128,7 @@ function SignatureModal({
 
   const handleSave = () => {
     let signatureData = null;
-    let textData = null; // ✅ เก็บข้อความด้วย
+    let textData = null;
 
     if (activeTab === "draw") {
       if (sigPadRef.current.isEmpty()) return alert("Please draw a signature.");
@@ -121,12 +136,11 @@ function SignatureModal({
     } else if (activeTab === "type") {
       if (!typedName) return alert("Please type your text.");
       signatureData = typedSignatureUrl;
-      textData = typedName; // ✅ เก็บข้อความที่พิมพ์
+      textData = typedName;
     } else if (activeTab === "fixed") {
       signatureData = FIXED_SIGNATURE_URL;
     }
 
-    // ✅ ส่งกลับเป็น Object ที่มีข้อมูลครบถ้วน
     onSave({
       image: signatureData,
       type: activeTab,
@@ -153,7 +167,7 @@ function SignatureModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialData ? "Edit Signature" : "Provide Your Signature"} // เปลี่ยน Title ตามสถานะ
+      title={initialData ? "Edit Signature" : "Provide Your Signature"}
     >
       <div className="signature-tabs">
         <button
@@ -180,19 +194,76 @@ function SignatureModal({
       </div>
 
       {activeTab === "draw" && (
-        <div className="signature-pad-container" ref={canvasContainerRef}>
-          {containerSize.width > 0 && (
-            <SignatureCanvas
-              ref={sigPadRef}
-              penColor="black"
-              canvasProps={{
-                width: containerSize.width,
-                height: containerSize.height,
-                className: "signature-canvas",
-              }}
-            />
-          )}
-        </div>
+        <>
+          {/* --- ✅ Toolbar พร้อมตัวปรับขนาด --- */}
+          <div className="draw-toolbar">
+            <div className="tool-group">
+              <button
+                className={`tool-btn ${currentTool === "pen" ? "active" : ""}`}
+                onClick={() => handleToolChange("pen")}
+                title="ปากกาสีดำ"
+              >
+                <FiPenTool /> ปากกา
+              </button>
+              <button
+                className={`tool-btn ${
+                  currentTool === "whiteout" ? "active" : ""
+                }`}
+                onClick={() => handleToolChange("whiteout")}
+                title="น้ำยาลบคำผิด (ระบายสีขาว)"
+              >
+                <span className="color-dot white"></span> ลบคำผิด
+              </button>
+            </div>
+
+            {/* --- ✅ Slider ปรับขนาด --- */}
+            <div className="size-control-group">
+              <span className="size-label">ขนาด: {brushSize}px</span>
+              <input
+                type="range"
+                min="1"
+                max="30"
+                step="1"
+                value={brushSize}
+                onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                className="size-slider"
+              />
+            </div>
+            {/* ------------------------- */}
+
+            <button
+              onClick={handleClear}
+              className="tool-btn clear-tool"
+              title="ล้างกระดาน"
+            >
+              <FiRefreshCw /> ล้าง
+            </button>
+          </div>
+
+          <div className="signature-pad-container" ref={canvasContainerRef}>
+            {containerSize.width > 0 && (
+              <SignatureCanvas
+                ref={sigPadRef}
+                // กำหนดสีตามเครื่องมือ
+                penColor={currentTool === "whiteout" ? "white" : "black"}
+                // ✅ กำหนดขนาดเส้นตาม State (ใช้ min/max เท่ากันเพื่อให้เส้นสม่ำเสมอ)
+                minWidth={brushSize}
+                maxWidth={brushSize}
+                dotSize={brushSize}
+                canvasProps={{
+                  width: containerSize.width,
+                  height: containerSize.height,
+                  className: "signature-canvas",
+                }}
+              />
+            )}
+          </div>
+          <p className="draw-hint">
+            {currentTool === "whiteout"
+              ? "💡 ใช้ระบายทับส่วนที่ต้องการลบ (สีขาวจะบังข้อความเดิม)"
+              : "💡 เซ็นชื่อลงในกรอบ"}
+          </p>
+        </>
       )}
 
       {activeTab === "type" && (
@@ -227,9 +298,11 @@ function SignatureModal({
       )}
 
       <div className="signature-actions">
-        <button onClick={handleClear} className="btn-clear">
-          Clear
-        </button>
+        {activeTab !== "draw" && (
+          <button onClick={handleClear} className="btn-clear">
+            Clear
+          </button>
+        )}
         <button onClick={handleSave} className="btn-save">
           {initialData ? "Update Signature" : "Save Signature"}
         </button>

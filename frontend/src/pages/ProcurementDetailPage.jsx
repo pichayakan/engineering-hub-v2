@@ -23,10 +23,12 @@ import "react-toastify/dist/ReactToastify.css";
 import {
   FiZoomIn,
   FiZoomOut,
-  FiRefreshCw,
+  FiRefreshCw, // ✅ ปุ่ม Reset
   FiSearch,
   FiEdit3,
   FiSave,
+  FiPlus, // ✅ ปุ่ม Zoom +
+  FiMinus, // ✅ ปุ่ม Zoom -
 } from "react-icons/fi";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
@@ -41,6 +43,7 @@ const download = (blob, filename) => {
 };
 
 function ProcurementDetailPage() {
+  // --- 1. State Declarations ---
   const [request, setRequest] = useState(null);
   const [workflow, setWorkflow] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -65,138 +68,25 @@ function ProcurementDetailPage() {
   const [containerWidth, setContainerWidth] = useState(0);
 
   const [signatures, setSignatures] = useState([]);
-
-  // --- ✅ 1. เพิ่ม State สำหรับการแก้ไขลายเซ็น ---
   const [editingSignatureId, setEditingSignatureId] = useState(null);
   const [signatureToEdit, setSignatureToEdit] = useState(null);
-  // -------------------------------------------
 
   // preview เอกสารก่อนส่งต่อ //
   const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
   const [hasViewedPdf, setHasViewedPdf] = useState(false);
 
-  const handleTestPdf = async () => {
-    try {
-      toast.info("Generating PDF...");
-
-      const response = await apiClient.get(
-        `/api/procurement/requests/${requestId}/test-generate-pdf/`,
-        { responseType: "blob" }
-      );
-
-      download(response.data, `test_pdf_${requestId}.pdf`);
-      toast.success("PDF Generated!");
-    } catch (error) {
-      console.error("PDF Error:", error);
-      toast.error("Failed to generate PDF");
-    }
-  };
-
-  // --- ✅ 2. ปรับปรุง handleSaveSignature ให้รองรับ Object และการ Edit ---
-  const handleSaveSignature = (signatureData) => {
-    // แยกข้อมูล (รองรับทั้งแบบ string เก่า และ object ใหม่ {image, type, text})
-    const imageSrc = signatureData.image || signatureData;
-    const sigType = signatureData.type || "draw";
-    const sigText = signatureData.text || "";
-
-    const img = new Image();
-    img.src = imageSrc;
-    img.onload = () => {
-      const initialWidth = 200;
-      const aspectRatio = img.height / img.width;
-      signatureAspectRatio.current = aspectRatio;
-
-      if (editingSignatureId) {
-        // --- 🅰️ กรณีแก้ไข (Update Existing) ---
-        setSignatures((prev) =>
-          prev.map((sig) =>
-            sig.id === editingSignatureId
-              ? {
-                  ...sig,
-                  image: imageSrc,
-                  text: sigText, // อัปเดตข้อความ
-                  type: sigType, // อัปเดตประเภท
-                  // ปรับขนาดความสูงใหม่ตามรูปใหม่ แต่คงความกว้างเดิมไว้
-                  size: {
-                    width: sig.size.width,
-                    height: sig.size.width * aspectRatio,
-                  },
-                }
-              : sig
-          )
-        );
-        // Reset state
-        setEditingSignatureId(null);
-        setSignatureToEdit(null);
-      } else {
-        // --- 🅱️ กรณีสร้างใหม่ (Create New) ---
-        const newSignature = {
-          id: `sig-${Date.now()}`,
-          page: currentPage,
-          image: imageSrc,
-          text: sigText, // เก็บข้อความไว้
-          type: sigType, // เก็บประเภทไว้
-          position: { x: 50, y: 50 },
-          size: {
-            width: initialWidth,
-            height: initialWidth * aspectRatio,
-          },
-        };
-        setSignatures((prev) => [...prev, newSignature]);
-      }
-
-      handleCloseSignatureModal();
-    };
-  };
-
-  // --- ✅ 3. เพิ่มฟังก์ชันเปิด Modal เพื่อแก้ไข ---
-  const handleEditSignature = (signature) => {
-    // อนุญาตให้แก้ไขเฉพาะแบบ Type (เพราะแบบอื่นไม่มี text ให้แก้)
-    if (signature.type === "type") {
-      setEditingSignatureId(signature.id);
-      setSignatureToEdit({
-        type: signature.type,
-        text: signature.text,
-      });
-      setIsSignatureModalOpen(true);
-    } else {
-      toast.info(
-        "ลายเซ็นรูปแบบนี้ไม่รองรับการแก้ไขข้อความ (ต้องลบและสร้างใหม่)"
-      );
-    }
-  };
-
-  const handleCloseSignatureModal = () => {
-    setIsSignatureModalOpen(false);
-    setEditingSignatureId(null);
-    setSignatureToEdit(null);
-  };
-
   const [currentPage, setCurrentPage] = useState(1);
-
   const [isSendBackModalOpen, setIsSendBackModalOpen] = useState(false);
-  const handleSendBack = async (data) => {
-    try {
-      const response = await apiClient.post(
-        `/api/procurement/requests/${requestId}/send-back/`,
-        data
-      );
-      setRequest(response.data);
-      setIsSendBackModalOpen(false);
-      toast.success("ส่งงานกลับแก้ไขเรียบร้อยแล้ว");
-    } catch (error) {
-      console.error("Failed to send back step", error);
-      toast.error("ไม่สามารถส่งงานกลับได้");
-    }
-  };
-
   const [searchText, setSearchText] = useState("วรวิ");
+  const [pdfScale, setPdfScale] = useState(1.0);
 
   const signatureRef = useRef(null);
   const pdfWrapperRef = useRef(null);
   const pdfContainerRef = useRef(null);
 
-  const [pdfScale, setPdfScale] = useState(1.0);
+  const viewerContainerRef = useRef(null);
+
+  // --- 2. Effects & Data Fetching ---
 
   const fetchRequestDetails = useCallback(async () => {
     try {
@@ -239,6 +129,148 @@ function ProcurementDetailPage() {
     resizeObserver.observe(container);
     return () => resizeObserver.disconnect();
   }, [selectedPdfUrl]);
+
+  useEffect(() => {
+    if (selectedPdfUrl && viewerContainerRef.current) {
+      // รอให้ Render เสร็จนิดนึงแล้วค่อยเลื่อน (setTimeout ช่วยให้แม่นยำขึ้นในบาง Browser)
+      setTimeout(() => {
+        viewerContainerRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+    }
+  }, [selectedPdfUrl]);
+
+  // --- 3. Handlers ---
+
+  const handleTestPdf = async () => {
+    try {
+      toast.info("Generating PDF...");
+      const response = await apiClient.get(
+        `/api/procurement/requests/${requestId}/test-generate-pdf/`,
+        { responseType: "blob" }
+      );
+      download(response.data, `test_pdf_${requestId}.pdf`);
+      toast.success("PDF Generated!");
+    } catch (error) {
+      console.error("PDF Error:", error);
+      toast.error("Failed to generate PDF");
+    }
+  };
+
+  const handleSaveSignature = (signatureData) => {
+    const imageSrc = signatureData.image || signatureData;
+    const sigType = signatureData.type || "draw";
+    const sigText = signatureData.text || "";
+
+    const img = new Image();
+    img.src = imageSrc;
+    img.onload = () => {
+      const initialWidth = 200;
+      const aspectRatio = img.height / img.width;
+      signatureAspectRatio.current = aspectRatio;
+
+      if (editingSignatureId) {
+        setSignatures((prev) =>
+          prev.map((sig) =>
+            sig.id === editingSignatureId
+              ? {
+                  ...sig,
+                  image: imageSrc,
+                  text: sigText,
+                  type: sigType,
+                  size: {
+                    width: sig.size.width,
+                    height: sig.size.width * aspectRatio,
+                  },
+                }
+              : sig
+          )
+        );
+        setEditingSignatureId(null);
+        setSignatureToEdit(null);
+      } else {
+        const newSignature = {
+          id: `sig-${Date.now()}`,
+          page: currentPage,
+          image: imageSrc,
+          text: sigText,
+          type: sigType,
+          position: { x: 50, y: 50 },
+          size: {
+            width: initialWidth,
+            height: initialWidth * aspectRatio,
+          },
+        };
+        setSignatures((prev) => [...prev, newSignature]);
+      }
+      handleCloseSignatureModal();
+    };
+  };
+
+  const handleEditSignature = (signature) => {
+    if (signature.type === "type") {
+      setEditingSignatureId(signature.id);
+      setSignatureToEdit({
+        type: signature.type,
+        text: signature.text,
+      });
+      setIsSignatureModalOpen(true);
+    } else {
+      toast.info(
+        "ลายเซ็นรูปแบบนี้ไม่รองรับการแก้ไขข้อความ (ต้องลบและสร้างใหม่)"
+      );
+    }
+  };
+
+  const handleResizeSignature = (id, scaleFactor) => {
+    setSignatures((prev) =>
+      prev.map((sig) => {
+        if (sig.id === id) {
+          const newWidth = Math.round(sig.size.width * scaleFactor);
+          const newHeight = Math.round(sig.size.height * scaleFactor);
+
+          if (newWidth < 30 || newWidth > 800) return sig;
+
+          return {
+            ...sig,
+            size: { width: newWidth, height: newHeight },
+          };
+        }
+        return sig;
+      })
+    );
+  };
+
+  const handleClearAllSignatures = () => {
+    if (signatures.length === 0) return;
+    if (window.confirm("คุณแน่ใจหรือไม่ที่จะลบลายเซ็นทั้งหมด?")) {
+      setSignatures([]);
+      toast.info("ลบลายเซ็นทั้งหมดเรียบร้อยแล้ว");
+    }
+  };
+
+  const handleCloseSignatureModal = () => {
+    setIsSignatureModalOpen(false);
+    setEditingSignatureId(null);
+    setSignatureToEdit(null);
+  };
+
+  const handleSendBack = async (data) => {
+    try {
+      const response = await apiClient.post(
+        `/api/procurement/requests/${requestId}/send-back/`,
+        data
+      );
+      setRequest(response.data);
+      setIsSendBackModalOpen(false);
+      toast.success("ส่งงานกลับแก้ไขเรียบร้อยแล้ว");
+    } catch (error) {
+      console.error("Failed to send back step", error);
+      toast.error("ไม่สามารถส่งงานกลับได้");
+    }
+  };
 
   const handleCancelRequest = () => {
     setIsConfirmModalOpen(true);
@@ -563,7 +595,7 @@ function ProcurementDetailPage() {
             const spanRect = span.getBoundingClientRect();
             if (spanRect.width === 0 && spanRect.height === 0) continue;
 
-            const newSignatureHeight = spanRect.height * 2.5;
+            const newSignatureHeight = spanRect.height * 4;
             const newSignatureWidth =
               newSignatureHeight / signatureAspectRatio.current;
             const targetCenterX =
@@ -612,9 +644,11 @@ function ProcurementDetailPage() {
     );
   };
 
+  // --- 4. Loading Guard (Placed after hooks and before data dependent logic) ---
   if (loading) return <div>Loading details...</div>;
   if (!request || !workflow) return <div>Could not load data.</div>;
 
+  // --- 5. Derived State (Variables that depend on 'request' and 'user') ---
   const signatureScale = pdfPageDetails
     ? containerWidth / pdfPageDetails.originalWidth
     : 1;
@@ -672,13 +706,20 @@ function ProcurementDetailPage() {
     return filesToUpload.some((file) => file.name.startsWith("signed_"));
   };
 
-  const isPdfFromLastStep = request.history.some(
-    (h) =>
-      h.id === latestHistoryEntryId &&
-      h.attachments.some((att) => att.file === selectedPdfUrl)
+  // ✅ 1. Logic ตรวจสอบไฟล์จากประวัติทั้งหมด (ไม่ว่าจะอยู่ Step ไหน)
+  // ใช้ Optional Chaining ป้องกัน Error
+  const isAnyHistoryAttachment = request?.history?.some((h) =>
+    h.attachments.some((att) => att.file === selectedPdfUrl)
   );
+
+  // ✅ 2. ตรวจสอบไฟล์ที่เพิ่งแนบใหม่ (Blob URL)
+  const isNewUpload = selectedPdfUrl && selectedPdfUrl.startsWith("blob:");
+
+  // ✅ 3. เงื่อนไขการแสดงปุ่มเซ็น (รองรับทั้งไฟล์เก่าและไฟล์ใหม่)
   const showSignButton =
-    canApprove && isPdfFromLastStep && stepRequiresSignature;
+    canApprove &&
+    (isAnyHistoryAttachment || isNewUpload) &&
+    stepRequiresSignature;
 
   const isSigningCompleted = () => {
     if (!selectedPdfUrl) {
@@ -695,6 +736,7 @@ function ProcurementDetailPage() {
     !request.is_completed &&
     !request.is_cancelled;
 
+  // --- 6. Render ---
   return (
     <div className="procurement-detail-container">
       <div className="detail-header">
@@ -704,7 +746,7 @@ function ProcurementDetailPage() {
             {request.category_details.name}
           </span>
         )}
-        <div style={{ marginTop: "1rem" }}>
+        {/* <div style={{ marginTop: "1rem" }}>
           <button
             onClick={handleTestPdf}
             style={{
@@ -719,7 +761,7 @@ function ProcurementDetailPage() {
           >
             🛠️ Test Generate PDF
           </button>
-        </div>
+        </div> */}
         {request.document_number && (
           <p>
             <strong>เลขที่หนังสือ:</strong> {request.document_number}
@@ -739,7 +781,7 @@ function ProcurementDetailPage() {
         history={request.history}
       />
       {selectedPdfUrl && (
-        <div className="document-viewer-section">
+        <div className="document-viewer-section" ref={viewerContainerRef}>
           <div
             className={`document-header ${
               isHeaderVisible ? "visible" : "hidden"
@@ -807,6 +849,18 @@ function ProcurementDetailPage() {
                       ใส่ลายเซ็น
                     </button>
                   )}
+
+                  {signatures.length > 0 && (
+                    <button
+                      className="clear-all-btn"
+                      onClick={handleClearAllSignatures}
+                      title="ลบลายเซ็นทั้งหมด"
+                    >
+                      <FiRefreshCw style={{ marginRight: "5px" }} />
+                      ลบลายเซ็นทั้งหมด
+                    </button>
+                  )}
+
                   <button
                     className="apply-signature-btn"
                     onClick={handleEmbedSignature}
@@ -845,6 +899,8 @@ function ProcurementDetailPage() {
                     nodeRef={nodeRef}
                     bounds="parent"
                     position={sig.position}
+                    /* ✅ (สำคัญ) ป้องกันการลากเมื่อกดโดนจุดย่อขยาย */
+                    cancel=".custom-handle"
                     onStop={(e, data) => {
                       setSignatures((prev) =>
                         prev.map((s) =>
@@ -873,15 +929,15 @@ function ProcurementDetailPage() {
                         &times;
                       </button>
 
-                      {/* --- ✅ 4. เพิ่มปุ่มแก้ไข (แสดงเฉพาะแบบ Type) --- */}
                       {sig.type === "type" && (
                         <button
                           onClick={() => handleEditSignature(sig)}
                           title="แก้ไขข้อความ"
+                          className="edit-signature-btn"
                           style={{
                             position: "absolute",
                             top: "-12px",
-                            left: "-12px",
+                            left: "28px",
                             zIndex: 12,
                             width: "24px",
                             height: "24px",
@@ -895,17 +951,47 @@ function ProcurementDetailPage() {
                             justifyContent: "center",
                             cursor: "pointer",
                             boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                            marginLeft: "28px",
                           }}
                         >
-                          ✎
+                          <FiEdit3 size={12} />
                         </button>
                       )}
-                      {/* ------------------------------------------- */}
+
+                      {/* --- ✅ ปุ่ม Zoom In/Out (จะถูกซ่อนบนมือถือโดย CSS) --- */}
+                      <div className="signature-zoom-controls">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleResizeSignature(sig.id, 1.1);
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          // ✅ ป้องกัน Touch Event ไม่ให้ทะลุ
+                          onTouchStart={(e) => e.stopPropagation()}
+                          className="zoom-btn"
+                          title="ขยาย"
+                        >
+                          <FiPlus size={10} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleResizeSignature(sig.id, 0.9);
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          // ✅ ป้องกัน Touch Event ไม่ให้ทะลุ
+                          onTouchStart={(e) => e.stopPropagation()}
+                          className="zoom-btn"
+                          title="ย่อ"
+                        >
+                          <FiMinus size={10} />
+                        </button>
+                      </div>
 
                       <ResizableBox
                         width={sig.size.width}
                         height={sig.size.height}
+                        /* ✅ เปิดใช้งานจุดลากที่มุมขวาล่าง */
+                        resizeHandles={["se"]}
                         onResize={(event, { size }) => {
                           setSignatures((prev) =>
                             prev.map((s) =>
@@ -923,6 +1009,15 @@ function ProcurementDetailPage() {
                         }}
                         lockAspectRatio={true}
                         className="signature-resizable-box"
+                        /* ✅ สร้างจุดลากและหยุด Event เมื่อแตะโดน */
+                        handle={(h, ref) => (
+                          <span
+                            className={`custom-handle custom-handle-${h}`}
+                            ref={ref}
+                            onTouchStart={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                          />
+                        )}
                       >
                         <img
                           src={sig.image}
@@ -962,58 +1057,175 @@ function ProcurementDetailPage() {
         <div className="history-card">
           <h2>Approval History</h2>
           <div className="history-timeline">
-            {request.history.map((h) => (
-              <div key={h.id} className={`history-item action-${h.action}`}>
-                <p className="history-step-name">{h.step.name}</p>
-                <div className="history-meta">
-                  Approved by{" "}
-                  <strong>
-                    {" "}
-                    {h.approved_by_details.first_name}{" "}
-                    {h.approved_by_details.last_name}{" "}
-                  </strong>{" "}
-                  on {new Date(h.timestamp).toLocaleString()}
-                </div>
-                <div className="approver-details">
-                  <span>
-                    สังกัด: {h.approved_by_details.department_name || "N/A"}
-                  </span>
-                  {h.approved_by_details.groups.map((g) => (
-                    <span key={g.id} className="group-badge">
-                      {g.name}
+            {request.history.map((h, index) => {
+              // ✅ 1. ตรวจสอบว่าเป็น History รายการล่าสุดหรือไม่
+              const isLatestHistory = index === request.history.length - 1;
+
+              return (
+                <div key={h.id} className={`history-item action-${h.action}`}>
+                  <p className="history-step-name">{h.step.name}</p>
+                  <div className="history-meta">
+                    Approved by{" "}
+                    <strong>
+                      {" "}
+                      {h.approved_by_details.first_name}{" "}
+                      {h.approved_by_details.last_name}{" "}
+                    </strong>{" "}
+                    on {new Date(h.timestamp).toLocaleString()}
+                  </div>
+                  <div className="approver-details">
+                    <span>
+                      สังกัด: {h.approved_by_details.department_name || "N/A"}
                     </span>
-                  ))}
-                </div>
-                {h.notes && <p className="history-notes">{h.notes}</p>}
-                {h.document_number && (
-                  <p className="history-step-doc-number">
-                    <strong>เลขที่เอกสารอ้างอิง:</strong> {h.document_number}
-                  </p>
-                )}
-                <div className="history-attachments">
-                  {h.attachments.map((att) => (
-                    <div key={att.id} className="attachment-item">
-                      <a
-                        href={att.file}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="attachment-link"
+                    {h.approved_by_details.groups.map((g) => (
+                      <span key={g.id} className="group-badge">
+                        {g.name}
+                      </span>
+                    ))}
+                  </div>
+                  {h.notes && <p className="history-notes">{h.notes}</p>}
+                  {h.document_number && (
+                    <p className="history-step-doc-number">
+                      <strong>เลขที่เอกสารอ้างอิง:</strong> {h.document_number}
+                    </p>
+                  )}
+                  <div className="history-attachments">
+                    {h.attachments.map((att) => (
+                      <div
+                        key={att.id}
+                        // ✅ 2. เพิ่ม Class highlight-latest ถ้าเป็นรายการล่าสุด
+                        className={`attachment-item ${
+                          isLatestHistory ? "highlight-latest" : ""
+                        }`}
                       >
-                        📎 {att.name}
-                      </a>
-                      {att.file.toLowerCase().endsWith(".pdf") && (
-                        <button
-                          className="view-pdf-btn"
-                          onClick={() => handleViewPdf(att)}
+                        <a
+                          href={att.file}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="attachment-link"
                         >
-                          View
-                        </button>
+                          📎 {att.name}
+                          {/* ✅ 3. เพิ่ม Badge ย้ำเตือน User */}
+                          {isLatestHistory && (
+                            <span className="latest-file-badge">
+                              เอกสารปัจจุบัน
+                            </span>
+                          )}
+                        </a>
+                        {att.file.toLowerCase().endsWith(".pdf") && (
+                          <button
+                            // ✅ 4. เปลี่ยน Style ปุ่ม View ให้เด่นขึ้น
+                            className={`view-pdf-btn ${
+                              isLatestHistory ? "btn-highlight" : ""
+                            }`}
+                            onClick={() => handleViewPdf(att)}
+                          >
+                            {/* ✅ 5. เปลี่ยนข้อความปุ่มเพื่อกระตุ้น Action */}
+                            {isLatestHistory ? "View & Sign" : "View"}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {!request.is_completed &&
+              !request.is_cancelled &&
+              request.current_step_details && (
+                <div className="history-item current-step-item">
+                  <p className="history-step-name">
+                    {request.current_step_details.name}
+                    <span className="status-badge-pending">Current Step</span>
+                  </p>
+
+                  <div className="current-step-info">
+                    <div
+                      className="history-meta"
+                      style={{ marginBottom: "0.5rem" }}
+                    >
+                      Status: <strong>Waiting for Approval</strong>
+                    </div>
+
+                    <div className="approver-details">
+                      <span>รอการอนุมัติจาก: </span>
+                      {request.current_step_details.responsible_group_details &&
+                      request.current_step_details.responsible_group_details
+                        .length > 0 ? (
+                        request.current_step_details.responsible_group_details.map(
+                          (g) => (
+                            <span key={g.id} className="waiting-badge">
+                              {g.name}
+                            </span>
+                          )
+                        )
+                      ) : (
+                        <span className="waiting-badge">N/A</span>
                       )}
                     </div>
-                  ))}
+
+                    {request.current_step_due_date && (
+                      <div
+                        style={{
+                          marginTop: "0.5rem",
+                          fontSize: "0.85rem",
+                          color: "#dc3545",
+                        }}
+                      >
+                        📅 Due Date:{" "}
+                        {new Date(
+                          request.current_step_due_date
+                        ).toLocaleDateString("en-GB")}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {/* ✅ 3. (แถม) กรณีงานจบแล้ว Show Completed */}
+            {request.is_completed && (
+              <div className="history-item" style={{ marginBottom: 0 }}>
+                <style>{`.history-item.completed-final::before { content: "🏁"; background-color: #0d6efd; }`}</style>
+                <div
+                  className="history-item completed-final"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                  }}
+                ></div>{" "}
+                {/* Trick for style styling via css class if needed, or inline below */}
+                <div style={{ position: "relative" }}>
+                  {/* Override dot manually for simple finish */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: "-2.2rem",
+                      top: 0,
+                      width: "24px",
+                      height: "24px",
+                      borderRadius: "50%",
+                      backgroundColor: "#0d6efd",
+                      color: "white",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    🏁
+                  </div>
+                  <p className="history-step-name" style={{ color: "#0d6efd" }}>
+                    Process Completed
+                  </p>
+                  <div className="history-meta">
+                    คำขอได้รับการอนุมัติเสร็จสิ้นสมบูรณ์
+                  </div>
                 </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -1206,7 +1418,7 @@ function ProcurementDetailPage() {
         </Link>
       </div>
 
-      {/* --- ✅ 5. ส่งค่า initialData ไปให้ Modal --- */}
+      {/* --- ✅ ส่งค่า initialData ไปให้ Modal --- */}
       <SignatureModal
         isOpen={isSignatureModalOpen}
         onClose={handleCloseSignatureModal}
@@ -1214,7 +1426,6 @@ function ProcurementDetailPage() {
         typedSignatureFont="'Sarabun', sans-serif"
         initialData={signatureToEdit}
       />
-      {/* -------------------------------------- */}
 
       <ConfirmModal
         isOpen={isConfirmModalOpen}
@@ -1230,12 +1441,15 @@ function ProcurementDetailPage() {
         onClose={() => setIsSendBackModalOpen(false)}
         title="Send Back for Revision"
       >
-        <SendBackModal
-          steps={workflow.steps}
-          currentStep={request.current_step_details}
-          onSendBack={handleSendBack}
-          onCancel={() => setIsSendBackModalOpen(false)}
-        />
+        {/* --- ✅ ส่ง steps แทน history --- */}
+        {workflow && request && (
+          <SendBackModal
+            steps={workflow.steps} // ส่ง Step ทั้งหมดของ Template
+            currentStep={request.current_step_details} // ส่ง Step ปัจจุบัน
+            onSendBack={handleSendBack}
+            onCancel={() => setIsSendBackModalOpen(false)}
+          />
+        )}
       </Modal>
       {isSubmitting && (
         <div className="submission-overlay">

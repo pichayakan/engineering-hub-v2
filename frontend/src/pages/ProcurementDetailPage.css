@@ -363,11 +363,14 @@
   transform-origin: top left;
   width: auto;
   height: auto;
+  /* ✅ (สำคัญ) ป้องกัน Browser Scroll เวลาลาก */
+  touch-action: none;
 }
 
 .signature-resizable-box {
   border: 2px dashed #0d6efd;
   box-sizing: border-box;
+  touch-action: none;
 }
 
 .signature-resizable-box img {
@@ -620,18 +623,17 @@
   gap: 0.5rem;
 }
 
-/* --- ✅ Signature Zoom Controls (Always Visible) --- */
+/* --- ✅ Signature Zoom Controls --- */
 .signature-zoom-controls {
   position: absolute;
-  /* ✅ ปรับตำแหน่งให้ไปอยู่ด้านขวาของลายเซ็น */
   top: 50%;
-  right: -40px; /* วางไว้ด้านขวานอกกรอบ */
-  transform: translateY(-50%); /* จัดกึ่งกลางแนวตั้ง */
+  right: -40px;
+  transform: translateY(-50%);
   display: flex;
-  flex-direction: column; /* ✅ เรียงปุ่มเป็นแนวตั้ง */
+  flex-direction: column;
   gap: 6px;
   background-color: white;
-  padding: 8px 4px; /* ปรับ padding ให้เหมาะกับแนวตั้ง */
+  padding: 8px 4px;
   border-radius: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   border: 1px solid #dee2e6;
@@ -639,11 +641,21 @@
 
   opacity: 1;
   pointer-events: auto;
+
+  /* ✅ (สำคัญ) ป้องกัน Browser Scroll เวลาแตะปุ่ม */
+  touch-action: none;
+}
+
+/* ✅ ซ่อนปุ่ม + - เมื่อหน้าจอเล็ก (Mobile/Device Mode) */
+@media (max-width: 992px) {
+  .signature-zoom-controls {
+    display: none !important;
+  }
 }
 
 .signature-zoom-controls .zoom-btn {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 1px solid #dee2e6;
   background-color: #f8f9fa;
@@ -654,6 +666,9 @@
   cursor: pointer;
   transition: all 0.15s;
   padding: 0;
+
+  /* ✅ (สำคัญ) ป้องกัน Browser Scroll ในระดับปุ่ม */
+  touch-action: none;
 }
 
 .signature-zoom-controls .zoom-btn:hover {
@@ -661,4 +676,179 @@
   color: white;
   border-color: #0d6efd;
   transform: scale(1.1);
+}
+
+.clear-all-btn {
+  background-color: #fff3cd; /* พื้นหลังเหลืองอ่อน */
+  border: 1px solid #ffecb5; /* เส้นขอบเหลืองเข้ม */
+  color: #856404; /* สีตัวอักษรเหลืองเข้ม */
+  padding: 0.5rem 1rem; /* ขนาด Padding มาตรฐานเท่าปุ่มอื่น */
+  border-radius: 8px; /* ขอบมน */
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* ระยะห่างระหว่างไอคอนกับข้อความ */
+  font-size: 0.9rem;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* เงาบางๆ */
+}
+
+.clear-all-btn:hover {
+  background-color: #ffe69c; /* สีพื้นหลังเข้มขึ้นเมื่อเอาเมาส์ชี้ */
+  transform: translateY(-2px); /* ขยับขึ้นเล็กน้อย */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* เงาชัดขึ้น */
+  border-color: #ffe08a;
+}
+
+.clear-all-btn:active {
+  transform: translateY(0); /* กลับที่เดิมเมื่อกด */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.clear-all-btn svg {
+  font-size: 1.1em; /* ขยายขนาดไอคอนนิดหน่อย */
+}
+
+/* ------------------------------------------------------------------ */
+/* ✅ ส่วนเพิ่มเติม: Custom Handle สำหรับย่อขยายด้วยการลากบนมือถือ */
+/* ------------------------------------------------------------------ */
+
+.custom-handle {
+  position: absolute;
+  width: 40px; /* พื้นที่สัมผัสกว้างขึ้นสำหรับนิ้วมือ */
+  height: 40px;
+  background-color: transparent;
+  z-index: 100;
+  touch-action: none; /* ห้าม Scroll เมื่อแตะโดน */
+}
+
+/* กำหนดตำแหน่งของมุมขวาล่าง (South-East) */
+.custom-handle-se {
+  bottom: -10px;
+  right: -10px;
+  cursor: se-resize;
+}
+
+/* ✅ วงกลมสีฟ้าแสดงจุดลากที่มุมขวาล่าง */
+.custom-handle-se::after {
+  content: "";
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 14px;
+  height: 14px;
+  background-color: #0d6efd; /* สีฟ้า */
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.attachment-item.highlight-latest {
+  background-color: #fff8e1; /* พื้นหลังสีเหลืองอ่อน */
+  border: 1px solid #ffeeba; /* ขอบสีเหลือง */
+  padding: 0.5rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+/* สร้างเส้นด้านซ้ายให้ดูเด่นขึ้น */
+.attachment-item.highlight-latest::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #ffc107; /* แถบสีเหลืองเข้ม */
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+
+/* ปรับ Link ให้ดูเด่นขึ้น */
+.attachment-item.highlight-latest .attachment-link {
+  font-weight: 600;
+  color: #212529;
+}
+
+/* Badge คำว่า "ล่าสุด" หรือ "รอตรวจสอบ" */
+.latest-file-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  background-color: #dc3545;
+  color: white;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-weight: normal;
+  animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ปรับปุ่ม View ของไฟล์ล่าสุดให้เป็นสีน้ำเงินเด่น (ปุ่มอื่นจะเป็นสีเทา) */
+.view-pdf-btn.btn-highlight {
+  background-color: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
+.view-pdf-btn.btn-highlight:hover {
+  background-color: #0b5ed7;
+}
+
+/* ✅ สไตล์สำหรับขั้นตอนปัจจุบันใน Timeline */
+.history-item.current-step-item::before {
+  content: "⏳"; /* ไอคอนนาฬิกาทราย */
+  background-color: #ffc107; /* สีเหลือง */
+  font-size: 1rem;
+  border: 2px solid white;
+  box-shadow: 0 0 0 2px #ffc107;
+}
+
+.history-item.current-step-item .history-step-name {
+  color: #d9a406; /* สีข้อความหัวข้อให้สอดคล้องกัน */
+}
+
+/* Badge ระบุสถานะ */
+.status-badge-pending {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  margin-left: 8px;
+  border: 1px solid #ffeeba;
+  vertical-align: middle;
+}
+
+/* Badge กลุ่มผู้รับผิดชอบที่กำลังรอ */
+.waiting-badge {
+  background-color: #e2e3e5;
+  color: #41464b;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+  border: 1px solid #d3d6d8;
+}
+
+.current-step-info {
+  background-color: #fff;
+  border: 1px dashed #ffc107;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-top: 0.5rem;
 }
