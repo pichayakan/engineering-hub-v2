@@ -233,7 +233,7 @@ function ProcurementListPage() {
               <th>Project</th>
               <th>เลขที่หนังสือ</th>
               <th>Category</th>
-              <th>Department</th> {/* ✅ เพิ่มหัวตาราง */}
+              <th>Department</th>
               <th>Current Step</th>
               <th>SLA</th>
               <th>Created By</th>

@@ -1,0 +1,125 @@
+/* frontend/src/pages/ProcurementAnalyticsPage.css */
+
+.analytics-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding-bottom: 2rem;
+}
+
+/* --- Header Section --- */
+.analytics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.analytics-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--nt-text-dark);
+}
+
+.year-selector {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  font-size: 1rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+/* --- KPI Cards Grid (4 ใบเรียงกัน) --- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.kpi-card {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+}
+
+.kpi-title {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--nt-text-dark);
+}
+
+.kpi-trend {
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+.kpi-trend.positive {
+  color: #198754;
+}
+.kpi-trend.negative {
+  color: #dc3545;
+}
+
+/* --- Charts Grid (กราฟแบ่งซ้ายขวา) --- */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(450px, 1fr)
+  ); /* แบ่งครึ่งหน้าจอ */
+  gap: 1.5rem;
+}
+
+.chart-box {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  min-height: 400px; /* ความสูงขั้นต่ำของกล่องกราฟ */
+}
+
+.chart-box h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.2rem;
+  color: #495057;
+  border-bottom: 1px solid #f1f3f5;
+  padding-bottom: 1rem;
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 768px) {
+  .charts-grid {
+    grid-template-columns: 1fr; /* บนมือถือให้กราฟเรียงลงมา */
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr; /* บนมือถือให้ KPI เรียงแถวละ 2 */
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr; /* จอเล็กมากให้เรียงแถวละ 1 */
+  }
+}

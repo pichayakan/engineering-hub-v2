@@ -30,6 +30,7 @@ import CreateWorkflowPage from "./pages/CreateWorkflowPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import ProcurementDashboardPage from "./pages/ProcurementDashboardPage.jsx";
 import SystemLogsPage from "./pages/SystemLogsPage";
+import ProcurementAnalyticsPage from "./pages/ProcurementAnalyticsPage";
 
 import HelpButton from "./components/HelpButton.jsx";
 
@@ -112,6 +113,10 @@ function App() {
             <Route
               path="/procurement/dashboard"
               element={<ProcurementDashboardPage />}
+            />
+            <Route
+              path="/procurement/analytics"
+              element={<ProcurementAnalyticsPage />}
             />
           </Routes>
         </main>

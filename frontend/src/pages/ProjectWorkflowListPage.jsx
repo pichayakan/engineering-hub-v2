@@ -204,7 +204,7 @@ function ProjectWorkflowListPage() {
                 <th>PR Number</th>
                 <th>Start Date</th>
                 <th>Current Step</th>
-                <th>Due Date (SLA)</th> {/* ✅ FIXED a missing bracket here */}
+                <th>Due Date (SLA)</th>
                 <th style={{ width: "20%" }}>Progress</th>
                 <th>Status</th>
               </tr>

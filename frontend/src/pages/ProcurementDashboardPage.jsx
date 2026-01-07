@@ -34,6 +34,10 @@ function ProcurementDashboardPage() {
 
   const [viewMode, setViewMode] = useState("my_view");
 
+  const [historyTasks, setHistoryTasks] = useState([]);
+  const [filterYear, setFilterYear] = useState(new Date().getFullYear());
+  const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!user) return;
@@ -74,6 +78,33 @@ function ProcurementDashboardPage() {
 
     fetchDashboardData();
   }, [user, viewMode]);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!user) return;
+      try {
+        const params = {
+          is_completed: true, // ดึงเฉพาะงานที่เสร็จแล้ว
+          is_cancelled: false,
+          created_year: filterYear, // ส่งค่าปีไป Backend
+          created_month: filterMonth, // ส่งค่าเดือนไป Backend
+          ordering: "-created_at",
+        };
+
+        // ถ้าต้องการดูทั้งหมด (ไม่กรองเดือน) ให้ส่ง logic จัดการ params ตรงนี้
+        if (filterMonth === "all") delete params.created_month;
+
+        const res = await apiClient.get("/api/procurement/requests/", {
+          params,
+        });
+        setHistoryTasks(res.data.results || []);
+      } catch (error) {
+        console.error("Failed to fetch history", error);
+      }
+    };
+
+    fetchHistory();
+  }, [user, filterYear, filterMonth]); // ทำงานเมื่อ user, ปี หรือ เดือน เปลี่ยน
 
   if (loading) {
     return <LoadingSpinner message="Loading procurement requests..." />;
@@ -204,7 +235,7 @@ function ProcurementDashboardPage() {
             <thead>
               <tr>
                 <th>Title</th>
-                <th>Department</th> {/* ✅ 4. เพิ่มคอลัมน์แผนก */}
+                <th>Department</th>
                 <th>Category</th>
                 <th>Budget</th>
                 <th>Current Step</th>
@@ -251,6 +282,122 @@ function ProcurementDashboardPage() {
                     style={{ textAlign: "center", padding: "2rem" }}
                   >
                     No ongoing procurements found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="dashboard-section" style={{ marginTop: "2rem" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "1rem",
+          }}
+        >
+          <h2>ประวัติรายการที่ดำเนินการเสร็จสิ้น (History)</h2>
+
+          {/* ตัวเลือก Filter */}
+          <div style={{ display: "flex", gap: "10px" }}>
+            <select
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value)}
+              style={{
+                padding: "5px",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+              }}
+            >
+              <option value="all">ทุกเดือน</option>
+              {[...Array(12)].map((_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {new Date(0, i).toLocaleDateString("th-TH", {
+                    month: "long",
+                  })}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={filterYear}
+              onChange={(e) => setFilterYear(e.target.value)}
+              style={{
+                padding: "5px",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+              }}
+            >
+              {[...Array(5)].map((_, i) => {
+                const y = new Date().getFullYear() - i;
+                return (
+                  <option key={y} value={y}>
+                    {y + 543}
+                  </option>
+                ); // แสดงเป็น พ.ศ.
+              })}
+            </select>
+          </div>
+        </div>
+
+        <div className="tasks-table-wrapper">
+          <table className="tasks-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Department</th>
+                <th>Completed Date</th>
+                {/* วันที่เสร็จสิ้น (ใช้วันที่สร้างแทน หรือต้องไปดึงจาก history ตัวสุดท้าย) */}
+                <th>Status</th>
+                <th>View</th>
+              </tr>
+            </thead>
+            <tbody>
+              {historyTasks.length > 0 ? (
+                historyTasks.map((task) => (
+                  <tr key={task.id} style={{ opacity: 0.8 }}>
+                    <td>{task.title}</td>
+                    <td>{task.requesting_department || "-"}</td>
+                    <td>
+                      {new Date(task.created_at).toLocaleDateString("th-TH", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </td>
+                    <td>
+                      <span
+                        className="status-badge-wf status-COMPLETED"
+                        style={{
+                          backgroundColor: "#198754",
+                          color: "white",
+                          padding: "0.2rem 0.5rem",
+                          borderRadius: "12px",
+                          fontSize: "0.8rem",
+                        }}
+                      >
+                        Completed
+                      </span>
+                    </td>
+                    <td>
+                      <Link
+                        to={`/procurement/requests/${task.id}`}
+                        className="view-btn"
+                      >
+                        Details
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan="5"
+                    style={{ textAlign: "center", padding: "2rem" }}
+                  >
+                    ไม่พบประวัติในเดือน/ปี ที่เลือก
                   </td>
                 </tr>
               )}

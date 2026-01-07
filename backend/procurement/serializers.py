@@ -143,7 +143,8 @@ class ProcurementListSerializer(serializers.ModelSerializer):
             'is_cancelled',
             'history_document_numbers',
             'requesting_department',
-            'template_name'
+            'template_name',
+            'budget_amount'
         )
 
     def get_history_document_numbers(self, obj):
@@ -203,5 +204,6 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
             "created_by",
             "attachments",
             "is_cancelled",
+            'budget_amount'
         ]
         read_only_fields = ["current_step", "created_by"]

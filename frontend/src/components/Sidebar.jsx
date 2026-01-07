@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./Sidebar.css";
 
-// --- ✅ IMPORT ICONS ---
+// ✅ Import ไอคอน PieChart เพิ่ม
 import {
   FiHome,
   FiGrid,
@@ -19,6 +19,7 @@ import {
   FiClipboard,
   FiChevronDown,
   FiHardDrive,
+  FiPieChart, // <--- ไอคอนสำหรับ Dashboard ผู้บริหาร
 } from "react-icons/fi";
 
 function Sidebar({ isOpen, onClose }) {
@@ -44,23 +45,8 @@ function Sidebar({ isOpen, onClose }) {
               <NavLink to="/" className="sidebar-link" onClick={onClose} end>
                 <FiHome /> <span>หน้าหลัก</span>
               </NavLink>
-              {/* <NavLink
-                to="/dashboard"
-                className="sidebar-link"
-                onClick={onClose}
-              >
-                <FiGrid /> <span>แดชบอร์ด</span>
-              </NavLink>
-              <NavLink
-                to="/projects"
-                className="sidebar-link"
-                onClick={onClose}
-                end
-              >
-                <FiArchive /> <span>โปรเจกต์ทั้งหมด</span>
-              </NavLink> */}
 
-              {/* --- ✅ UPDATED: Collapsible Procurement Menu --- */}
+              {/* --- Collapsible Procurement Menu --- */}
               <div
                 className={`sidebar-link-group ${
                   isProcurementOpen ? "is-open" : ""
@@ -85,6 +71,16 @@ function Sidebar({ isOpen, onClose }) {
                     >
                       <span>แดชบอร์ดของฉัน</span>
                     </NavLink>
+
+                    {/* ✅ ย้ายมาตรงนี้ + ลบเงื่อนไข user.is_staff ออกเพื่อให้ทุกคนเห็น */}
+                    <NavLink
+                      to="/procurement/analytics"
+                      className="sidebar-link sub-menu"
+                      onClick={onClose}
+                    >
+                      <span>ภาพรวมผู้บริหาร</span>
+                    </NavLink>
+
                     <NavLink
                       to="/procurement"
                       className="sidebar-link sub-menu"
@@ -118,9 +114,21 @@ function Sidebar({ isOpen, onClose }) {
                 <FiShare2 /> <span>แชร์ไฟล์</span>
               </NavLink>
 
+              {/* เมนูสำหรับ Admin (ยังคงซ่อนไว้เฉพาะ Staff) */}
               {user.is_staff && (
                 <>
                   <hr className="sidebar-divider" />
+                  <div
+                    className="sidebar-link"
+                    style={{
+                      pointerEvents: "none",
+                      fontSize: "0.85rem",
+                      color: "#6c757d",
+                      paddingBottom: "0.2rem",
+                    }}
+                  >
+                    ADMIN TOOLS
+                  </div>
                   <NavLink
                     to="/workload"
                     className="sidebar-link"

@@ -46,6 +46,7 @@ class ProcurementRequestAdmin(admin.ModelAdmin):
         "requesting_department",
         "category",  # ✅ ADDED
         "project",
+        "budget_amount",
         "workflow_template",
         "current_step",
         "created_by",

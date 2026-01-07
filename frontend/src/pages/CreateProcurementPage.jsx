@@ -81,7 +81,7 @@ function CreateProcurementPage() {
   return (
     <div className="create-procurement-container">
       <div className="form-card">
-        <h1>สร้างคำร้องถึง -> ส่วนวิศวะกรรมฯ(วขตป.)</h1>
+        <h1>สร้างคำร้องถึง - ส่วนวิศวะกรรมฯ(วขตป.)</h1>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="reqTitle">Title</label>

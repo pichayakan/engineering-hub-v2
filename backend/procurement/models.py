@@ -118,6 +118,15 @@ class ProcurementRequest(models.Model):
         related_name="procurement_requests",
     )
 
+    budget_amount = models.DecimalField(
+        "งบประมาณ",
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        blank=True,
+        null=True
+    )
+
     requesting_department = models.CharField(
         max_length=255,
         blank=True,

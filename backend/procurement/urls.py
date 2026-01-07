@@ -6,6 +6,7 @@ from .views import (
     ProcurementRequestViewSet,
     ProcurementCategoryViewSet,
     procurement_summary_view,
+    procurement_analytics_view,
 )
 
 router = DefaultRouter()
@@ -19,4 +20,5 @@ router.register(r"categories", ProcurementCategoryViewSet,
 urlpatterns = [
     path("", include(router.urls)),
     path("summary/", procurement_summary_view, name="procurement-summary"),
+    path("analytics/", procurement_analytics_view, name="procurement-analytics"),
 ]

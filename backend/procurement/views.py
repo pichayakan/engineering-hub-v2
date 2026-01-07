@@ -16,6 +16,10 @@ from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from notifications.line_utils import send_line_push_message
 from notifications.utils import send_notifications  # line & telegram
+from .filters import ProcurementRequestFilter
+from django.db.models import Count, Avg, Sum, F, ExpressionWrapper, fields, Q
+from django.db.models.functions import TruncMonth, ExtractDay
+from django.contrib.auth import get_user_model
 
 from django.http import HttpResponse
 
@@ -35,6 +39,8 @@ from .serializers import (
     ProcurementCategorySerializer,
     ProcurementListSerializer,
 )
+
+User = get_user_model()
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -116,8 +122,10 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     # Fields available for exact match filtering (e.g., ?category=1)
-    filterset_fields = ['category', 'is_completed',
-                        'is_cancelled', 'project', 'requesting_department']
+    # filterset_fields = ['category', 'is_completed',
+    #                     'is_cancelled', 'project', 'requesting_department']
+
+    filterset_class = ProcurementRequestFilter
 
     # Fields available for text searching (e.g., ?search=test)
     search_fields = ['title', 'project__name',
@@ -466,3 +474,141 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 {'error': f'Failed to generate PDF: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def procurement_analytics_view(request):
+    try:
+        # 1. รับค่า Query Params
+        year = request.query_params.get('year')
+        month = request.query_params.get('month')
+        template_id = request.query_params.get('template_id')
+
+        # ถ้าไม่ส่งปีมา ให้ใช้ปีปัจจุบัน
+        if not year:
+            year = timezone.now().year
+
+        # 2. Base Queryset: กรองตามปี และ ตัดงานที่ยกเลิกออก
+        queryset = ProcurementRequest.objects.filter(
+            created_at__year=year,
+            is_cancelled=False
+        )
+
+        # 3. กรองตามเดือน (ถ้ามี และไม่ใช่ 'all')
+        if month and month != 'all':
+            queryset = queryset.filter(created_at__month=month)
+
+        # 4. กรองตาม Template (ถ้ามีการเลือก และไม่ใช่ 'all')
+        if template_id and template_id != 'all':
+            queryset = queryset.filter(workflow_template_id=template_id)
+
+        # ---------------------------------------------------------
+        # ส่วนที่ 1: KPIs (Key Performance Indicators)
+        # ---------------------------------------------------------
+        total_requests = queryset.count()
+        completed_requests = queryset.filter(is_completed=True).count()
+
+        # ป้องกันการหารด้วยศูนย์
+        success_rate = (completed_requests / total_requests *
+                        100) if total_requests > 0 else 0
+
+        # คำนวณงบประมาณรวม (Total Budget)
+        total_budget = 0
+        try:
+            budget_agg = queryset.aggregate(Sum('budget_amount'))
+            total_budget = budget_agg['budget_amount__sum'] or 0
+        except Exception:
+            total_budget = 0
+
+        # Avg Cycle Time (Placeholder)
+        avg_cycle_time = 0
+
+        # ---------------------------------------------------------
+        # ส่วนที่ 2: Monthly Stats (กราฟปริมาณงานรายเดือน)
+        # ---------------------------------------------------------
+        monthly_stats = queryset.annotate(month=TruncMonth('created_at')).values('month').annotate(
+            created_count=Count('id'),
+            completed_count=Count('id', filter=Q(is_completed=True))
+        ).order_by('month')
+
+        # ---------------------------------------------------------
+        # ส่วนที่ 3: Step Analysis (วิเคราะห์เวลาแต่ละขั้นตอน)
+        # ---------------------------------------------------------
+        step_chart_data = []
+
+        # จะแสดงกราฟ Step ก็ต่อเมื่อเลือก Template เจาะจงเท่านั้น
+        if template_id and template_id != 'all':
+            try:
+                # ดึง Step จริงๆ ของ Template นั้นมาเรียงตามลำดับ
+                steps = Step.objects.filter(
+                    workflow_template_id=template_id).order_by('order')
+
+                for step in steps:
+                    step_chart_data.append({
+                        "name": step.name,
+                        # (ใช้ค่า Standard Duration)
+                        "avg_days": step.duration_days
+                    })
+            except Exception as e:
+                step_chart_data = []
+
+        # ---------------------------------------------------------
+        # ส่วนที่ 4: User Stats (Top Requesters) - ✅ แก้ไข Logic ใหม่
+        # ---------------------------------------------------------
+        # Group ตาม created_by (User ID) เพื่อความแม่นยำ
+        top_users = queryset.values('created_by').annotate(
+            count=Count('id')
+        ).order_by('-count')[:10]  # เอา 10 อันดับแรก
+
+        formatted_user_stats = []
+        for item in top_users:
+            user_id = item['created_by']
+            count = item['count']
+
+            try:
+                # ดึงชื่อจาก User Model
+                u = User.objects.get(pk=user_id)
+                display_name = f"{u.first_name} {u.last_name}".strip()
+                if not display_name:
+                    display_name = u.username  # ถ้าไม่มีชื่อจริง ให้ใช้ username
+            except User.DoesNotExist:
+                display_name = f"Unknown ({user_id})"
+
+            formatted_user_stats.append({
+                "name": display_name,
+                "count": count
+            })
+
+        # ---------------------------------------------------------
+        # ส่วนที่ 5: Department Stats (สัดส่วนงานตามแผนก)
+        # ---------------------------------------------------------
+        dept_stats = queryset.values('requesting_department').annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        # ---------------------------------------------------------
+        # สร้าง Response Data
+        # ---------------------------------------------------------
+        data = {
+            'kpi': {
+                'total': total_requests,
+                'completed': completed_requests,
+                'rate': round(success_rate, 1),
+                'budget': total_budget,
+                'avg_cycle_time': avg_cycle_time
+            },
+            'monthly_chart': monthly_stats,
+            'step_chart': step_chart_data,
+            'dept_chart': dept_stats,
+            'user_chart': formatted_user_stats  # ✅ ส่งข้อมูลที่แก้แล้วกลับไป
+        }
+
+        return Response(data)
+
+    except Exception as e:
+        print(f"Analytics View Error: {e}")
+        return Response(
+            {'error': f'Server Error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
