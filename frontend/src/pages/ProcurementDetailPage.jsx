@@ -549,6 +549,61 @@ function ProcurementDetailPage() {
     }
   };
 
+  // const handleApplySignatures = async () => {
+  //   // 1. หา Signature ที่ถูกวางแล้ว (placed: true)
+  //   const placedSignatures = signatures.filter((s) => s.placed);
+
+  //   if (placedSignatures.length === 0) {
+  //     toast.error("กรุณาวางลายเซ็นก่อนกดบันทึก");
+  //     return;
+  //   }
+
+  //   // 2. ถามยืนยัน (Optional)
+  //   const confirmed = window.confirm(
+  //     "ยืนยันตำแหน่งลายเซ็นและทำการอนุมัติเอกสารใช่หรือไม่?"
+  //   );
+  //   if (!confirmed) return;
+
+  //   setIsSubmitting(true); // แสดง Loading overlay
+
+  //   try {
+  //     // 3. เตรียมข้อมูลสำหรับส่งไป Backend
+  //     // (ปรับให้ตรงกับ API ที่คุณใช้ในปุ่ม Approve ปกติ)
+  //     const payload = {
+  //       action: "approve", // บอก Backend ว่าเป็นการอนุมัติ
+  //       note: "", // ถ้ามีช่องหมายเหตุ อาจจะ state.note
+
+  //       // ส่งข้อมูลตำแหน่งลายเซ็นไปด้วย
+  //       signatures: placedSignatures.map((sig) => ({
+  //         page: sig.page,
+  //         x: sig.position.x,
+  //         y: sig.position.y,
+  //         width: sig.size.width,
+  //         height: sig.size.height,
+  //         // คำนวณ Scale ถ้าจำเป็น (เช่น หน้าจอมือถือ vs ขนาดจริง)
+  //         // scale_x: ...
+  //       })),
+  //     };
+
+  //     // 4. ยิง API (แก้ URL ให้ตรงกับ endpoint ของคุณ)
+  //     await apiClient.post(`/procurement/${id}/action/`, payload);
+
+  //     toast.success("บันทึกและอนุมัติเรียบร้อยแล้ว");
+
+  //     // 5. Refresh หน้าจอ หรือ Redirect
+  //     fetchRequestDetails();
+  //     // หรือ navigate('/dashboard');
+  //   } catch (error) {
+  //     console.error("Save signature failed:", error);
+  //     toast.error(
+  //       "เกิดข้อผิดพลาดในการบันทึก: " +
+  //         (error.response?.data?.detail || error.message)
+  //     );
+  //   } finally {
+  //     setIsSubmitting(false); // ปิด Loading
+  //   }
+  // };
+
   const handleFindAndPlace = () => {
     if (!searchText || searchText.trim() === "") {
       toast.error("กรุณาพิมพ์ข้อความในช่องค้นหาเพื่อระบุตำแหน่ง");
@@ -627,6 +682,8 @@ function ProcurementDetailPage() {
               : sig
           )
         );
+
+        setIsHeaderVisible(false);
 
         toast.success(`พบข้อความบนหน้า ${currentPage} และวางลายเซ็นแล้ว`);
         pageElement.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -900,7 +957,7 @@ function ProcurementDetailPage() {
                     bounds="parent"
                     position={sig.position}
                     /* ✅ (สำคัญ) ป้องกันการลากเมื่อกดโดนจุดย่อขยาย */
-                    cancel=".custom-handle"
+                    cancel=".custom-handle, .no-drag, .zoom-btn, .delete-signature-btn, .save-signature-btn"
                     onStop={(e, data) => {
                       setSignatures((prev) =>
                         prev.map((s) =>
@@ -922,12 +979,33 @@ function ProcurementDetailPage() {
                       }}
                     >
                       <button
-                        className="delete-signature-btn"
+                        className="delete-signature-btn no-drag"
                         onClick={() => handleDeleteSignature(sig.id)}
                         title="ลบลายเซ็นนี้"
                       >
                         &times;
                       </button>
+
+                      <button
+                        className="save-signature-btn no-drag"
+                        // เรียกฟังก์ชันเดิมของคุณเพื่อฝังลายเซ็น
+                        onClick={handleEmbedSignature}
+                        // ป้องกัน Event ชนกับการลากในมือถือ
+                        onTouchEnd={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleEmbedSignature();
+                        }}
+                        title="ฝังลายเซ็นลงเอกสาร"
+                      >
+                        ✓
+                      </button>
+
+                      <div className="drag-paddle">
+                        <span className="paddle-icon">✥</span>{" "}
+                        {/* หรือใช้ Icon ลูกศร 4 ทิศ */}
+                        <span className="paddle-text">ลากตรงนี้</span>
+                      </div>
 
                       {sig.type === "type" && (
                         <button
@@ -958,7 +1036,7 @@ function ProcurementDetailPage() {
                       )}
 
                       {/* --- ✅ ปุ่ม Zoom In/Out (จะถูกซ่อนบนมือถือโดย CSS) --- */}
-                      <div className="signature-zoom-controls">
+                      <div className="signature-zoom-controls no-drag">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -980,7 +1058,7 @@ function ProcurementDetailPage() {
                           onMouseDown={(e) => e.stopPropagation()}
                           // ✅ ป้องกัน Touch Event ไม่ให้ทะลุ
                           onTouchStart={(e) => e.stopPropagation()}
-                          className="zoom-btn"
+                          className="zoom-btn no-drag"
                           title="ย่อ"
                         >
                           <FiMinus size={10} />

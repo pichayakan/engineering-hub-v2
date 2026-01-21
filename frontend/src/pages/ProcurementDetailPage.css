@@ -623,7 +623,7 @@
   gap: 0.5rem;
 }
 
-/* --- ✅ Signature Zoom Controls --- */
+/* --- ✅ Signature Zoom Controls (Desktop Default) --- */
 .signature-zoom-controls {
   position: absolute;
   top: 50%;
@@ -637,20 +637,13 @@
   border-radius: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   border: 1px solid #dee2e6;
-  z-index: 20;
+  z-index: 100;
 
   opacity: 1;
   pointer-events: auto;
 
   /* ✅ (สำคัญ) ป้องกัน Browser Scroll เวลาแตะปุ่ม */
   touch-action: none;
-}
-
-/* ✅ ซ่อนปุ่ม + - เมื่อหน้าจอเล็ก (Mobile/Device Mode) */
-@media (max-width: 992px) {
-  .signature-zoom-controls {
-    display: none !important;
-  }
 }
 
 .signature-zoom-controls .zoom-btn {
@@ -851,4 +844,263 @@
   padding: 0.75rem;
   border-radius: 6px;
   margin-top: 0.5rem;
+}
+
+.save-signature-btn {
+  position: absolute;
+  top: -12px;
+  right: 20px; /* วางไว้ซ้ายของปุ่มลบ */
+  z-index: 12;
+  width: 24px;
+  height: 24px;
+  background-color: #198754; /* สีเขียว */
+  color: white;
+  border: 1px solid white;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 22px;
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s ease;
+}
+
+.save-signature-btn:hover {
+  background-color: #146c43;
+  transform: scale(1.1);
+}
+
+.drag-paddle {
+  display: none; /* Desktop ไม่ต้องใช้ */
+}
+
+/* ======================================================= */
+/* ✅ Media Query for Mobile (max-width: 992px)            */
+/* ======================================================= */
+
+@media (max-width: 992px) {
+  /* เปิดใช้งาน Paddle บนมือถือ */
+  .drag-paddle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    position: absolute;
+    /* ห้อยลงมาด้านล่างของกรอบลายเซ็น */
+    bottom: -70px;
+    left: 50%;
+    transform: translateX(-50%); /* จัดกึ่งกลางแนวนอน */
+
+    width: 60px;
+    height: 60px;
+
+    /* ทำให้ดูเป็นปุ่มกด */
+    background-color: rgba(13, 110, 253, 0.9); /* สีฟ้าโปร่งแสงนิดๆ */
+    border: 2px solid white;
+    border-radius: 50%; /* วงกลม */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+
+    z-index: 200; /* อยู่บนสุด */
+    cursor: grab;
+    touch-action: none; /* ห้าม Scroll จอเมื่อแตะโดน */
+  }
+
+  /* สร้างเส้นเชื่อม (Lollipop Stick) ให้ดูรู้ว่าผูกกัน */
+  .drag-paddle::before {
+    content: "";
+    position: absolute;
+    top: -20px; /* ลากเส้นขึ้นไปหาลายเซ็น */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 20px;
+    background-color: #0d6efd; /* เส้นสีฟ้า */
+    z-index: -1;
+  }
+
+  /* ไอคอนลูกศร 4 ทิศ */
+  .paddle-icon {
+    color: white;
+    font-size: 24px;
+    line-height: 1;
+    font-weight: bold;
+  }
+
+  /* ข้อความบอก User */
+  .paddle-text {
+    color: white;
+    font-size: 8px;
+    margin-top: 2px;
+    font-weight: normal;
+  }
+
+  /* Effect ตอนกดค้าง (Active) */
+  .drag-paddle:active {
+    background-color: #0b5ed7;
+    transform: translateX(-50%) scale(1.1); /* ขยายใหญ่ขึ้นนิดหน่อย */
+    cursor: grabbing;
+  }
+
+  .save-signature-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    line-height: 28px;
+    border-radius: 8px; /* เปลี่ยนเป็นสี่เหลี่ยมมน */
+
+    top: -50px; /* ระดับเดียวกับปุ่ม Zoom */
+    right: auto;
+
+    /* วางต่อจากปุ่ม Zoom (Zoom ~90px + เว้น 10px = 100px) */
+    left: 100px;
+
+    z-index: 105 !important;
+  }
+  .document-header {
+    padding: 2px 4px !important; /* ลด Padding รอบๆ (เดิมอาจจะ 1-2rem) */
+    margin-bottom: 0 !important; /* ลดระยะห่างด้านล่าง */
+    gap: 4px !important; /* ลดระยะห่างระหว่างกลุ่มปุ่ม */
+
+    min-height: auto !important;
+
+    /* ✅ เทคนิคสำคัญ: จัดเรียงแถวเดียว ถ้าล้นให้เลื่อนซ้ายขวา (Horizontal Scroll) */
+    display: flex;
+    flex-wrap: nowrap; /* ห้ามปัดตกบรรทัดใหม่ (จะได้ไม่สูงขึ้น) */
+    overflow-x: auto; /* ถ้าปุ่มเยอะเกินจอ ให้ใช้นิ้วปัดเลื่อนได้ */
+    align-items: center;
+    justify-content: flex-start; /* เรียงจากซ้ายไปขวา */
+
+    /* ทำให้ Header ลอยอยู่บนสุดแบบไม่กินที่ */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: rgba(255, 255, 255, 0.98); /* พื้นหลังเกือบทึบ */
+    border-bottom: 1px solid #dee2e6;
+
+    /* ซ่อน Scrollbar (แต่ยังเลื่อนได้) เพื่อความสวยงาม */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  /* ซ่อน Scrollbar สำหรับ Chrome/Safari */
+  .document-header::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 2. ปรับขนาดปุ่มทุกปุ่มใน Header ให้เล็กลง */
+  .document-header button,
+  .document-controls button,
+  .view-pdf-btn,
+  .close-viewer-btn,
+  .zoom-controls button {
+    padding: 0 6px !important; /* ลดพื้นที่ด้านข้าง */
+    font-size: 0.7rem !important; /* ตัวอักษรเล็กลง (ประมาณ 11px) */
+    height: 26px !important; /* ⚠️ ความสูงปุ่มเหลือแค่นี้ (26px) */
+    line-height: 24px !important; /* จัดกึ่งกลางแนวตั้ง */
+
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px; /* ไอคอนกับตัวหนังสือชิดกันมากขึ้น */
+    border-radius: 4px !important; /* ลดความมนลง */
+  }
+
+  /* 3. ปรับขนาดตัวอักษรบอกหน้า (Page 1 of X) */
+  .document-header span,
+  .page-info-text,
+  .zoom-controls span {
+    font-size: 0.7rem !important; /* ตัวเลขเล็ก */
+    white-space: nowrap;
+    margin: 0 2px !important; /* ลดระยะห่าง */
+  }
+
+  /* 4. ลดขนาดช่องว่างในส่วนควบคุม Zoom */
+  .zoom-controls {
+    padding: 2px !important;
+    gap: 2px !important;
+  }
+
+  .zoom-controls span {
+    min-width: 30px !important; /* ลดความกว้างตัวเลข % */
+    font-size: 0.75rem !important;
+  }
+
+  /* (แถม) ถ้ามีชื่อไฟล์ยาวๆ ให้ตัดคำ */
+  .document-header h3,
+  .document-title {
+    font-size: 0.9rem;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* 1. ✅ ย้ายปุ่ม Zoom ไปมุมซ้ายบน */
+  .signature-zoom-controls {
+    display: flex !important;
+    flex-direction: row;
+
+    /* ล้างค่าเดิม */
+    bottom: auto;
+    right: auto;
+    transform: none;
+
+    /* ตำแหน่งใหม่: เหนือกรอบลายเซ็น */
+    top: -50px;
+    left: 0;
+
+    background-color: white;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    gap: 10px;
+    z-index: 100;
+  }
+
+  /* ปรับขนาดปุ่ม Zoom */
+  .signature-zoom-controls .zoom-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+    background-color: #f8f9fa;
+  }
+
+  .signature-zoom-controls .zoom-btn:active {
+    background-color: #e9ecef;
+    transform: scale(0.95);
+  }
+
+  /* 2. ❌ ซ่อนจุดลากมุมขวาล่าง (Handle) เพื่อป้องกันนิ้วไปโดนตอนลาก */
+  .custom-handle {
+    display: none !important;
+  }
+
+  /* 3. ✅ ย้ายปุ่มลบ (X) ไปไว้ "มุมขวาบน" เพื่อความสมดุล */
+  .delete-signature-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+    line-height: 28px;
+
+    /* แก้จาก -45px เป็น -15px (เกาะมุม) */
+    top: -50px;
+    right: auto;
+    left: 135px;
+
+    background-color: #dc3545;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 8px; /* กลับมาใช้วงกลมให้ดูแตกต่าง */
+
+    /* ดัน Z-Index ให้สูงที่สุด เผื่อเกยกัน */
+    z-index: 105 !important;
+  }
+
+  /* ซ่อนปุ่มแก้ไข (ถ้ามี) ไปก่อนบนมือถือ */
+  .edit-signature-btn {
+    display: none;
+  }
 }
