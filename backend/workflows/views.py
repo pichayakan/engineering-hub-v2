@@ -299,9 +299,17 @@ def workflow_performance_trend(request):
 
     if fiscal_year:
         year = int(fiscal_year)
-        created_data_query = created_data_query.filter(created_at__year=year)
+        # created_data_query = created_data_query.filter(created_at__year=year)
+        # completed_data_query = completed_data_query.filter(
+        #     completed_at__year=year)
+
+        # ✅ แก้ไข: กรองจาก field 'fiscal_year' โดยตรง
+        created_data_query = created_data_query.filter(fiscal_year=fiscal_year)
+
+        # ✅ แก้ไข: กรองจาก field 'fiscal_year' เช่นกัน
+        # (หมายเหตุ: completed ก็ควรดูว่าเป็นงานของปีงบไหน ไม่ใช่ว่าเสร็จปีไหน)
         completed_data_query = completed_data_query.filter(
-            completed_at__year=year)
+            fiscal_year=fiscal_year)
 
         for i in range(1, 13):
             labels.append(datetime.date(year, i, 1).strftime('%b %Y'))
