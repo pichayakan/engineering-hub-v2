@@ -1,4 +1,6 @@
 # workflows/views.py
+from django.db.models import Count
+from datetime import date
 from django.utils import timezone  # ✅ IMPORT
 from datetime import date, timedelta  # ✅ IMPORT
 from django.db.models import Count, Q
@@ -200,26 +202,35 @@ class StepStatusViewSet(mixins.RetrieveModelMixin,
             '-order').first()
 
         if last_step_in_template:
-            # 2.
             try:
                 final_step_status = workflow.step_statuses.get(
                     step=last_step_in_template)
 
-                # 3.
                 if final_step_status.status == 'COMPLETED':
                     workflow.is_completed = True
-                    workflow.completed_at = timezone.now()
+
+                    # ====================================================
+                    # ✅ แก้ไข Logic ตรงนี้: เช็ค Actual Date ก่อน
+                    # ====================================================
+                    if final_step_status.actual_completed_date:
+                        # ถ้ามี Actual Date ให้ใช้ค่านั้น (ต้องแปลง Date -> DateTime)
+                        # ใช้เวลา 23:59:59 ของวันนั้น หรือ 00:00:00 ก็ได้
+                        workflow.completed_at = timezone.datetime.combine(
+                            final_step_status.actual_completed_date,
+                            datetime.time.min,  # หรือ .max ถ้าอยากให้เป็นท้ายวัน
+                            tzinfo=timezone.get_current_timezone()
+                        )
+                    else:
+                        # ถ้าไม่มี ให้ใช้วันเวลาปัจจุบัน
+                        workflow.completed_at = timezone.now()
+                    # ====================================================
+
                 else:
                     workflow.is_completed = False
                     workflow.completed_at = None
             except StepStatus.DoesNotExist:
-                # (ไม่ควรเกิดขึ้น แต่ใส่ไว้กันพลาด)
                 workflow.is_completed = False
                 workflow.completed_at = None
-        else:
-            # (กรณี Template ไม่มี Step)
-            workflow.is_completed = False
-            workflow.completed_at = None
 
         workflow.save()
         # --- ✅ END NEW LOGIC ---
@@ -278,60 +289,91 @@ def workflow_status_breakdown(request):
     return Response(data)
 
 
+# backend/workflows/views.py
+
+# ... imports อื่นๆ ...
+
+
+# backend/workflows/views.py
+
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def workflow_performance_trend(request):
-    """
-    Provides data for the performance trend bar chart.
-    Counts created vs completed workflows.
-    Filters by fiscal_year if provided, otherwise shows last 6 months.
-    """
-    # ✅ 1. รับค่า fiscal_year จาก request
     fiscal_year = request.query_params.get('fiscal_year', None)
-
     labels = []
-    created_data_query = ProjectWorkflow.objects.all()
-    # Query จาก ProjectWorkflow โดยตรง
+
+    # Base Query
+    # ✅ เปลี่ยน 1: ใช้ start_date แทน created_at สำหรับข้อมูล "งานใหม่"
+    # ต้องกรองเฉพาะที่มี start_date ด้วย เพื่อกัน error
+    created_data_query = ProjectWorkflow.objects.filter(
+        start_date__isnull=False)
+
+    # ส่วน Completed ใช้ completed_at เหมือนเดิม (เพราะเราอยากรู้วันที่เสร็จจริง)
     completed_data_query = ProjectWorkflow.objects.filter(
         is_completed=True,
         completed_at__isnull=False
     )
 
-    if fiscal_year:
+    if fiscal_year and str(fiscal_year).isdigit():
         year = int(fiscal_year)
-        # created_data_query = created_data_query.filter(created_at__year=year)
-        # completed_data_query = completed_data_query.filter(
-        #     completed_at__year=year)
 
-        # ✅ แก้ไข: กรองจาก field 'fiscal_year' โดยตรง
-        created_data_query = created_data_query.filter(fiscal_year=fiscal_year)
+        # -------------------------------------------------------
+        # ✅ 1. เส้น Created: กรองเฉพาะงานที่เป็นงบของปีนั้นจริงๆ
+        # -------------------------------------------------------
+        created_data_query = created_data_query.filter(fiscal_year=year)
 
-        # ✅ แก้ไข: กรองจาก field 'fiscal_year' เช่นกัน
-        # (หมายเหตุ: completed ก็ควรดูว่าเป็นงานของปีงบไหน ไม่ใช่ว่าเสร็จปีไหน)
+        # -------------------------------------------------------
+        # ✅ 2. เส้น Completed: กรองงานที่ "เสร็จในช่วงปีงบนั้น" (ไม่สน fiscal_year ของงาน)
+        # -------------------------------------------------------
+        # ช่วงเวลาของปีงบนี้คือ: 1 ต.ค. ปีก่อน - 30 ก.ย. ปีปัจจุบัน
+        fy_start_date = timezone.datetime(
+            year - 1, 10, 1, tzinfo=timezone.get_current_timezone())
+        fy_end_date = timezone.datetime(
+            year, 9, 30, 23, 59, 59, tzinfo=timezone.get_current_timezone())
+
         completed_data_query = completed_data_query.filter(
-            fiscal_year=fiscal_year)
+            completed_at__range=(fy_start_date, fy_end_date)
+        )
 
-        for i in range(1, 13):
-            labels.append(datetime.date(year, i, 1).strftime('%b %Y'))
+        # สร้างแกน X
+        start_date_axis = fy_start_date.date()
+        for i in range(12):
+            current_month = start_date_axis + relativedelta(months=i)
+            labels.append(current_month.strftime('%b %Y'))
+
     else:
-        start_of_period = date.today().replace(day=1) - relativedelta(months=5)
-        created_data_query = created_data_query.filter(
-            created_at__gte=start_of_period)
-        completed_data_query = completed_data_query.filter(
-            completed_at__gte=start_of_period)
+        # กำหนดช่วงเวลา 6 เดือนย้อนหลัง (นับจากวันปัจจุบัน)
+        today = date.today()
+        start_of_period = today.replace(
+            day=1) - relativedelta(months=5)  # 5 เดือนก่อน + เดือนนี้ = 6
 
+        # A. เส้น Created: ✅ แก้ไขให้ใช้ start_date (เหมือน Fiscal Year)
+        # ดูว่ามีงานไหน "เริ่ม" ในช่วง 6 เดือนนี้บ้าง
+        created_data_query = created_data_query.filter(
+            start_date__gte=start_of_period
+        )
+
+        # B. เส้น Completed: ดูว่ามีงานไหน "เสร็จ" ในช่วง 6 เดือนนี้บ้าง
+        completed_data_query = completed_data_query.filter(
+            completed_at__gte=start_of_period
+        )
+
+        # C. สร้างแกน X (เดือนเริ่มต้น - เดือนปัจจุบัน)
         for i in range(6):
             labels.append(
                 (start_of_period + relativedelta(months=i)).strftime('%b %Y'))
 
-    # Query 'created'
-    created_data = created_data_query.annotate(month=TruncMonth('created_at')).values(
+    # --- Query Aggregate ---
+
+    # ✅ เปลี่ยน 3: Group by 'start_date' แทน 'created_at'
+    created_data = created_data_query.annotate(month=TruncMonth('start_date')).values(
         'month').annotate(count=Count('id')).order_by('month')
 
-    # Query 'completed' (ใช้ completed_at)
+    # ส่วน Completed Group by 'completed_at' เหมือนเดิม (ถูกแล้ว)
     completed_data = completed_data_query.annotate(month=TruncMonth(
         'completed_at')).values('month').annotate(count=Count('id')).order_by('month')
 
+    # Map ข้อมูลลงกราฟ
     created_counts = {item['month'].strftime(
         '%b %Y'): item['count'] for item in created_data}
     completed_counts = {item['month'].strftime(
@@ -340,12 +382,11 @@ def workflow_performance_trend(request):
     final_created = [created_counts.get(label, 0) for label in labels]
     final_completed = [completed_counts.get(label, 0) for label in labels]
 
-    data = {
+    return Response({
         'labels': labels,
         'created_data': final_created,
         'completed_data': final_completed,
-    }
-    return Response(data)
+    })
 
 
 @api_view(['GET'])
