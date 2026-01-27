@@ -317,26 +317,32 @@ def workflow_performance_trend(request):
     if fiscal_year and str(fiscal_year).isdigit():
         year = int(fiscal_year)
 
+        cal_start_date = timezone.datetime(
+            year, 1, 1, tzinfo=timezone.get_current_timezone())
+        cal_end_date = timezone.datetime(
+            year, 12, 31, 23, 59, 59, tzinfo=timezone.get_current_timezone())
         # -------------------------------------------------------
         # ✅ 1. เส้น Created: กรองเฉพาะงานที่เป็นงบของปีนั้นจริงๆ
         # -------------------------------------------------------
-        created_data_query = created_data_query.filter(fiscal_year=year)
+        # created_data_query = created_data_query.filter(fiscal_year=year)
+        created_data_query = created_data_query.filter(
+            start_date__range=(cal_start_date, cal_end_date)
+        )
 
         # -------------------------------------------------------
         # ✅ 2. เส้น Completed: กรองงานที่ "เสร็จในช่วงปีงบนั้น" (ไม่สน fiscal_year ของงาน)
         # -------------------------------------------------------
-        # ช่วงเวลาของปีงบนี้คือ: 1 ต.ค. ปีก่อน - 30 ก.ย. ปีปัจจุบัน
         fy_start_date = timezone.datetime(
-            year - 1, 10, 1, tzinfo=timezone.get_current_timezone())
+            year, 1, 1, tzinfo=timezone.get_current_timezone())
         fy_end_date = timezone.datetime(
-            year, 9, 30, 23, 59, 59, tzinfo=timezone.get_current_timezone())
+            year, 12, 31, 23, 59, 59, tzinfo=timezone.get_current_timezone())
 
         completed_data_query = completed_data_query.filter(
             completed_at__range=(fy_start_date, fy_end_date)
         )
 
         # สร้างแกน X
-        start_date_axis = fy_start_date.date()
+        start_date_axis = date(year, 1, 1)
         for i in range(12):
             current_month = start_date_axis + relativedelta(months=i)
             labels.append(current_month.strftime('%b %Y'))
