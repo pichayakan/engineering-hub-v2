@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from procurement.models import WorkflowTemplate, Step
 from datetime import date, timedelta
 import os
+from django.db.models import Q
 
 
 class WorkflowCategory(models.Model):
@@ -111,6 +112,13 @@ class ProjectWorkflow(models.Model):
         return self.template.steps.count()
 
     @property
+    def latest_completed_step(self):
+        """คืนค่า StepStatus ล่าสุดที่มีสถานะเป็น COMPLETED"""
+        return self.step_statuses.filter(
+            status='COMPLETED'
+        ).order_by('-step__order').first()
+
+    @property
     def completed_step_count(self):
         # --- ✅ ไอเดียเพิ่มเติมจากผม (Safety Check) ---
         # 1. ถ้าโปรเจกต์ถูกบังคับให้จบ (is_completed = True)
@@ -121,7 +129,7 @@ class ProjectWorkflow(models.Model):
         # --- 💡 ไอเดียหลักของคุณ ---
         # 2. ค้นหา Step ที่มีสถานะ "COMPLETED" และมีลำดับ (order) สูงที่สุด
         latest_completed_status = self.step_statuses.filter(
-            status='COMPLETED'
+            Q(status='COMPLETED') | Q(status='IN_PROGRESS')
             # .first() จะดึงอันที่ลำดับมากที่สุด
         ).order_by('-step__order').first()
 
