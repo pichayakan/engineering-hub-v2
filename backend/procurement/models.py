@@ -208,7 +208,8 @@ class ProcurementAttachment(models.Model):
     history_entry = models.ForeignKey(
         RequestHistory, related_name="attachments", on_delete=models.CASCADE
     )
-    file = models.FileField(upload_to="procurement_attachments/")
+    # file = models.FileField(upload_to="procurement_attachments/")
+    file = models.FileField(upload_to='protected/procurement_attachments/')
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     uploaded_at = models.DateTimeField(auto_now_add=True)

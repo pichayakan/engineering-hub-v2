@@ -65,13 +65,14 @@ class ProjectWorkflowListSerializer(serializers.ModelSerializer):
     total_step_count = serializers.IntegerField(read_only=True)
     current_step = StepStatusSerializer(read_only=True)
     category = WorkflowCategorySerializer(read_only=True)
+    latest_completed_step = StepStatusSerializer(read_only=True)
 
     class Meta:
         model = ProjectWorkflow
         fields = [
             'id', 'title', 'template', 'category', 'pr_number', 'budget_amount',
             'fiscal_year', 'created_at', 'start_date',
-            'is_completed', 'completed_step_count', 'total_step_count', 'current_step'
+            'is_completed', 'completed_step_count', 'total_step_count', 'current_step', 'latest_completed_step'
         ]
 
 

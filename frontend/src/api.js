@@ -20,7 +20,7 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 apiClient.interceptors.response.use(
@@ -44,14 +44,13 @@ apiClient.interceptors.response.use(
             //"http://172.22.16.45:8000/api/token/refresh/",
             {
               refresh: authTokens.refresh,
-            }
+            },
           );
 
           storage.setItem("authTokens", JSON.stringify(response.data));
 
-          originalRequest.headers[
-            "Authorization"
-          ] = `Bearer ${response.data.access}`;
+          originalRequest.headers["Authorization"] =
+            `Bearer ${response.data.access}`;
 
           return apiClient(originalRequest);
         } catch (refreshError) {
@@ -63,7 +62,7 @@ apiClient.interceptors.response.use(
           window.dispatchEvent(
             new CustomEvent("sessionExpired", {
               detail: { originalPath: window.location.pathname },
-            })
+            }),
           );
           return Promise.reject(refreshError);
         }
@@ -75,13 +74,13 @@ apiClient.interceptors.response.use(
         window.dispatchEvent(
           new CustomEvent("sessionExpired", {
             detail: { originalPath: window.location.pathname },
-          })
+          }),
         );
         return Promise.reject(error);
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default apiClient;

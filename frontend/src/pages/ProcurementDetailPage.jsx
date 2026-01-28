@@ -33,14 +33,14 @@ import {
 
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 
-const download = (blob, filename) => {
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
+// const download = (blob, filename) => {
+//   const link = document.createElement("a");
+//   link.href = URL.createObjectURL(blob);
+//   link.download = filename;
+//   document.body.appendChild(link);
+//   link.click();
+//   document.body.removeChild(link);
+// };
 
 function ProcurementDetailPage() {
   // --- 1. State Declarations ---
@@ -80,23 +80,27 @@ function ProcurementDetailPage() {
   const [searchText, setSearchText] = useState("วรวิ");
   const [pdfScale, setPdfScale] = useState(1.0);
 
-  const signatureRef = useRef(null);
+  // const signatureRef = useRef(null);
   const pdfWrapperRef = useRef(null);
   const pdfContainerRef = useRef(null);
 
   const viewerContainerRef = useRef(null);
+
+  const fileSectionRef = useRef(null);
+
+  const [currentPdfName, setCurrentPdfName] = useState("");
 
   // --- 2. Effects & Data Fetching ---
 
   const fetchRequestDetails = useCallback(async () => {
     try {
       const reqRes = await apiClient.get(
-        `/api/procurement/requests/${requestId}/`
+        `/api/procurement/requests/${requestId}/`,
       );
       setRequest(reqRes.data);
       if (reqRes.data.workflow_template) {
         const wfRes = await apiClient.get(
-          `/api/procurement/templates/${reqRes.data.workflow_template}/`
+          `/api/procurement/templates/${reqRes.data.workflow_template}/`,
         );
         setWorkflow(wfRes.data);
       }
@@ -144,20 +148,20 @@ function ProcurementDetailPage() {
 
   // --- 3. Handlers ---
 
-  const handleTestPdf = async () => {
-    try {
-      toast.info("Generating PDF...");
-      const response = await apiClient.get(
-        `/api/procurement/requests/${requestId}/test-generate-pdf/`,
-        { responseType: "blob" }
-      );
-      download(response.data, `test_pdf_${requestId}.pdf`);
-      toast.success("PDF Generated!");
-    } catch (error) {
-      console.error("PDF Error:", error);
-      toast.error("Failed to generate PDF");
-    }
-  };
+  // const handleTestPdf = async () => {
+  //   try {
+  //     toast.info("Generating PDF...");
+  //     const response = await apiClient.get(
+  //       `/api/procurement/requests/${requestId}/test-generate-pdf/`,
+  //       { responseType: "blob" },
+  //     );
+  //     download(response.data, `test_pdf_${requestId}.pdf`);
+  //     toast.success("PDF Generated!");
+  //   } catch (error) {
+  //     console.error("PDF Error:", error);
+  //     toast.error("Failed to generate PDF");
+  //   }
+  // };
 
   const handleSaveSignature = (signatureData) => {
     const imageSrc = signatureData.image || signatureData;
@@ -185,8 +189,8 @@ function ProcurementDetailPage() {
                     height: sig.size.width * aspectRatio,
                   },
                 }
-              : sig
-          )
+              : sig,
+          ),
         );
         setEditingSignatureId(null);
         setSignatureToEdit(null);
@@ -219,7 +223,7 @@ function ProcurementDetailPage() {
       setIsSignatureModalOpen(true);
     } else {
       toast.info(
-        "ลายเซ็นรูปแบบนี้ไม่รองรับการแก้ไขข้อความ (ต้องลบและสร้างใหม่)"
+        "ลายเซ็นรูปแบบนี้ไม่รองรับการแก้ไขข้อความ (ต้องลบและสร้างใหม่)",
       );
     }
   };
@@ -231,7 +235,7 @@ function ProcurementDetailPage() {
           const newWidth = Math.round(sig.size.width * scaleFactor);
           const newHeight = Math.round(sig.size.height * scaleFactor);
 
-          if (newWidth < 30 || newWidth > 800) return sig;
+          if (newWidth < 10 || newWidth > 800) return sig;
 
           return {
             ...sig,
@@ -239,7 +243,7 @@ function ProcurementDetailPage() {
           };
         }
         return sig;
-      })
+      }),
     );
   };
 
@@ -261,7 +265,7 @@ function ProcurementDetailPage() {
     try {
       const response = await apiClient.post(
         `/api/procurement/requests/${requestId}/send-back/`,
-        data
+        data,
       );
       setRequest(response.data);
       setIsSendBackModalOpen(false);
@@ -279,13 +283,13 @@ function ProcurementDetailPage() {
   const executeCancellation = async () => {
     try {
       const response = await apiClient.post(
-        `/api/procurement/requests/${requestId}/cancel/`
+        `/api/procurement/requests/${requestId}/cancel/`,
       );
       setRequest(response.data);
       toast.success("Request has been cancelled successfully.");
     } catch (error) {
       toast.error(
-        error.response?.data?.error || "Could not cancel the request."
+        error.response?.data?.error || "Could not cancel the request.",
       );
     } finally {
       setIsConfirmModalOpen(false);
@@ -303,15 +307,15 @@ function ProcurementDetailPage() {
 
   const goToNextPage = () => {
     setCurrentPage((prevPage) =>
-      prevPage < numPages ? prevPage + 1 : prevPage
+      prevPage < numPages ? prevPage + 1 : prevPage,
     );
   };
 
   const handleOpenSignatureModal = () => setIsSignatureModalOpen(true);
 
-  const handleResize = (event, { size }) => {
-    // setSignatureSize({ width: size.width, height: size.height });
-  };
+  // const handleResize = (event, { size }) => {
+  //   // setSignatureSize({ width: size.width, height: size.height });
+  // };
 
   const onPageLoadSuccess = (page) => {
     setPdfPageDetails({
@@ -324,7 +328,7 @@ function ProcurementDetailPage() {
   const handleApprove = async () => {
     if (
       !window.confirm(
-        "Are you sure you want to approve and advance to the next step?"
+        "Are you sure you want to approve and advance to the next step?",
       )
     ) {
       return;
@@ -356,7 +360,7 @@ function ProcurementDetailPage() {
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
-        }
+        },
       );
       setRequest(response.data);
       setNotes("");
@@ -376,14 +380,14 @@ function ProcurementDetailPage() {
       const MAX_FILENAME_LENGTH = 150;
 
       const tooLongFiles = newFiles.filter(
-        (file) => file.name.length > MAX_FILENAME_LENGTH
+        (file) => file.name.length > MAX_FILENAME_LENGTH,
       );
 
       if (tooLongFiles.length > 0) {
         setFileUploadError(
           `ชื่อไฟล์ยาวเกิน ${MAX_FILENAME_LENGTH} ตัวอักษร: ${tooLongFiles
             .map((f) => f.name)
-            .join(", ")}`
+            .join(", ")}`,
         );
         return;
       }
@@ -395,6 +399,9 @@ function ProcurementDetailPage() {
       if (pdfFile) {
         const url = URL.createObjectURL(pdfFile);
         setSelectedPdfUrl(url);
+
+        setCurrentPdfName(pdfFile.name);
+
         setHasViewedPdf(true);
       }
     }
@@ -402,7 +409,7 @@ function ProcurementDetailPage() {
 
   const handleRemoveFile = (fileNameToRemove) => {
     setFilesToUpload((prevFiles) =>
-      prevFiles.filter((file) => file.name !== fileNameToRemove)
+      prevFiles.filter((file) => file.name !== fileNameToRemove),
     );
   };
 
@@ -435,10 +442,10 @@ function ProcurementDetailPage() {
 
     try {
       const pagesToSign = Array.from(
-        new Set(signatures.map((sig) => sig.page))
+        new Set(signatures.map((sig) => sig.page)),
       );
       const existingPdfBytes = await fetch(selectedPdfUrl).then((res) =>
-        res.arrayBuffer()
+        res.arrayBuffer(),
       );
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const allPages = pdfDoc.getPages();
@@ -453,7 +460,7 @@ function ProcurementDetailPage() {
 
         if (!pdfWrapper || !pageWrapper || !pageCanvas) {
           console.error(
-            `Could not find PDF elements for page ${pageNum}. Skipping page.`
+            `Could not find PDF elements for page ${pageNum}. Skipping page.`,
           );
           continue;
         }
@@ -466,7 +473,7 @@ function ProcurementDetailPage() {
         const wrapperPaddingTop = parseFloat(wrapperStyle.paddingTop);
 
         const signaturesOnThisPage = signatures.filter(
-          (sig) => sig.page === pageNum
+          (sig) => sig.page === pageNum,
         );
 
         for (const sig of signaturesOnThisPage) {
@@ -524,12 +531,29 @@ function ProcurementDetailPage() {
 
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      let fullFilename = decodeURIComponent(selectedPdfUrl.split("/").pop());
-      let baseName = fullFilename
-        .replace(/\.pdf$/i, "")
-        .replace(/^signed_/, "")
-        .replace(/\./g, "_");
+      // const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      // let fullFilename = decodeURIComponent(selectedPdfUrl.split("/").pop());
+      // let baseName = fullFilename
+      //   .replace(/\.pdf$/i, "")
+      //   .replace(/^signed_/, "")
+      //   .replace(/\./g, "_");
+
+      // ==========================================
+      // ✅ 3. แก้ไขส่วนการตั้งชื่อไฟล์ใหม่ (New Logic)
+      // ==========================================
+
+      // เอาชื่อไฟล์จาก State มาใช้ (ถ้าไม่มีให้ใช้ default)
+      let originalName = currentPdfName || "document.pdf";
+
+      // ล้างชื่อเดิม: เอา .pdf ออก และเอาคำว่า signed_ ออก (ถ้ามีซ้ำ)
+      let baseName = originalName
+        .replace(/\.pdf$/i, "") // ลบนามสกุล .pdf
+        .replace(/^signed_/i, ""); // ลบคำนำหน้า signed_ (ถ้ามีอยู่แล้ว)
+
+      // สร้าง Timestamp แบบสั้น (เช่น 2026-01-22_1430)
+      const now = new Date();
+      const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
+
       const newFilename = `signed_${baseName}_${timestamp}.pdf`;
       const signedFile = new File([blob], newFilename, {
         type: "application/pdf",
@@ -540,14 +564,46 @@ function ProcurementDetailPage() {
       setSelectedPdfUrl(null);
       toast.dismiss("signing");
       toast.success(
-        "All signatures have been applied. Please press 'Approve' to submit."
+        "All signatures have been applied. Please press 'Approve' to submit.",
       );
+      setTimeout(() => {
+        if (fileSectionRef.current) {
+          fileSectionRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "center", // เลื่อนให้ส่วนนี้มาอยู่กลางจอ
+          });
+
+          // (Optional) ทำ Highlight กระพริบๆ ให้รู้ว่าต้องดูตรงนี้
+          fileSectionRef.current.style.transition = "background 0.5s";
+          fileSectionRef.current.style.backgroundColor = "#fff3cd"; // สีเหลืองอ่อน
+          setTimeout(() => {
+            fileSectionRef.current.style.backgroundColor = "transparent";
+          }, 1500);
+        }
+      }, 500); // หน่วงเวลา 0.5 วินาที
     } catch (error) {
       toast.dismiss("signing");
       console.error("Failed to embed signatures:", error);
       alert(`Could not create signed PDF. Error: ${error.message}`);
     }
   };
+
+  // const fetchFileAsBlob = async (fileUrl) => {
+  //   try {
+  //     // fileUrl อาจจะเป็น /media/protected/file.pdf
+  //     // เราต้องเรียกผ่าน API เพื่อให้ Axios/apiClient แนบ Token ไปด้วย
+  //     const response = await apiClient.get(fileUrl, {
+  //       responseType: "blob", // ✅ สำคัญ: บอกให้รับเป็น Binary
+  //     });
+
+  //     // สร้าง Blob URL (เช่น blob:http://localhost/xxxx-xxxx)
+  //     return window.URL.createObjectURL(new Blob([response.data]));
+  //   } catch (error) {
+  //     console.error("Error fetching file:", error);
+  //     toast.error("ไม่สามารถเข้าถึงเอกสารได้ (สิทธิ์ไม่เพียงพอ)");
+  //     return null;
+  //   }
+  // };
 
   // const handleApplySignatures = async () => {
   //   // 1. หา Signature ที่ถูกวางแล้ว (placed: true)
@@ -629,7 +685,7 @@ function ProcurementDetailPage() {
 
       if (!pageElement) {
         toast.error(
-          `ไม่สามารถเข้าถึงองค์ประกอบของหน้า ${currentPage} บนจอได้ กรุณาลองอีกครั้ง`
+          `ไม่สามารถเข้าถึงองค์ประกอบของหน้า ${currentPage} บนจอได้ กรุณาลองอีกครั้ง`,
         );
         return;
       }
@@ -640,7 +696,7 @@ function ProcurementDetailPage() {
       let foundDetails = null;
 
       const textLayer = pageElement.querySelector(
-        ".react-pdf__Page__textContent"
+        ".react-pdf__Page__textContent",
       );
 
       if (textLayer) {
@@ -679,8 +735,8 @@ function ProcurementDetailPage() {
           prev.map((sig) =>
             sig.id === targetSignatureId
               ? { ...sig, ...foundDetails, placed: true }
-              : sig
-          )
+              : sig,
+          ),
         );
 
         setIsHeaderVisible(false);
@@ -689,7 +745,7 @@ function ProcurementDetailPage() {
         pageElement.scrollIntoView({ behavior: "smooth", block: "center" });
       } else {
         toast.error(
-          `ไม่พบข้อความ "${searchText}" ในหน้าปัจจุบัน (หน้าที่ ${currentPage})`
+          `ไม่พบข้อความ "${searchText}" ในหน้าปัจจุบัน (หน้าที่ ${currentPage})`,
         );
       }
     }, 300);
@@ -697,7 +753,7 @@ function ProcurementDetailPage() {
 
   const handleDeleteSignature = (idToDelete) => {
     setSignatures((prevSignatures) =>
-      prevSignatures.filter((signature) => signature.id !== idToDelete)
+      prevSignatures.filter((signature) => signature.id !== idToDelete),
     );
   };
 
@@ -720,23 +776,126 @@ function ProcurementDetailPage() {
     }
     const userGroupIds = user?.groups || [];
     return userGroupIds.some((userGroupId) =>
-      responsibleGroupIds.includes(userGroupId)
+      responsibleGroupIds.includes(userGroupId),
     );
   };
   const canApprove = checkUserPermission();
 
-  const handleViewPdf = (attachment) => {
+  // const handleViewPdf = (attachment) => {
+  //   const latestHistoryId =
+  //     request.history.length > 0
+  //       ? request.history[request.history.length - 1].id
+  //       : null;
+  //   if (canApprove && attachment.history_entry === latestHistoryId) {
+  //     setCanSignCurrentPdf(true);
+  //   } else {
+  //     setCanSignCurrentPdf(false);
+  //   }
+  //   setSelectedPdfUrl(attachment.file);
+  //   setHasViewedPdf(true);
+  // };
+  const handleViewPdf = async (attachment) => {
+    // 1. Logic เดิม: เช็คสิทธิ์การเซ็น
     const latestHistoryId =
       request.history.length > 0
         ? request.history[request.history.length - 1].id
         : null;
+
     if (canApprove && attachment.history_entry === latestHistoryId) {
       setCanSignCurrentPdf(true);
     } else {
       setCanSignCurrentPdf(false);
     }
-    setSelectedPdfUrl(attachment.file);
-    setHasViewedPdf(true);
+
+    // 2. Logic ใหม่: โหลดไฟล์เป็น Blob แทนการใช้ URL ตรงๆ
+    try {
+      // แสดง Loading แจ้ง User ว่ากำลังโหลดไฟล์
+      toast.info("กำลังเตรียมเอกสาร...", { autoClose: 2000 });
+
+      // ✅ 1. จำชื่อไฟล์จริงเอาไว้ (เช่น "ใบเสนอราคา.pdf")
+      setCurrentPdfName(attachment.name);
+
+      // เรียก API ไปที่ URL ของไฟล์ (apiClient จะแนบ Token ไปให้)
+      const response = await apiClient.get(attachment.file, {
+        responseType: "blob", // ⚠️ สำคัญมาก: บอกให้รับค่าเป็นไฟล์ Binary
+      });
+
+      // สร้าง Blob URL (Link ชั่วคราวใน Memory)
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+
+      // set URL ใหม่ที่เป็น Blob (เปิดได้เฉพาะเครื่องนี้)
+      setSelectedPdfUrl(blobUrl);
+      setHasViewedPdf(true);
+    } catch (error) {
+      console.error("Error loading PDF:", error);
+      toast.error("ไม่สามารถเปิดเอกสารได้ (อาจเกิดจากสิทธิ์การเข้าถึง)");
+    }
+  };
+
+  const handleSecureDownload = async (fileUrl, fileName) => {
+    // ----------------------------------------------------------------
+    // 1. ด่านตรวจ: เช็คว่าเป็น LINE In-App Browser หรือไม่?
+    // ----------------------------------------------------------------
+    // LINE ไม่รองรับการดาวน์โหลด Blob หรือไฟล์ที่ต้อง Auth ซับซ้อน
+    // จึงต้องแจ้งให้ User ไปเปิด Browser จริงๆ แทน
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    const isLine = /Line/i.test(userAgent);
+
+    if (isLine) {
+      alert(
+        "⚠️ ไม่สามารถดาวน์โหลดไฟล์ผ่าน LINE ได้\n\n" +
+          "กรุณากดที่เมนูมุมขวาบน (สัญลักษณ์ ⋮ หรือ ↗️)\n" +
+          "แล้วเลือก 'เปิดในเบราว์เซอร์' (Open in external browser) เพื่อดาวน์โหลด",
+      );
+      return; // ⛔ จบการทำงานทันที ไม่ต้องไปโหลดไฟล์ให้เสียเวลา
+    }
+
+    // แจ้งเตือน User ว่าเริ่มทำงานแล้ว
+    toast.info("กำลังเตรียมดาวน์โหลด...", { autoClose: 2000 });
+
+    try {
+      // ----------------------------------------------------------------
+      // 2. ดึงข้อมูลไฟล์จาก Backend (ผ่าน apiClient เพื่อพ่วง Token)
+      // ----------------------------------------------------------------
+      const response = await apiClient.get(fileUrl, { responseType: "blob" });
+
+      // สร้าง Blob Object จากข้อมูลที่ได้
+      // สำคัญ: ต้องระบุ type เป็น application/pdf เพื่อให้ Browser รู้จักชนิดไฟล์
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      // ----------------------------------------------------------------
+      // 3. แยกการทำงานตามอุปกรณ์ (Mobile vs PC)
+      // ----------------------------------------------------------------
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        // ✅ กรณี Mobile (iOS/Android):
+        // ใช้ window.location.assign เพื่อเปลี่ยนหน้าปัจจุบันเป็นไฟล์ PDF
+        // วิธีนี้แก้ปัญหา "หน้าขาว" (Blank Page) บน Safari iOS ได้ 100%
+        // และแก้ปัญหา Pop-up Blocker ได้ดีกว่า window.open
+        window.location.assign(blobUrl);
+      } else {
+        // ✅ กรณี PC/Desktop:
+        // ใช้วิธีสร้าง <a> tag จำลองเพื่อสั่ง Auto Download ลงเครื่อง
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.setAttribute("download", fileName); // ตั้งชื่อไฟล์ตอนเซฟ
+        document.body.appendChild(link);
+        link.click(); // จำลองการกดคลิก
+        link.remove(); // ลบทิ้งหลังกดเสร็จ
+      }
+
+      // ----------------------------------------------------------------
+      // 4. Cleanup Memory
+      // ----------------------------------------------------------------
+      // ตั้งเวลาล้าง Blob URL ออกจาก Memory
+      // ตั้งไว้นานหน่อย (60วิ) เผื่อใน Mobile Browser User ต้องการเวลาในการ render PDF
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("ไม่สามารถดาวน์โหลดไฟล์ได้ กรุณาลองใหม่อีกครั้ง");
+    }
   };
 
   const sla = calculateSLA(request.current_step_due_date);
@@ -766,7 +925,7 @@ function ProcurementDetailPage() {
   // ✅ 1. Logic ตรวจสอบไฟล์จากประวัติทั้งหมด (ไม่ว่าจะอยู่ Step ไหน)
   // ใช้ Optional Chaining ป้องกัน Error
   const isAnyHistoryAttachment = request?.history?.some((h) =>
-    h.attachments.some((att) => att.file === selectedPdfUrl)
+    h.attachments.some((att) => att.file === selectedPdfUrl),
   );
 
   // ✅ 2. ตรวจสอบไฟล์ที่เพิ่งแนบใหม่ (Blob URL)
@@ -963,8 +1122,8 @@ function ProcurementDetailPage() {
                         prev.map((s) =>
                           s.id === sig.id
                             ? { ...s, position: { x: data.x, y: data.y } }
-                            : s
-                        )
+                            : s,
+                        ),
                       );
                     }}
                   >
@@ -1012,24 +1171,6 @@ function ProcurementDetailPage() {
                           onClick={() => handleEditSignature(sig)}
                           title="แก้ไขข้อความ"
                           className="edit-signature-btn"
-                          style={{
-                            position: "absolute",
-                            top: "-12px",
-                            left: "28px",
-                            zIndex: 12,
-                            width: "24px",
-                            height: "24px",
-                            backgroundColor: "#0d6efd",
-                            color: "white",
-                            border: "1px solid white",
-                            borderRadius: "50%",
-                            fontSize: "12px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                          }}
                         >
                           <FiEdit3 size={12} />
                         </button>
@@ -1081,8 +1222,8 @@ function ProcurementDetailPage() {
                                       height: size.height,
                                     },
                                   }
-                                : s
-                            )
+                                : s,
+                            ),
                           );
                         }}
                         lockAspectRatio={true}
@@ -1176,20 +1317,38 @@ function ProcurementDetailPage() {
                           isLatestHistory ? "highlight-latest" : ""
                         }`}
                       >
-                        <a
-                          href={att.file}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="attachment-link"
+                        {/* ❌ Comment Code เดิมออก (ไม่ปลอดภัย เพราะเปิดเผย URL ตรงๆ)
+                      <a
+                        href={att.file}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="attachment-link"
+                      >
+                        📎 {att.name}
+                        {isLatestHistory && (
+                          <span className="latest-file-badge">
+                            เอกสารปัจจุบัน
+                          </span>
+                        )}
+                      </a>
+                      */}
+                        {/* ✅ Code ใหม่: โหลดผ่าน API -> Blob (ปลอดภัย) */}
+                        <button
+                          type="button"
+                          className="file-download-btn" // ✅ เรียกใช้ Class ที่สร้างใหม่
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleSecureDownload(att.file, att.name);
+                          }}
                         >
                           📎 {att.name}
-                          {/* ✅ 3. เพิ่ม Badge ย้ำเตือน User */}
                           {isLatestHistory && (
                             <span className="latest-file-badge">
                               เอกสารปัจจุบัน
                             </span>
                           )}
-                        </a>
+                        </button>
+
                         {att.file.toLowerCase().endsWith(".pdf") && (
                           <button
                             // ✅ 4. เปลี่ยน Style ปุ่ม View ให้เด่นขึ้น
@@ -1235,7 +1394,7 @@ function ProcurementDetailPage() {
                             <span key={g.id} className="waiting-badge">
                               {g.name}
                             </span>
-                          )
+                          ),
                         )
                       ) : (
                         <span className="waiting-badge">N/A</span>
@@ -1243,16 +1402,10 @@ function ProcurementDetailPage() {
                     </div>
 
                     {request.current_step_due_date && (
-                      <div
-                        style={{
-                          marginTop: "0.5rem",
-                          fontSize: "0.85rem",
-                          color: "#dc3545",
-                        }}
-                      >
+                      <div className="due-date-alert">
                         📅 Due Date:{" "}
                         {new Date(
-                          request.current_step_due_date
+                          request.current_step_due_date,
                         ).toLocaleDateString("en-GB")}
                       </div>
                     )}
@@ -1263,38 +1416,9 @@ function ProcurementDetailPage() {
             {/* ✅ 3. (แถม) กรณีงานจบแล้ว Show Completed */}
             {request.is_completed && (
               <div className="history-item" style={{ marginBottom: 0 }}>
-                <style>{`.history-item.completed-final::before { content: "🏁"; background-color: #0d6efd; }`}</style>
-                <div
-                  className="history-item completed-final"
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                  }}
-                ></div>{" "}
-                {/* Trick for style styling via css class if needed, or inline below */}
+                <div className="history-item completed-final"></div>
                 <div style={{ position: "relative" }}>
-                  {/* Override dot manually for simple finish */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: "-2.2rem",
-                      top: 0,
-                      width: "24px",
-                      height: "24px",
-                      borderRadius: "50%",
-                      backgroundColor: "#0d6efd",
-                      color: "white",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    🏁
-                  </div>
+                  <div className="completed-dot">🏁</div>
                   <p className="history-step-name" style={{ color: "#0d6efd" }}>
                     Process Completed
                   </p>
@@ -1320,7 +1444,7 @@ function ProcurementDetailPage() {
                 <p className="sla-date">
                   {request.current_step_due_date
                     ? new Date(
-                        request.current_step_due_date
+                        request.current_step_due_date,
                       ).toLocaleDateString("en-GB")
                     : "N/A"}
                 </p>
@@ -1348,7 +1472,7 @@ function ProcurementDetailPage() {
                   rows="3"
                 ></textarea>
               </div>
-              <div className="form-group">
+              <div className="form-group" ref={fileSectionRef}>
                 <label htmlFor="approval_attachments">
                   Attach Files
                   {stepRequiresAttachment && (
@@ -1465,7 +1589,7 @@ function ProcurementDetailPage() {
                             ))}
                           </ul>
                         </div>
-                      )
+                      ),
                     )}
                   </details>
                 )}

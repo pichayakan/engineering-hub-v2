@@ -240,7 +240,36 @@ function ProjectWorkflowListPage() {
                             Completed
                           </span>
                         ) : (
-                          flow.current_step?.step?.name || "---"
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "2px",
+                            }}
+                          >
+                            {/* 1. ถ้ามี Step ที่กำลังทำอยู่ (In Progress) ให้โชว์เป็นตัวหลัก */}
+                            {flow.current_step?.status === "IN_PROGRESS" ? (
+                              <span
+                                style={{ color: "#0d6efd", fontWeight: 500 }}
+                              >
+                                ▶ {flow.current_step.step.name}
+                              </span>
+                            ) : (
+                              // 2. ถ้าเป็น Pending (ยังไม่เริ่ม) ให้โชว์ชื่อ Step แต่อาจจะทำเป็นสีเทาๆ
+                              <span style={{ color: "#6c757d" }}>
+                                Next: {flow.current_step?.step?.name || "---"}
+                              </span>
+                            )}
+
+                            {/* 3. ✅ ส่วนที่เพิ่ม: โชว์ Step ล่าสุดที่เพิ่งเสร็จ (ถ้ามี) */}
+                            {flow.latest_completed_step && (
+                              <small
+                                style={{ color: "#198754", fontSize: "0.85em" }}
+                              >
+                                ✓ Done: {flow.latest_completed_step.step.name}
+                              </small>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td className={`sla-text ${sla.className}`}>

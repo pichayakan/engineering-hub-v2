@@ -1,6 +1,6 @@
 # backend/core/urls.py
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 
 from django.conf import settings  # 1. Import settings
 from django.conf.urls.static import static
@@ -11,6 +11,8 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from api.views import FileDownloadView
+
+from procurement.views_media import protected_media_serve
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -26,6 +28,11 @@ urlpatterns = [
     path('api/workflows/', include('workflows.urls')),
     path('api/notifications/', include('notifications.urls')),
     path('api/logs/', include('logs.urls')),
+
+    # re_path(r'^protected_files/(?P<path>.*)$',
+    #         protected_media_serve, name='protected_media'),
+    re_path(r'^media/protected/(?P<path>.*)$',
+            protected_media_serve, name='protected_media'),
 ]
 
 if settings.DEBUG:
