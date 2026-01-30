@@ -550,6 +550,9 @@ function ProcurementDetailPage() {
         .replace(/\.pdf$/i, "") // ลบนามสกุล .pdf
         .replace(/^signed_/i, ""); // ลบคำนำหน้า signed_ (ถ้ามีอยู่แล้ว)
 
+      baseName = baseName.replace(/\s+/g, "_"); // แก้ Error 400 (Header parsing error)
+      baseName = baseName.replace(/[^a-zA-Z0-9\u0E00-\u0E7F_\-]/g, ""); // เก็บ ก-ฮ ไว้ได้
+
       // สร้าง Timestamp แบบสั้น (เช่น 2026-01-22_1430)
       const now = new Date();
       const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
