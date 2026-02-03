@@ -51,11 +51,17 @@ class AssetRequest(models.Model):
     ]
 
     AIR_TYPE_CHOICES = [
-        ('WALL', 'ติดผนัง (Wall Type)'),
-        ('CEILING', 'แขวนใต้ฝ้า (Ceiling Type)'),
-        ('CASSETTE', 'ฝังฝ้า 4 ทิศทาง (Cassette Type)'),
-        ('FLOOR', 'ตั้งพื้น (Floor Type)'),
-        ('OTHER', 'อื่นๆ')
+        ('WALL_FIXED', 'ติดผนัง (Fixed Speed)'),
+        ('WALL_INVERTER', 'ติดผนัง (Inverter)'),
+        ('CEILING_FIXED', 'ตั้งพื้น/แขวน (Fixed Speed)'),
+        ('CEILING_INVERTER', 'ตั้งพื้น/แขวน (Inverter)'),
+        ('CABINET', 'ตู้ตั้งพื้น (Cabinet)'),
+        ('OTHER', 'อื่นๆ'),
+        # เก็บตัวเลือกเก่าไว้กัน Error ข้อมูลเก่า (ถ้ามี)
+        ('WALL', 'ติดผนัง (Old)'),
+        ('CEILING', 'แขวน (Old)'),
+        ('CASSETTE', 'ฝังฝ้า (Old)'),
+        ('FLOOR', 'ตั้งพื้น (Old)'),
     ]
 
     AIR_BTU_CHOICES = [
@@ -76,9 +82,9 @@ class AssetRequest(models.Model):
 
     # --- ✅ เพิ่ม Field ใหม่ (ตั้ง null=True ไว้ เพราะสินค้าอื่นจะไม่ได้กรอก) ---
     air_type = models.CharField(
-        max_length=20, choices=AIR_TYPE_CHOICES, blank=True, null=True, verbose_name="ประเภทแอร์")
+        max_length=50, choices=AIR_TYPE_CHOICES, blank=True, null=True, verbose_name="ชนิดแอร์")
     air_btu = models.CharField(
-        max_length=20, choices=AIR_BTU_CHOICES, blank=True, null=True, verbose_name="ขนาด BTU")
+        max_length=50, blank=True, null=True, verbose_name="ขนาด (BTU)")
 
     battery_amp = models.IntegerField(
         blank=True, null=True, verbose_name="ขนาดแอมป์ (Ah)")

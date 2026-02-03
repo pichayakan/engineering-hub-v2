@@ -5,11 +5,42 @@ import { assetApi } from "../../assetApi";
 import { FiX, FiImage } from "react-icons/fi";
 import "./AssetFormModal.css";
 
-// ค่าตัวเลือกมาตรฐาน
+// ✅ 1. Config ข้อมูลแอร์ตามบัญชีราคามาตรฐาน
+const AIR_SPECS_CONFIG = {
+  WALL_FIXED: {
+    label: "ติดผนัง (Fixed Speed)",
+    btus: [12000, 15000, 18000, 24000],
+  },
+  WALL_INVERTER: {
+    label: "ติดผนัง (ระบบ Inverter)",
+    btus: [12000, 15000, 18000, 24000],
+  },
+  CEILING_FIXED: {
+    label: "ตั้งพื้นหรือแขวน (Fixed Speed)",
+    btus: [
+      13000, 18000, 20000, 24000, 26000, 30000, 32000, 36000, 40000, 44000,
+      48000, 50000,
+    ],
+  },
+  CEILING_INVERTER: {
+    label: "ตั้งพื้นหรือแขวน (ระบบ Inverter)",
+    btus: [13000, 18000, 24000, 30000, 36000, 40000, 48000],
+  },
+  CABINET: {
+    label: "ตู้ตั้งพื้น (Cabinet)",
+    btus: [44000, 56000],
+  },
+  OTHER: {
+    label: "อื่นๆ / ระบุเอง",
+    btus: [], // ถ้าเลือกอันนี้จะให้กรอกมือ
+  },
+};
+
+// ✅ 2. Config ค่ามาตรฐานสำหรับอุปกรณ์อื่น
 const SPEC_OPTIONS = {
-  RECTIFIER: [100, 150, 400],
-  BATTERY: [100, 200, 300, 400, 600],
-  UPS: [10, 30, 60],
+  RECTIFIER: [30, 50, 100, 150, 400],
+  BATTERY: [100, 150, 200, 300, 400, 600],
+  UPS: [1, 3, 5, 10, 30, 60],
 };
 
 const AssetFormModal = ({
@@ -25,9 +56,9 @@ const AssetFormModal = ({
   const currentYear = new Date().getFullYear();
   const isEditMode = !!initialData;
 
-  // State ข้อมูล Form
+  // State
   const [formData, setFormData] = useState({
-    request_type: "REPLACE",
+    request_type: "REPLACE", // Default
     category: "AIR",
     location_type: "EXCHANGE",
     location_name: "",
@@ -37,6 +68,7 @@ const AssetFormModal = ({
     condition: "FAIR",
     customer_impact: 0,
     reason: "",
+    // Specs
     air_type: "",
     air_btu: "",
     battery_amp: "",
@@ -44,8 +76,9 @@ const AssetFormModal = ({
     rectifier_amp: "",
   });
 
-  // ✅ เพิ่ม state นี้เพื่อจำว่า Field ไหนกำลังใช้โหมด "ระบุเอง"
+  // State สำหรับจำว่า Field ไหนกำลังใช้โหมด "ระบุเอง"
   const [customModeMap, setCustomModeMap] = useState({
+    air_btu: false,
     battery_amp: false,
     ups_kva: false,
     rectifier_amp: false,
@@ -73,21 +106,34 @@ const AssetFormModal = ({
         air_type: initialData.air_type || "",
         air_btu: initialData.air_btu || "",
         battery_amp: initialData.battery_amp || "",
+
+        // แปลงเป็นตัวเลขเพื่อตัดทศนิยม .00 (เช่น "10.00" -> 10) จะได้ match กับ dropdown
         ups_kva: initialData.ups_kva ? parseFloat(initialData.ups_kva) : "",
         rectifier_amp: initialData.rectifier_amp || "",
       });
+
       setPreviews({
         image_1: initialData.image_1,
         image_2: initialData.image_2,
       });
 
-      // ✅ เช็ค initial data ว่าเป็นค่า Custom หรือไม่ เพื่อเปิดโหมด Custom อัตโนมัติ
-      const checkIsCustom = (val, options) => {
-        if (val === "" || val === null) return false;
-        return !options.includes(Number(val)); // แปลงเป็น Number ก่อนเทียบ
-      };
+      // Helper เช็คว่าเป็นค่า Custom หรือไม่
+      const checkIsCustom = (val, options) =>
+        val !== "" && val !== null && !options.includes(Number(val));
+
+      // เช็ค Custom สำหรับ Air BTU (ซับซ้อนกว่าเพราะขึ้นกับ Type)
+      let isAirCustom = false;
+      if (initialData.category === "AIR" && initialData.air_type) {
+        const config = AIR_SPECS_CONFIG[initialData.air_type];
+        if (config) {
+          isAirCustom = checkIsCustom(initialData.air_btu, config.btus);
+        } else {
+          isAirCustom = true; // ถ้า type ไม่ตรง config เลย ถือว่า custom
+        }
+      }
 
       setCustomModeMap({
+        air_btu: isAirCustom,
         battery_amp: checkIsCustom(
           initialData.battery_amp,
           SPEC_OPTIONS.BATTERY,
@@ -119,6 +165,7 @@ const AssetFormModal = ({
       });
       setPreviews({ image_1: null, image_2: null });
       setCustomModeMap({
+        air_btu: false,
         battery_amp: false,
         ups_kva: false,
         rectifier_amp: false,
@@ -127,7 +174,7 @@ const AssetFormModal = ({
     setFiles({ image_1: null, image_2: null });
   }, [initialData, isOpen, currentYear]);
 
-  // Calculate Age
+  // Calc Age
   useEffect(() => {
     if (formData.install_year) {
       const calculatedAge = currentYear - parseInt(formData.install_year);
@@ -140,15 +187,15 @@ const AssetFormModal = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ ฟังก์ชันจัดการเมื่อเลือก Dropdown Spec
+  // จัดการเมื่อเลือก Dropdown Spec (สำหรับอุปกรณ์อื่นที่ไม่ใช่แอร์)
   const handleSpecSelect = (e, name) => {
     const val = e.target.value;
     if (val === "CUSTOM") {
-      setCustomModeMap((prev) => ({ ...prev, [name]: true })); // เปิดโหมด Custom
-      setFormData((prev) => ({ ...prev, [name]: "" })); // เคลียร์ค่ารอพิมพ์
+      setCustomModeMap((prev) => ({ ...prev, [name]: true }));
+      setFormData((prev) => ({ ...prev, [name]: "" }));
     } else {
-      setCustomModeMap((prev) => ({ ...prev, [name]: false })); // ปิดโหมด Custom
-      setFormData((prev) => ({ ...prev, [name]: val })); // ใส่ค่าตามที่เลือก
+      setCustomModeMap((prev) => ({ ...prev, [name]: false }));
+      setFormData((prev) => ({ ...prev, [name]: val }));
     }
   };
 
@@ -173,6 +220,7 @@ const AssetFormModal = ({
       if (!isEditMode) payload.append("campaign", campaignId);
 
       Object.keys(formData).forEach((key) => {
+        // กรอง Field ที่ไม่ต้องส่งกรณี "ขอใหม่"
         if (formData.request_type === "NEW") {
           const skipFields = [
             "asset_number",
@@ -183,6 +231,7 @@ const AssetFormModal = ({
           ];
           if (skipFields.includes(key)) return;
         }
+
         if (formData[key] !== null && formData[key] !== undefined) {
           payload.append(key, formData[key]);
         }
@@ -213,10 +262,121 @@ const AssetFormModal = ({
 
   const isReplace = formData.request_type === "REPLACE";
 
-  // ✅ Helper Function สำหรับ Render Spec Dropdown (เขียน Inline เพื่อลดความซับซ้อน)
+  // ✅ Helper: ฟังก์ชัน render ส่วนเลือกแอร์แบบใหม่ (ตาม Config)
+  const renderAirSection = () => {
+    const selectedTypeConfig =
+      AIR_SPECS_CONFIG[formData.air_type] || AIR_SPECS_CONFIG["OTHER"];
+    const availableBTUs = selectedTypeConfig.btus || [];
+
+    // เช็คว่า BTU ที่มีอยู่เดิม เป็นค่า Custom หรือไม่
+    const currentValue = formData.air_btu;
+    const isCustomBTU =
+      currentValue && !availableBTUs.includes(Number(currentValue));
+
+    // เงื่อนไขการแสดงช่องกรอก: เลือก OTHER หรือ BTU เดิมเป็น Custom หรือ User กดเลือก Custom
+    const showCustomInput =
+      formData.air_type === "OTHER" ||
+      customModeMap.air_btu ||
+      (isCustomBTU && currentValue !== "");
+
+    const handleBTUSelect = (e) => {
+      const val = e.target.value;
+      if (val === "CUSTOM") {
+        setCustomModeMap((prev) => ({ ...prev, air_btu: true }));
+        setFormData((prev) => ({ ...prev, air_btu: "" }));
+      } else {
+        setCustomModeMap((prev) => ({ ...prev, air_btu: false }));
+        setFormData((prev) => ({ ...prev, air_btu: val }));
+      }
+    };
+
+    return (
+      <div className="spec-box air-spec">
+        {/* 1. เลือกชนิดแอร์ */}
+        <div className="form-group">
+          <label>
+            ชนิดเครื่องปรับอากาศ <span className="text-danger">*</span>
+          </label>
+          <select
+            name="air_type"
+            value={formData.air_type}
+            onChange={(e) => {
+              // เมื่อเปลี่ยนชนิด ให้ reset BTU
+              setFormData((prev) => ({
+                ...prev,
+                air_type: e.target.value,
+                air_btu: "",
+              }));
+              setCustomModeMap((prev) => ({ ...prev, air_btu: false }));
+            }}
+            disabled={isReadOnly}
+            required
+          >
+            <option value="">-- เลือกชนิด --</option>
+            {Object.keys(AIR_SPECS_CONFIG).map((key) => (
+              <option key={key} value={key}>
+                {AIR_SPECS_CONFIG[key].label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* 2. เลือกขนาด BTU (Dynamic ตามชนิด) */}
+        <div className="form-group">
+          <label>
+            ขนาด (BTU) <span className="text-danger">*</span>
+          </label>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <select
+              value={showCustomInput ? "CUSTOM" : formData.air_btu}
+              onChange={handleBTUSelect}
+              disabled={isReadOnly || !formData.air_type}
+              required
+              style={{ flex: 1 }}
+            >
+              <option value="">-- เลือกขนาด --</option>
+              {availableBTUs.map((btu) => (
+                <option key={btu} value={btu}>
+                  {btu.toLocaleString()} BTU
+                </option>
+              ))}
+              <option value="CUSTOM">✎ ระบุเอง (Other)</option>
+            </select>
+
+            {showCustomInput && (
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  animation: "fadeIn 0.2s",
+                }}
+              >
+                <input
+                  type="number"
+                  name="air_btu"
+                  value={formData.air_btu}
+                  onChange={handleChange}
+                  placeholder="ระบุ BTU"
+                  disabled={isReadOnly}
+                  required
+                  autoFocus
+                  style={{ flex: 1 }}
+                />
+                <span style={{ fontSize: "0.85em", color: "#666" }}>BTU</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Helper สำหรับ Spec อื่นๆ
   const renderSpecInput = (label, name, unit, options) => {
     const currentValue = formData[name];
-    const isCustom = customModeMap[name]; // ใช้ตัวแปร state ที่สร้างไว้
+    const isCustom = customModeMap[name];
 
     return (
       <div className="form-group">
@@ -225,7 +385,6 @@ const AssetFormModal = ({
         </label>
         <div style={{ display: "flex", gap: "10px" }}>
           <select
-            // ถ้าเป็น Custom ให้ dropdown โชว์ค่า "CUSTOM"
             value={isCustom ? "CUSTOM" : currentValue}
             onChange={(e) => handleSpecSelect(e, name)}
             disabled={isReadOnly}
@@ -241,7 +400,6 @@ const AssetFormModal = ({
             <option value="CUSTOM">✎ ระบุขนาดเอง (Other)</option>
           </select>
 
-          {/* แสดงช่องกรอกเมื่อเป็น Custom */}
           {isCustom && (
             <div
               style={{
@@ -351,6 +509,18 @@ const AssetFormModal = ({
                   </span>
                 </label>
               </div>
+              <div
+                style={{
+                  fontSize: "0.85em",
+                  color: "#666",
+                  marginTop: "5px",
+                  marginLeft: "5px",
+                }}
+              >
+                {formData.request_type === "NEW"
+                  ? "* สำหรับติดตั้งใหม่ในจุดที่ไม่เคยมีมาก่อน (ไม่ต้องกรอกข้อมูลสินทรัพย์เดิม)"
+                  : "* สำหรับเปลี่ยนแทนอุปกรณ์เดิมที่ชำรุด (ต้องกรอกข้อมูลสินทรัพย์เดิมให้ครบถ้วน)"}
+              </div>
             </div>
 
             {/* 1. ข้อมูลสถานที่ */}
@@ -418,54 +588,11 @@ const AssetFormModal = ({
                   </select>
                 </div>
 
-                {/* --- Spec Inputs --- */}
-                {formData.category === "AIR" && (
-                  <div className="spec-box air-spec">
-                    <div className="form-group">
-                      <label>
-                        ชนิดเครื่องปรับอากาศ{" "}
-                        <span className="text-danger">*</span>
-                      </label>
-                      <select
-                        name="air_type"
-                        value={formData.air_type}
-                        onChange={handleChange}
-                        disabled={isReadOnly}
-                        required
-                      >
-                        <option value="">-- เลือกชนิด --</option>
-                        <option value="WALL">ติดผนัง (Wall)</option>
-                        <option value="CEILING">แขวนใต้ฝ้า (Ceiling)</option>
-                        <option value="CASSETTE">ฝังฝ้า (Cassette)</option>
-                        <option value="FLOOR">ตั้งพื้น (Floor)</option>
-                        <option value="OTHER">อื่นๆ</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>
-                        ขนาด (BTU) <span className="text-danger">*</span>
-                      </label>
-                      <select
-                        name="air_btu"
-                        value={formData.air_btu}
-                        onChange={handleChange}
-                        disabled={isReadOnly}
-                        required
-                      >
-                        <option value="">-- เลือกขนาด --</option>
-                        <option value="9000">9,000 BTU</option>
-                        <option value="12000">12,000 BTU</option>
-                        <option value="18000">18,000 BTU</option>
-                        <option value="24000">24,000 BTU</option>
-                        <option value="30000">30,000 BTU</option>
-                        <option value="36000">36,000 BTU</option>
-                        <option value="40000+">40,000+ BTU</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
+                {/* --- Spec Inputs Logic --- */}
+                {/* 1. AIR: ใช้ Logic ใหม่ตาม Config */}
+                {formData.category === "AIR" && renderAirSection()}
 
-                {/* ✅ เรียกใช้ฟังก์ชัน renderSpecInput */}
+                {/* 2. BATTERY */}
                 {formData.category === "BATTERY" && (
                   <div className="spec-box batt-spec">
                     {renderSpecInput(
@@ -476,6 +603,7 @@ const AssetFormModal = ({
                     )}
                   </div>
                 )}
+                {/* 3. UPS */}
                 {formData.category === "UPS" && (
                   <div className="spec-box ups-spec">
                     {renderSpecInput(
@@ -486,6 +614,7 @@ const AssetFormModal = ({
                     )}
                   </div>
                 )}
+                {/* 4. RECTIFIER */}
                 {formData.category === "RECTIFIER" && (
                   <div className="spec-box rect-spec">
                     {renderSpecInput(

@@ -253,6 +253,13 @@ const AssetsDashboard = () => {
     }
   };
 
+  const calculateCurrentAge = (installYear) => {
+    if (!installYear) return 0;
+    const currentYear = new Date().getFullYear();
+    const age = currentYear - parseInt(installYear);
+    return age < 0 ? 0 : age;
+  };
+
   const renderImageCell = (item) => {
     const getImageUrl = (path) => {
       if (!path) return null;
@@ -319,7 +326,7 @@ const AssetsDashboard = () => {
       {/* Header */}
       <div className="assets-header">
         <div>
-          <h1>สำรวจครุภัณฑ์สายงานกำลัง</h1>
+          <h1>สำรวจครุภัณฑ์สายงานการกำลัง</h1>
           <p className="subtitle">
             หน่วยงาน: {user?.department_name || "ไม่ระบุ"} | ผู้ใช้งาน:{" "}
             {user?.username}
@@ -522,138 +529,153 @@ const AssetsDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAssets.map((item) => (
-                  <tr key={item.id}>
-                    {/* 1. ปุ่มจัดการ (Action) */}
-                    <td
-                      style={{
-                        textAlign: "center",
-                        position: "sticky",
-                        left: 0,
-                        background: "#fff",
-                        zIndex: 2,
-                        borderRight: "1px solid #eee",
-                      }}
-                    >
-                      {item.status === "DRAFT" ? (
-                        <div className="action-buttons" style={{ gap: "5px" }}>
-                          <button
-                            className="btn-icon-action edit"
-                            onClick={() => handleOpenModal(item, false)}
-                            title="แก้ไข"
+                {filteredAssets.map((item) => {
+                  // ✅ ลบ ( ออก เหลือแค่ {
+                  // คำนวณอายุเก็บใส่ตัวแปร
+                  const currentAge = calculateCurrentAge(item.install_year);
+
+                  return (
+                    <tr key={item.id}>
+                      {/* 1. ปุ่มจัดการ (Action) */}
+                      <td
+                        style={{
+                          textAlign: "center",
+                          position: "sticky",
+                          left: 0,
+                          background: "#fff",
+                          zIndex: 2,
+                          borderRight: "1px solid #eee",
+                        }}
+                      >
+                        {item.status === "DRAFT" ? (
+                          <div
+                            className="action-buttons"
+                            style={{ gap: "5px" }}
                           >
-                            <FiEdit size={14} />
-                          </button>
+                            <button
+                              className="btn-icon-action edit"
+                              onClick={() => handleOpenModal(item, false)}
+                              title="แก้ไข"
+                            >
+                              <FiEdit size={14} />
+                            </button>
+                            <button
+                              className="btn-icon-action delete"
+                              onClick={() => handleDelete(item.id)}
+                              title="ลบ"
+                            >
+                              <FiTrash2 size={14} />
+                            </button>
+                            <button
+                              className="btn-icon-action submit"
+                              onClick={() => handleSubmit(item.id)}
+                              title="ส่ง"
+                            >
+                              <FiSend size={14} />
+                            </button>
+                          </div>
+                        ) : (
                           <button
-                            className="btn-icon-action delete"
-                            onClick={() => handleDelete(item.id)}
-                            title="ลบ"
+                            className="btn-icon-action view"
+                            style={{
+                              backgroundColor: "#17a2b8",
+                              color: "white",
+                              padding: "4px 8px",
+                            }}
+                            onClick={() => handleOpenModal(item, true)}
                           >
-                            <FiTrash2 size={14} />
+                            <FiEye size={14} />
                           </button>
-                          <button
-                            className="btn-icon-action submit"
-                            onClick={() => handleSubmit(item.id)}
-                            title="ส่ง"
-                          >
-                            <FiSend size={14} />
-                          </button>
+                        )}
+                      </td>
+
+                      {/* 2. สถานะ */}
+                      <td>{getStatusBadge(item.status)}</td>
+
+                      {/* 3. ประเภทคำขอ (NEW/REPLACE) */}
+                      <td>
+                        {item.request_type === "NEW" ? (
+                          <span className="req-badge new">✨ ขอใหม่</span>
+                        ) : (
+                          <span className="req-badge replace">🔄 ทดแทน</span>
+                        )}
+                      </td>
+
+                      {/* 4. รูปภาพ */}
+                      <td>{renderImageCell(item)}</td>
+
+                      {/* 5. หมวดหมู่ (AIR, BATT...) */}
+                      <td>
+                        <strong style={{ color: "#333" }}>
+                          {item.category}
+                        </strong>
+                      </td>
+
+                      {/* 6. สเปค (ดึงเฉพาะค่ามาโชว์) */}
+                      <td>
+                        {item.category === "AIR" && item.air_btu && (
+                          <span>
+                            {parseInt(item.air_btu).toLocaleString()} BTU{" "}
+                            {item.air_type}
+                          </span>
+                        )}
+                        {item.category === "BATTERY" && item.battery_amp && (
+                          <span>{item.battery_amp} Ah</span>
+                        )}
+                        {item.category === "UPS" && item.ups_kva && (
+                          <span>{item.ups_kva} kVA</span>
+                        )}
+                        {item.category === "RECTIFIER" &&
+                          item.rectifier_amp && (
+                            <span>{item.rectifier_amp} A</span>
+                          )}
+                        {!["AIR", "BATTERY", "UPS", "RECTIFIER"].includes(
+                          item.category,
+                        ) && <span>-</span>}
+                      </td>
+
+                      {/* 7. ชื่อสถานที่ */}
+                      <td>
+                        <div className="location-name">
+                          {item.location_name}
                         </div>
-                      ) : (
-                        <button
-                          className="btn-icon-action view"
-                          style={{
-                            backgroundColor: "#17a2b8",
-                            color: "white",
-                            padding: "4px 8px",
-                          }}
-                          onClick={() => handleOpenModal(item, true)}
-                        >
-                          <FiEye size={14} />
-                        </button>
-                      )}
-                    </td>
+                      </td>
 
-                    {/* 2. สถานะ */}
-                    <td>{getStatusBadge(item.status)}</td>
-
-                    {/* 3. ประเภทคำขอ (NEW/REPLACE) */}
-                    <td>
-                      {item.request_type === "NEW" ? (
-                        <span className="req-badge new">✨ ขอใหม่</span>
-                      ) : (
-                        <span className="req-badge replace">🔄 ทดแทน</span>
-                      )}
-                    </td>
-
-                    {/* 4. รูปภาพ */}
-                    <td>{renderImageCell(item)}</td>
-
-                    {/* 5. หมวดหมู่ (AIR, BATT...) */}
-                    <td>
-                      <strong style={{ color: "#333" }}>{item.category}</strong>
-                    </td>
-
-                    {/* 6. สเปค (ดึงเฉพาะค่ามาโชว์) */}
-                    <td>
-                      {item.category === "AIR" && item.air_btu && (
-                        <span>
-                          {parseInt(item.air_btu).toLocaleString()} BTU{" "}
-                          {item.air_type}
+                      {/* 8. ประเภทสถานที่ */}
+                      <td>
+                        <span style={{ color: "#666" }}>
+                          {item.location_type}
                         </span>
-                      )}
-                      {item.category === "BATTERY" && item.battery_amp && (
-                        <span>{item.battery_amp} Ah</span>
-                      )}
-                      {item.category === "UPS" && item.ups_kva && (
-                        <span>{item.ups_kva} kVA</span>
-                      )}
-                      {item.category === "RECTIFIER" && item.rectifier_amp && (
-                        <span>{item.rectifier_amp} A</span>
-                      )}
-                      {!["AIR", "BATTERY", "UPS", "RECTIFIER"].includes(
-                        item.category,
-                      ) && <span>-</span>}
-                    </td>
+                      </td>
 
-                    {/* 7. ชื่อสถานที่ */}
-                    <td>
-                      <div className="location-name">{item.location_name}</div>
-                    </td>
+                      {/* 9. ยี่ห้อ/รุ่น */}
+                      <td>{item.brand_model || "-"}</td>
 
-                    {/* 8. ประเภทสถานที่ */}
-                    <td>
-                      <span style={{ color: "#666" }}>
-                        {item.location_type}
-                      </span>
-                    </td>
+                      {/* 10. เลขสินทรัพย์ */}
+                      <td>{item.asset_number || "-"}</td>
 
-                    {/* 9. ยี่ห้อ/รุ่น */}
-                    <td>{item.brand_model || "-"}</td>
+                      {/* 11. ปีติดตั้ง */}
+                      <td>{item.install_year || "-"}</td>
 
-                    {/* 10. เลขสินทรัพย์ */}
-                    <td>{item.asset_number || "-"}</td>
+                      {/* 12. อายุ (ใช้ตัวแปรที่คำนวณด้านบน) */}
+                      <td className={currentAge > 10 ? "text-danger" : ""}>
+                        {currentAge > 0 ? `${currentAge} ปี` : "-"}
+                      </td>
 
-                    {/* 11. ปีติดตั้ง */}
-                    <td>{item.install_year || "-"}</td>
+                      {/* 13. สภาพ */}
+                      <td>{item.condition || "-"}</td>
 
-                    {/* 12. อายุ */}
-                    <td className={item.age > 10 ? "text-danger" : ""}>
-                      {item.age > 0 ? `${item.age}` : "-"}
-                    </td>
+                      {/* 14. ผลกระทบ */}
+                      <td>
+                        {item.customer_impact > 0 ? item.customer_impact : "-"}
+                      </td>
 
-                    {/* 13. สภาพ */}
-                    <td>{item.condition || "-"}</td>
-
-                    {/* 14. ผลกระทบ */}
-                    <td>
-                      {item.customer_impact > 0 ? item.customer_impact : "-"}
-                    </td>
-
-                    {/* 15. แผนก */}
-                    <td>{item.province || item.department_name || "-"}</td>
-                  </tr>
-                ))}
+                      {/* 15. แผนก */}
+                      <td>{item.province || item.department_name || "-"}</td>
+                    </tr>
+                  );
+                })}{" "}
+                {/* ✅ ลบ ) ออก เหลือแค่ } */}
               </tbody>
             </table>
           </div>

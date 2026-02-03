@@ -192,6 +192,13 @@ const AssetsAdminDashboard = () => {
     }
   };
 
+  const calculateCurrentAge = (installYear) => {
+    if (!installYear) return 0;
+    const currentYear = new Date().getFullYear();
+    const age = currentYear - parseInt(installYear);
+    return age < 0 ? 0 : age;
+  };
+
   const renderImageCell = (item) => {
     const getImageUrl = (path) => {
       if (!path) return null;
@@ -456,72 +463,81 @@ const AssetsAdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {getFilteredAssets(pendingAssets).map((item) => (
-                  <tr key={item.id}>
-                    {/* ปุ่มจัดการ */}
-                    <td className="text-center">
-                      <div
+                {getFilteredAssets(pendingAssets).map((item) => {
+                  // ✅ คำนวณอายุสดๆ
+                  const currentAge = calculateCurrentAge(item.install_year);
+
+                  return (
+                    <tr key={item.id}>
+                      {/* ปุ่มจัดการ */}
+                      <td className="text-center">
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "5px",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <button
+                            className="btn-icon-action submit"
+                            onClick={() => handleApprove(item.id)}
+                            title="อนุมัติ"
+                          >
+                            <FiCheckCircle />
+                          </button>
+                          <button
+                            className="btn-icon-action delete"
+                            onClick={() => handleReject(item.id)}
+                            title="ส่งกลับแก้ไข"
+                          >
+                            <FiXCircle />
+                          </button>
+                        </div>
+                      </td>
+
+                      <td>
+                        {new Date(item.created_at).toLocaleDateString("th-TH")}
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: "bold" }}>
+                          {item.department_name || "-"}
+                        </div>
+                        <div style={{ fontSize: "0.85em", color: "#666" }}>
+                          {item.province || ""}
+                        </div>
+                      </td>
+                      <td>{renderImageCell(item)}</td>
+
+                      {/* แสดง Spec */}
+                      <td>{renderSpecifics(item)}</td>
+
+                      <td>
+                        <div className="location-name">
+                          {item.location_name}
+                        </div>
+                        <div className="location-sub">{item.location_type}</div>
+                      </td>
+                      <td>{item.brand_model}</td>
+
+                      {/* แสดงอายุ (Real-time) */}
+                      <td className={currentAge > 10 ? "text-danger" : ""}>
+                        {currentAge > 0 ? `${currentAge} ปี` : "-"}
+                      </td>
+
+                      <td
                         style={{
-                          display: "flex",
-                          gap: "5px",
-                          justifyContent: "center",
+                          maxWidth: "200px",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
                         }}
+                        title={item.reason}
                       >
-                        <button
-                          className="btn-icon-action submit"
-                          onClick={() => handleApprove(item.id)}
-                          title="อนุมัติ"
-                        >
-                          <FiCheckCircle />
-                        </button>
-                        <button
-                          className="btn-icon-action delete"
-                          onClick={() => handleReject(item.id)}
-                          title="ส่งกลับแก้ไข"
-                        >
-                          <FiXCircle />
-                        </button>
-                      </div>
-                    </td>
-
-                    <td>
-                      {new Date(item.created_at).toLocaleDateString("th-TH")}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: "bold" }}>
-                        {item.department_name || "-"}
-                      </div>
-                      <div style={{ fontSize: "0.85em", color: "#666" }}>
-                        {item.province || ""}
-                      </div>
-                    </td>
-                    <td>{renderImageCell(item)}</td>
-
-                    {/* ✅ ใช้ renderSpecifics */}
-                    <td>{renderSpecifics(item)}</td>
-
-                    <td>
-                      <div className="location-name">{item.location_name}</div>
-                      <div className="location-sub">{item.location_type}</div>
-                    </td>
-                    <td>{item.brand_model}</td>
-
-                    <td className={item.age > 10 ? "text-danger" : ""}>
-                      {item.age > 0 ? `${item.age} ปี` : "-"}
-                    </td>
-                    <td
-                      style={{
-                        maxWidth: "200px",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                      title={item.reason}
-                    >
-                      {item.reason}
-                    </td>
-                  </tr>
-                ))}
+                        {item.reason}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -562,47 +578,57 @@ const AssetsAdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {getFilteredAssets(allAssets).map((item) => (
-                  <tr key={item.id}>
-                    <td>{getStatusBadge(item.status)}</td>
+                {getFilteredAssets(allAssets).map((item) => {
+                  // ✅ คำนวณอายุสดๆ
+                  const currentAge = calculateCurrentAge(item.install_year);
 
-                    {/* ✅ แสดง Badge NEW/REPLACE */}
-                    <td>
-                      {item.request_type === "NEW" ? (
-                        <span className="req-badge new">✨ ขอใหม่</span>
-                      ) : (
-                        <span className="req-badge replace">🔄 ทดแทน</span>
-                      )}
-                    </td>
+                  return (
+                    <tr key={item.id}>
+                      <td>{getStatusBadge(item.status)}</td>
 
-                    <td>
-                      {new Date(item.created_at).toLocaleDateString("th-TH")}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: "bold" }}>
-                        {item.department_name || "-"}
-                      </div>
-                      <div style={{ fontSize: "0.85em", color: "#666" }}>
-                        {item.province}
-                      </div>
-                    </td>
-                    <td>{renderImageCell(item)}</td>
+                      {/* แสดง Badge NEW/REPLACE */}
+                      <td>
+                        {item.request_type === "NEW" ? (
+                          <span className="req-badge new">✨ ขอใหม่</span>
+                        ) : (
+                          <span className="req-badge replace">🔄 ทดแทน</span>
+                        )}
+                      </td>
 
-                    {/* ✅ ใช้ renderSpecifics */}
-                    <td>{renderSpecifics(item)}</td>
+                      <td>
+                        {new Date(item.created_at).toLocaleDateString("th-TH")}
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: "bold" }}>
+                          {item.department_name || "-"}
+                        </div>
+                        <div style={{ fontSize: "0.85em", color: "#666" }}>
+                          {item.province}
+                        </div>
+                      </td>
+                      <td>{renderImageCell(item)}</td>
 
-                    <td>
-                      <div className="location-name">{item.location_name}</div>
-                      <div className="location-sub">{item.location_type}</div>
-                    </td>
+                      {/* แสดง Spec */}
+                      <td>{renderSpecifics(item)}</td>
 
-                    <td>{item.brand_model}</td>
-                    <td className={item.age > 10 ? "text-danger" : ""}>
-                      {item.age > 0 ? `${item.age} ปี` : "-"}
-                    </td>
-                    <td>{item.condition}</td>
-                  </tr>
-                ))}
+                      <td>
+                        <div className="location-name">
+                          {item.location_name}
+                        </div>
+                        <div className="location-sub">{item.location_type}</div>
+                      </td>
+
+                      <td>{item.brand_model}</td>
+
+                      {/* แสดงอายุ (Real-time) */}
+                      <td className={currentAge > 10 ? "text-danger" : ""}>
+                        {currentAge > 0 ? `${currentAge} ปี` : "-"}
+                      </td>
+
+                      <td>{item.condition}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -615,7 +641,7 @@ const AssetsAdminDashboard = () => {
           <h2 className="mb-4 text-lg font-semibold flex items-center gap-2">
             <FiPieChart /> แยกตามอุปกรณ์ (ภาพรวมแคมเปญ)
           </h2>
-          <table className="data-table">
+          <table className="data-table" style={{ minWidth: "auto" }}>
             <thead>
               <tr>
                 <th>ประเภท</th>
@@ -638,7 +664,7 @@ const AssetsAdminDashboard = () => {
             <FiBarChart2 /> สรุปรายจังหวัด/ส่วนงาน
           </h2>
           <div className="table-responsive">
-            <table className="data-table">
+            <table className="data-table" style={{ minWidth: "auto" }}>
               <thead>
                 <tr>
                   <th>จังหวัด / หน่วยงาน</th>
