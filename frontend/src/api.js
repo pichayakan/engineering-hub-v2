@@ -1,21 +1,54 @@
 import axios from "axios";
 
-// สร้าง apiClient instance พื้นฐาน
+// ==========================================
+// 1. ✅ กำหนดค่า Config กลางที่นี่จุดเดียว (Single Source of Truth)
+// ==========================================
+// เปลี่ยน IP ตรงนี้ที่เดียว มีผลทั้ง Project (ทั้ง API และ รูปภาพ)
+export const SERVER_URL = "http://202.139.196.7:8000";
+//export const SERVER_URL = "http://172.22.16.45:8000";
+export const API_URL = `${SERVER_URL}/api`;
+
+// Helper: ฟังก์ชันดึง Token (ลด code ซ้ำซ้อน)
+const getStoredTokens = () => {
+  const local = localStorage.getItem("authTokens");
+  const session = sessionStorage.getItem("authTokens");
+  return local ? JSON.parse(local) : session ? JSON.parse(session) : null;
+};
+
+// Helper: ฟังก์ชันเก็บ Token (ลด code ซ้ำซ้อน)
+const setStoredTokens = (tokens) => {
+  const storage = localStorage.getItem("authTokens")
+    ? localStorage
+    : sessionStorage;
+  storage.setItem("authTokens", JSON.stringify(tokens));
+};
+
+// Helper: ฟังก์ชันลบ Token (Logout)
+const clearTokens = () => {
+  localStorage.removeItem("authTokens");
+  localStorage.removeItem("user");
+  sessionStorage.removeItem("authTokens");
+  sessionStorage.removeItem("user");
+};
+
+// ==========================================
+// 2. สร้าง Axios Instance
+// ==========================================
 const apiClient = axios.create({
-  baseURL: "http://202.139.196.7:8000",
-  //baseURL: "http://localhost:8000",
-  //baseURL: "http://172.22.16.45:8000",
+  baseURL: SERVER_URL, // ใช้ตัวแปรที่ประกาศด้านบน
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
+// ==========================================
+// 3. Request Interceptor (แนบ Token)
+// ==========================================
 apiClient.interceptors.request.use(
   (config) => {
-    // --- ✅ THIS IS THE FIX ---
-    // Try to get tokens from localStorage first, then fall back to sessionStorage
-    const authTokens = localStorage.getItem("authTokens")
-      ? JSON.parse(localStorage.getItem("authTokens"))
-      : JSON.parse(sessionStorage.getItem("authTokens"));
+    const authTokens = getStoredTokens(); // เรียกใช้ Helper
 
-    if (authTokens) {
+    if (authTokens?.access) {
       config.headers["Authorization"] = `Bearer ${authTokens.access}`;
     }
     return config;
@@ -23,42 +56,38 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
+// ==========================================
+// 4. Response Interceptor (Refresh Token)
+// ==========================================
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response.status === 401 && !originalRequest._retry) {
+
+    // ถ้าเจอ 401 (Unauthorized) และยังไม่เคยลอง Retry
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+      const authTokens = getStoredTokens();
 
-      // Check which storage the tokens are in
-      const storage = localStorage.getItem("authTokens")
-        ? localStorage
-        : sessionStorage;
-      const authTokens = JSON.parse(storage.getItem("authTokens"));
-
+      // ถ้ามี Refresh Token ให้ลองขอ Access Token ใหม่
       if (authTokens?.refresh) {
         try {
-          const response = await axios.post(
-            //"http://localhost:8000/api/token/refresh/",
-            "http://202.139.196.7:8000/api/token/refresh/",
-            //"http://172.22.16.45:8000/api/token/refresh/",
-            {
-              refresh: authTokens.refresh,
-            },
-          );
+          // ✅ ใช้ API_URL ตัวแปรกลาง แทนการ Hardcode URL
+          const response = await axios.post(`${API_URL}/token/refresh/`, {
+            refresh: authTokens.refresh,
+          });
 
-          storage.setItem("authTokens", JSON.stringify(response.data));
+          // บันทึก Token ใหม่ลง Storage เดิม
+          setStoredTokens(response.data);
 
+          // แนบ Token ใหม่แล้วยิง Request เดิมซ้ำ
           originalRequest.headers["Authorization"] =
             `Bearer ${response.data.access}`;
-
           return apiClient(originalRequest);
         } catch (refreshError) {
           console.error("Token refresh failed:", refreshError);
-          localStorage.removeItem("authTokens");
-          localStorage.removeItem("user");
-          sessionStorage.removeItem("authTokens");
-          sessionStorage.removeItem("user");
+          // ถ้า Refresh ไม่ผ่าน ให้เคลียร์ข้อมูลแล้วเด้งออก
+          clearTokens();
           window.dispatchEvent(
             new CustomEvent("sessionExpired", {
               detail: { originalPath: window.location.pathname },
@@ -67,10 +96,8 @@ apiClient.interceptors.response.use(
           return Promise.reject(refreshError);
         }
       } else {
-        localStorage.removeItem("authTokens");
-        localStorage.removeItem("user");
-        sessionStorage.removeItem("authTokens");
-        sessionStorage.removeItem("user");
+        // ถ้าไม่มี Refresh Token
+        clearTokens();
         window.dispatchEvent(
           new CustomEvent("sessionExpired", {
             detail: { originalPath: window.location.pathname },

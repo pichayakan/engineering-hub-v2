@@ -4,11 +4,8 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./Sidebar.css";
 
-// ✅ Import ไอคอน PieChart เพิ่ม
 import {
   FiHome,
-  FiGrid,
-  FiArchive,
   FiShoppingCart,
   FiFileText,
   FiCheckSquare,
@@ -19,12 +16,17 @@ import {
   FiClipboard,
   FiChevronDown,
   FiHardDrive,
-  FiPieChart, // <--- ไอคอนสำหรับ Dashboard ผู้บริหาร
+  FiPieChart,
+  FiPackage,
 } from "react-icons/fi";
 
 function Sidebar({ isOpen, onClose }) {
   const { user, logoutUser, unseenTaskCount } = useAuth();
   const [isProcurementOpen, setIsProcurementOpen] = useState(false);
+
+  // ✅ 1. ตรวจสอบสิทธิ์: เช็คว่า User อยู่ในกลุ่ม "SurveyOnly" หรือไม่
+  // (ต้องแน่ใจว่าใน Serializer ส่ง field 'group_names' มาแล้วตามขั้นตอนก่อนหน้า)
+  const isSurveyOnly = user?.group_names?.includes("SurveyOnly");
 
   return (
     <>
@@ -42,80 +44,112 @@ function Sidebar({ isOpen, onClose }) {
         <nav className="sidebar-nav">
           {user && (
             <>
-              <NavLink to="/" className="sidebar-link" onClick={onClose} end>
-                <FiHome /> <span>หน้าหลัก</span>
-              </NavLink>
+              {/* ✅ 2. เมนูทั่วไป (ซ่อนถ้าเป็น SurveyOnly)
+                 ถ้า isSurveyOnly = true บล็อกนี้จะไม่แสดงผล
+              */}
+              {!isSurveyOnly && (
+                <>
+                  <NavLink
+                    to="/"
+                    className="sidebar-link"
+                    onClick={onClose}
+                    end
+                  >
+                    <FiHome /> <span>หน้าหลัก</span>
+                  </NavLink>
 
-              {/* --- Collapsible Procurement Menu --- */}
-              <div
-                className={`sidebar-link-group ${
-                  isProcurementOpen ? "is-open" : ""
-                }`}
-              >
-                <div
-                  className="sidebar-menu-toggle"
-                  onClick={() => setIsProcurementOpen(!isProcurementOpen)}
-                >
-                  <div className="menu-toggle-left">
-                    <FiShoppingCart /> <span>ระบบติดตามงาน วขตป.</span>
+                  {/* --- Collapsible Procurement Menu --- */}
+                  <div
+                    className={`sidebar-link-group ${
+                      isProcurementOpen ? "is-open" : ""
+                    }`}
+                  >
+                    <div
+                      className="sidebar-menu-toggle"
+                      onClick={() => setIsProcurementOpen(!isProcurementOpen)}
+                    >
+                      <div className="menu-toggle-left">
+                        <FiShoppingCart /> <span>ระบบติดตามงาน วขตป.</span>
+                      </div>
+                      <FiChevronDown className="menu-chevron" />
+                    </div>
+
+                    {isProcurementOpen && (
+                      <div className="sub-menu-container">
+                        <NavLink
+                          to="/procurement/dashboard"
+                          className="sidebar-link sub-menu"
+                          onClick={onClose}
+                        >
+                          <span>แดชบอร์ดของฉัน</span>
+                        </NavLink>
+
+                        <NavLink
+                          to="/procurement/analytics"
+                          className="sidebar-link sub-menu"
+                          onClick={onClose}
+                        >
+                          <span>ภาพรวมผู้บริหาร</span>
+                        </NavLink>
+
+                        <NavLink
+                          to="/procurement"
+                          className="sidebar-link sub-menu"
+                          onClick={onClose}
+                          end
+                        >
+                          <span>รายการทั้งหมด</span>
+                        </NavLink>
+                      </div>
+                    )}
                   </div>
-                  <FiChevronDown className="menu-chevron" />
-                </div>
 
-                {isProcurementOpen && (
-                  <div className="sub-menu-container">
-                    <NavLink
-                      to="/procurement/dashboard"
-                      className="sidebar-link sub-menu"
-                      onClick={onClose}
-                    >
-                      <span>แดชบอร์ดของฉัน</span>
-                    </NavLink>
+                  <NavLink
+                    to="/workflows"
+                    className="sidebar-link"
+                    onClick={onClose}
+                  >
+                    <FiFileText /> <span>ระบบติดตามงานจัดหาฯ</span>
+                  </NavLink>
+                </>
+              )}
 
-                    {/* ✅ ย้ายมาตรงนี้ + ลบเงื่อนไข user.is_staff ออกเพื่อให้ทุกคนเห็น */}
-                    <NavLink
-                      to="/procurement/analytics"
-                      className="sidebar-link sub-menu"
-                      onClick={onClose}
-                    >
-                      <span>ภาพรวมผู้บริหาร</span>
-                    </NavLink>
-
-                    <NavLink
-                      to="/procurement"
-                      className="sidebar-link sub-menu"
-                      onClick={onClose}
-                      end
-                    >
-                      <span>รายการทั้งหมด</span>
-                    </NavLink>
-                  </div>
-                )}
-              </div>
-
-              <NavLink
-                to="/workflows"
-                className="sidebar-link"
-                onClick={onClose}
-              >
-                <FiFileText /> <span>ระบบติดตามงานจัดหาฯ</span>
-              </NavLink>
-              <NavLink
-                to="/my-tasks"
-                className="sidebar-link"
-                onClick={onClose}
-              >
-                <FiCheckSquare /> <span>แจ้งเตือนงาน</span>
-                {unseenTaskCount > 0 && (
-                  <span className="notification-badge">{unseenTaskCount}</span>
-                )}
-              </NavLink>
-              <NavLink to="/share" className="sidebar-link" onClick={onClose}>
-                <FiShare2 /> <span>แชร์ไฟล์</span>
+              {/* ✅ 3. เมนู "สำรวจครุภัณฑ์" (Assets)
+                 แสดงให้เห็นทุกคน (ทั้ง User ปกติ และ SurveyOnly)
+              */}
+              <NavLink to="/assets" className="sidebar-link" onClick={onClose}>
+                <FiPackage /> <span>สำรวจครุภัณฑ์ (Assets)</span>
               </NavLink>
 
-              {/* เมนูสำหรับ Admin (ยังคงซ่อนไว้เฉพาะ Staff) */}
-              {user.is_staff && (
+              {/* ✅ 4. เมนูส่วนตัวอื่นๆ (ซ่อนถ้าเป็น SurveyOnly)
+               */}
+              {!isSurveyOnly && (
+                <>
+                  <NavLink
+                    to="/my-tasks"
+                    className="sidebar-link"
+                    onClick={onClose}
+                  >
+                    <FiCheckSquare /> <span>แจ้งเตือนงาน</span>
+                    {unseenTaskCount > 0 && (
+                      <span className="notification-badge">
+                        {unseenTaskCount}
+                      </span>
+                    )}
+                  </NavLink>
+                  <NavLink
+                    to="/share"
+                    className="sidebar-link"
+                    onClick={onClose}
+                  >
+                    <FiShare2 /> <span>แชร์ไฟล์</span>
+                  </NavLink>
+                </>
+              )}
+
+              {/* ✅ 5. เมนู Admin (ซ่อนถ้าเป็น SurveyOnly แม้จะเป็น Staff ก็ตาม)
+               */}
+              {user.is_staff && !isSurveyOnly && (
                 <>
                   <hr className="sidebar-divider" />
                   <div
@@ -163,6 +197,13 @@ function Sidebar({ isOpen, onClose }) {
                     onClick={onClose}
                   >
                     <FiHardDrive /> <span>System Logs</span>
+                  </NavLink>
+                  <NavLink
+                    to="/assets/admin"
+                    className="sidebar-link"
+                    onClick={onClose}
+                  >
+                    <FiPieChart /> <span>บริหารงานสำรวจ (Assets)</span>
                   </NavLink>
                 </>
               )}

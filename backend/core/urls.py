@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/notifications/', include('notifications.urls')),
     path('api/logs/', include('logs.urls')),
 
+    path('api/assets/', include('assets.urls')),
     # re_path(r'^protected_files/(?P<path>.*)$',
     #         protected_media_serve, name='protected_media'),
     re_path(r'^media/protected/(?P<path>.*)$',

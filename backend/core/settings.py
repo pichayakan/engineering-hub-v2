@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     "procurement",
     "workflows",
     "notifications",
-    "logs"
+    "logs",
+    "assets"
 ]
 
 MIDDLEWARE = [

@@ -34,6 +34,10 @@ import ProcurementAnalyticsPage from "./pages/ProcurementAnalyticsPage";
 
 import HelpButton from "./components/HelpButton.jsx";
 
+import AssetsDashboard from "./pages/assets/AssetsDashboard";
+
+import AssetsAdminDashboard from "./pages/assets/AssetsAdminDashboard";
+
 // Import Route Guards
 import ProtectedRoute from "./utils/ProtectedRoute.jsx";
 import AdminRoute from "./utils/AdminRoute.jsx";
@@ -72,6 +76,7 @@ function App() {
               <Route path="/my-tasks" element={<MyTasksPage />} />
               <Route path="/share" element={<FileSharerPage />} />
               <Route path="/projects/:projectId" element={<ProjectDetail />} />
+              <Route path="/assets" element={<AssetsDashboard />} />
               <Route
                 path="/projects/:projectId/kanban"
                 element={<KanbanPage />}
@@ -101,6 +106,10 @@ function App() {
                 />
                 <Route path="/tasks/all" element={<AllTasksPage />} />
                 <Route path="/admin/logs" element={<SystemLogsPage />} />
+                <Route
+                  path="/assets/admin"
+                  element={<AssetsAdminDashboard />}
+                />
               </Route>
               <Route path="/workflows" element={<ProjectWorkflowListPage />} />
               <Route

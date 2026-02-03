@@ -42,11 +42,14 @@ class UserSerializer(serializers.ModelSerializer):
     )
     groups = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
+    group_names = serializers.StringRelatedField(
+        many=True, source='groups', read_only=True)
+
     class Meta:
         model = User
         fields = [
             "id", "email", "username", "first_name", "last_name", "phone_number",
-            "employee_id", "role", "is_staff", "department", "department_name", "groups", "signature"
+            "employee_id", "role", "is_staff", "department", "department_name", "groups", "group_names", "signature"
         ]
 
 

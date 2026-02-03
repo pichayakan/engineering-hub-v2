@@ -30,23 +30,27 @@ from .views import (
 router = routers.SimpleRouter()
 router.register(r"projects", ProjectViewSet, basename="project")
 
-projects_router = routers.NestedSimpleRouter(router, r"projects", lookup="project")
+projects_router = routers.NestedSimpleRouter(
+    router, r"projects", lookup="project")
 projects_router.register(r"tasks", TaskViewSet, basename="project-tasks")
 projects_router.register(
     r"attachments", ProjectAttachmentViewSet, basename="project-attachments"
 )
 
-tasks_router = routers.NestedSimpleRouter(projects_router, r"tasks", lookup="task")
+tasks_router = routers.NestedSimpleRouter(
+    projects_router, r"tasks", lookup="task")
 tasks_router.register(r"comments", CommentViewSet, basename="task-comments")
 tasks_router.register(
     r"attachments", TaskAttachmentViewSet, basename="task-attachments"
 )
-tasks_router.register(r"activities", ActivityViewSet, basename="task-activities")
+tasks_router.register(r"activities", ActivityViewSet,
+                      basename="task-activities")
 
 router.register(r"announcements", AnnouncementViewSet, basename="announcement")
 router.register(r"events", CalendarEventViewSet, basename="event")
 
-router.register(r"task-templates", TaskTemplateViewSet, basename="task-template")
+router.register(r"task-templates", TaskTemplateViewSet,
+                basename="task-template")
 
 events_router = routers.NestedSimpleRouter(router, r"events", lookup="event")
 events_router.register(
@@ -81,6 +85,9 @@ urlpatterns = [
     path("share/history/", SharedFileHistoryView.as_view(), name="file-history"),
     # --- CSRF & Nested Router URLs ---
     path("csrf-cookie/", get_csrf_token, name="csrf-cookie"),
+
+    path("assets/", include("assets.urls")),
+
     path("", include(router.urls)),
     path("", include(projects_router.urls)),
     path("", include(tasks_router.urls)),
