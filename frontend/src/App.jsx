@@ -17,7 +17,7 @@ import DashboardPage from "./pages/DashboardPage.jsx";
 import WorkloadDashboardPage from "./pages/WorkloadDashboardPage.jsx";
 import AssignerPerformancePage from "./pages/AssignerPerformancePage.jsx";
 import DepartmentManagementPage from "./pages/DepartmentManagementPage.jsx";
-import TeamDetailPage from "./pages/TeamDetailPage.jsx"; // This might be refactored to DepartmentDetailPage later
+import TeamDetailPage from "./pages/TeamDetailPage.jsx";
 import FileSharerPage from "./pages/FileSharerPage.jsx";
 import KanbanPage from "./pages/KanbanPage.jsx";
 import AllTasksPage from "./pages/AllTasksPage.jsx";
@@ -36,6 +36,7 @@ import HelpButton from "./components/HelpButton.jsx";
 
 import AssetsDashboard from "./pages/assets/AssetsDashboard";
 
+// ✅ 1. Import หน้า Admin Dashboard (ถ้ายังไม่มีบรรทัดนี้ให้เพิ่ม)
 import AssetsAdminDashboard from "./pages/assets/AssetsAdminDashboard";
 
 // Import Route Guards
@@ -61,22 +62,28 @@ function App() {
         <main className="main-content-wrapper">
           <Routes>
             {/* --- Public Routes --- */}
-            {/* เส้นทางที่ทุกคนสามารถเข้าถึงได้โดยไม่ต้อง Login */}
             <Route element={<RedirectIfAuth />}>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
             </Route>
-            {/* --- Protected Routes --- */}
-            {/* เส้นทางทั้งหมดที่อยู่ข้างในนี้ จะต้องทำการ Login ก่อน */}
+
+            {/* --- Protected Routes (ต้อง Login ก่อน) --- */}
             <Route element={<ProtectedRoute />}>
-              {/* Routes for all authenticated users */}
               <Route path="/" element={<HomePage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/projects" element={<AllProjectsPage />} />
               <Route path="/my-tasks" element={<MyTasksPage />} />
               <Route path="/share" element={<FileSharerPage />} />
               <Route path="/projects/:projectId" element={<ProjectDetail />} />
+
+              {/* ✅ หน้า User Assets */}
               <Route path="/assetnt" element={<AssetsDashboard />} />
+
+              {/* ✅ ย้าย Assets Admin มาไว้ตรงนี้ (นอก AdminRoute) */}
+              {/* เพื่อให้ User ธรรมดาที่มี Group "AssetAdmin" สามารถเข้าถึงได้ */}
+              {/* (การเช็คสิทธิ์จะทำภายในไฟล์ AssetsAdminDashboard แทน) */}
+              <Route path="/assets/admin" element={<AssetsAdminDashboard />} />
+
               <Route
                 path="/projects/:projectId/kanban"
                 element={<KanbanPage />}
@@ -94,10 +101,9 @@ function App() {
                 path="/procurement/requests/:requestId"
                 element={<ProcurementDetailPage />}
               />
-              <Route path="/admin/teams/:teamId" element={<TeamDetailPage />} />{" "}
-              {/* Note: This might be deprecated */}
-              {/* --- Admin-only Routes --- */}
-              {/* เส้นทางที่อยู่ข้างในนี้ จะต้องเป็น Admin (is_staff=True) เท่านั้น */}
+              <Route path="/admin/teams/:teamId" element={<TeamDetailPage />} />
+
+              {/* --- Admin-only Routes (บังคับ is_staff=True เท่านั้น) --- */}
               <Route element={<AdminRoute />}>
                 <Route path="/workload" element={<WorkloadDashboardPage />} />
                 <Route
@@ -106,18 +112,18 @@ function App() {
                 />
                 <Route path="/tasks/all" element={<AllTasksPage />} />
                 <Route path="/admin/logs" element={<SystemLogsPage />} />
-                <Route
-                  path="/assets/admin"
-                  element={<AssetsAdminDashboard />}
-                />
+
+                {/* ❌ เอา Assets Admin ออกจากตรงนี้แล้ว */}
               </Route>
+
               <Route path="/workflows" element={<ProjectWorkflowListPage />} />
               <Route
                 path="/workflows/:workflowId"
                 element={<ProjectWorkflowDetailPage />}
               />
             </Route>
-            <Route path="/workflows/new" element={<CreateWorkflowPage />} />{" "}
+
+            <Route path="/workflows/new" element={<CreateWorkflowPage />} />
             <Route path="/profile/:userId" element={<UserProfilePage />} />
             <Route
               path="/procurement/dashboard"
