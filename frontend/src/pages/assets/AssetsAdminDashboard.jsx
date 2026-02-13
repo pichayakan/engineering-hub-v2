@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { assetApi } from "../../assetApi";
 import { SERVER_URL } from "../../api";
+import { useAuth } from "../../context/AuthContext"; // ✅ 1. Import Auth
+import { useNavigate } from "react-router-dom"; // ✅ 2. Import Navigate
 
 import {
   FiDownload,
@@ -15,8 +17,8 @@ import {
   FiList,
   FiHash,
   FiMessageSquare,
-  FiDollarSign, // ✅ เพิ่มไอคอนเงิน
-  FiSave, // ✅ เพิ่มไอคอนบันทึก
+  FiDollarSign,
+  FiSave,
 } from "react-icons/fi";
 import "./AssetsDashboard.css";
 
@@ -30,6 +32,10 @@ const AIR_TYPE_MAP = {
 };
 
 const AssetsAdminDashboard = () => {
+  const { user } = useAuth(); // ✅ 3. ดึง User
+  const navigate = useNavigate(); // ✅ 4. เตรียมดีดคนออก
+  const [isAuthorized, setIsAuthorized] = useState(false); // สถานะสิทธิ์
+
   const [campaigns, setCampaigns] = useState([]);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
 
@@ -48,27 +54,50 @@ const AssetsAdminDashboard = () => {
   const [allPage, setAllPage] = useState(1);
   const itemsPerPage = 10;
 
-  // ✅ State สำหรับเก็บราคา (Key = Spec Name, Value = Price)
+  // Price List State
   const [priceList, setPriceList] = useState(() => {
-    // โหลดราคาเดิมที่เคยกรอกไว้จาก LocalStorage (ถ้ามี)
     const saved = localStorage.getItem("assetPrices");
     return saved ? JSON.parse(saved) : {};
   });
 
-  // Initial Load
+  // ✅ 5. Check Permission (User Group)
   useEffect(() => {
-    fetchCampaigns();
-    fetchDepartments();
-  }, []);
+    if (!user) return; // รอ User โหลดเสร็จ
 
-  // Fetch Data
+    // ชื่อกลุ่มที่อนุญาต (ต้องตรงกับใน Django Admin)
+    const ADMIN_GROUP = "AssetAdmin";
+
+    // เช็คว่ามีชื่อกลุ่มนี้ใน array group_names หรือไม่
+    // หรือเป็น Superuser / Staff ก็ให้เข้าได้
+    const hasPermission =
+      user.is_superuser ||
+      user.is_staff ||
+      (user.group_names && user.group_names.includes(ADMIN_GROUP));
+
+    if (hasPermission) {
+      setIsAuthorized(true);
+    } else {
+      alert(`⛔ Access Denied: สำหรับกลุ่ม ${ADMIN_GROUP} เท่านั้น`);
+      navigate("/assets"); // ดีดกลับไปหน้า User Dashboard
+    }
+  }, [user, navigate]);
+
+  // Initial Load (Data) - ทำงานเมื่อ Authorized แล้วเท่านั้น
   useEffect(() => {
-    if (selectedCampaign) {
+    if (isAuthorized) {
+      fetchCampaigns();
+      fetchDepartments();
+    }
+  }, [isAuthorized]);
+
+  // Fetch Data on Filter Change
+  useEffect(() => {
+    if (isAuthorized && selectedCampaign) {
       fetchStats(selectedCampaign);
       fetchPendingAssets(selectedCampaign);
       fetchAllAssets(selectedCampaign);
     }
-  }, [selectedCampaign, selectedDept]);
+  }, [selectedCampaign, selectedDept, isAuthorized]);
 
   // Reset Page
   useEffect(() => {
@@ -76,12 +105,12 @@ const AssetsAdminDashboard = () => {
     setAllPage(1);
   }, [selectedCampaign, selectedDept, filterCategory]);
 
-  // ✅ บันทึกราคาลง LocalStorage ทุกครั้งที่เปลี่ยน
+  // Save Prices
   useEffect(() => {
     localStorage.setItem("assetPrices", JSON.stringify(priceList));
   }, [priceList]);
 
-  // --- API Calls (คงเดิม) ---
+  // --- API Calls ---
   const fetchCampaigns = async () => {
     try {
       const res = await assetApi.getCampaigns();
@@ -141,7 +170,6 @@ const AssetsAdminDashboard = () => {
 
   // --- Actions ---
   const handleExportMain = async () => {
-    /* ... คงเดิม ... */
     if (!selectedCampaign) return;
     try {
       const res = await assetApi.exportAssets(selectedCampaign);
@@ -159,7 +187,6 @@ const AssetsAdminDashboard = () => {
   };
 
   const handleApprove = async (id) => {
-    /* ... คงเดิม ... */
     if (!window.confirm("ยืนยันการอนุมัติ?")) return;
     try {
       await assetApi.approveAsset(id);
@@ -172,7 +199,6 @@ const AssetsAdminDashboard = () => {
   };
 
   const handleReject = async (id) => {
-    /* ... คงเดิม ... */
     if (!window.confirm("ต้องการส่งกลับแก้ไขใช่หรือไม่?")) return;
     try {
       await assetApi.rejectAsset(id);
@@ -184,7 +210,6 @@ const AssetsAdminDashboard = () => {
     }
   };
 
-  // ✅ ฟังก์ชันอัปเดตราคา
   const handlePriceChange = (specName, value) => {
     setPriceList((prev) => ({
       ...prev,
@@ -197,7 +222,6 @@ const AssetsAdminDashboard = () => {
     list?.find((item) => item[key] === val)?.count || 0;
 
   const getStatusBadge = (status) => {
-    /* ... คงเดิม ... */
     switch (status) {
       case "APPROVED":
         return (
@@ -292,7 +316,7 @@ const AssetsAdminDashboard = () => {
 
   const detailedStats = getDetailedStats();
 
-  // ✅ คำนวณยอดรวมทั้งหมด (Grand Total)
+  // คำนวณยอดรวมทั้งหมด (Grand Total)
   const grandTotalBudget = useMemo(() => {
     let total = 0;
     Object.values(detailedStats).forEach((specs) => {
@@ -304,14 +328,13 @@ const AssetsAdminDashboard = () => {
     return total;
   }, [detailedStats, priceList]);
 
-  // ✅ Export Breakdown Logic (รวมราคาและยอดเงิน)
+  // Export Breakdown Logic (with Price)
   const handleExportBreakdown = () => {
     if (Object.keys(detailedStats).length === 0) {
       alert("ไม่มีข้อมูลสำหรับ Export");
       return;
     }
 
-    // เพิ่มคอลัมน์ ราคา/หน่วย และ รวมเงิน
     const rows = [
       [
         "หมวดหมู่",
@@ -334,12 +357,12 @@ const AssetsAdminDashboard = () => {
         .trim();
 
       Object.entries(specs).forEach(([specName, data]) => {
-        const price = priceList[specName] || 0; // ดึงราคา
+        const price = priceList[specName] || 0;
 
         Object.entries(data.departments).forEach(([deptName, info]) => {
           const assetsStr = info.asset_numbers.join(", ");
           const reasonsStr = info.reasons.join(", ");
-          const totalPrice = info.count * price; // คำนวณยอดเงิน
+          const totalPrice = info.count * price;
 
           rows.push([
             cleanCategory,
@@ -381,7 +404,7 @@ const AssetsAdminDashboard = () => {
     link.remove();
   };
 
-  // Render Functions (ImageCell, Specifics, Pagination) - คงเดิมเพื่อความกระชับ
+  // Render Helpers (คงเดิม)
   const renderImageCell = (item) => {
     const getImageUrl = (path) =>
       path?.startsWith("http") ? path : `${SERVER_URL}${path}`;
@@ -518,6 +541,11 @@ const AssetsAdminDashboard = () => {
     );
   };
 
+  // ✅ 6. Block Rendering ถ้าไม่มีสิทธิ์
+  if (!isAuthorized) {
+    return <div className="p-4 text-center">กำลังตรวจสอบสิทธิ์...</div>;
+  }
+
   // Pagination Logic
   const filteredPending = getFilteredAssets(pendingAssets);
   const currentPendingItems = filteredPending.slice(
@@ -577,7 +605,7 @@ const AssetsAdminDashboard = () => {
         </div>
       </div>
 
-      {/* Stats Cards + ✅ Budget Card */}
+      {/* Stats Cards + Budget Card */}
       <div className="stats-grid">
         <div className="stat-card blue">
           <h3>📦 ทั้งหมด (Total)</h3>
@@ -598,7 +626,7 @@ const AssetsAdminDashboard = () => {
           </div>
         </div>
 
-        {/* ✅ การ์ดงบประมาณรวม (เพิ่มใหม่) */}
+        {/* Budget Card */}
         <div className="stat-card budget-card">
           <h3>💰 งบประมาณรวม (Estimate)</h3>
           <div className="stat-value text-primary">
@@ -608,7 +636,7 @@ const AssetsAdminDashboard = () => {
         </div>
       </div>
 
-      {/* ... Filter Buttons & Tables (Pending/All) ... คงเดิม ... */}
+      {/* Filter Buttons */}
       <div
         style={{
           marginBottom: "20px",
@@ -636,6 +664,7 @@ const AssetsAdminDashboard = () => {
         ))}
       </div>
 
+      {/* Tables (Pending & All) */}
       <div
         className="assets-table-card"
         style={{ marginBottom: "20px", borderTop: "4px solid #fd7e14" }}
@@ -831,7 +860,7 @@ const AssetsAdminDashboard = () => {
         )}
       </div>
 
-      {/* ... Charts ... คงเดิม ... */}
+      {/* Charts Grid */}
       <div className="admin-dashboard-layout" style={{ marginTop: "20px" }}>
         <div className="assets-table-card">
           <h2 className="mb-4 text-lg font-semibold flex items-center gap-2">
@@ -887,7 +916,7 @@ const AssetsAdminDashboard = () => {
         </div>
       </div>
 
-      {/* ✅ Detailed Breakdown + Price Input */}
+      {/* Detailed Breakdown + Price Input */}
       <div
         className="assets-table-card"
         style={{ marginTop: "20px", borderTop: "4px solid #6f42c1" }}

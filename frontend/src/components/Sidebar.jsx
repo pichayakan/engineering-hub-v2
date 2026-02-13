@@ -24,9 +24,16 @@ function Sidebar({ isOpen, onClose }) {
   const { user, logoutUser, unseenTaskCount } = useAuth();
   const [isProcurementOpen, setIsProcurementOpen] = useState(false);
 
-  // ✅ 1. ตรวจสอบสิทธิ์: เช็คว่า User อยู่ในกลุ่ม "SurveyOnly" หรือไม่
-  // (ต้องแน่ใจว่าใน Serializer ส่ง field 'group_names' มาแล้วตามขั้นตอนก่อนหน้า)
+  // 1. ตรวจสอบสิทธิ์กลุ่ม SurveyOnly (เดิม)
+  // (ถ้าอยู่ในกลุ่มนี้ จะเห็นเมนูน้อยมาก)
   const isSurveyOnly = user?.group_names?.includes("SurveyOnly");
+
+  // ✅ 2. เพิ่มตัวเช็คสิทธิ์ Asset Admin
+  // เงื่อนไข: เป็น Staff หรือ Superuser หรือ อยู่ในกลุ่ม AssetAdmin
+  const isAssetAdmin =
+    user?.is_staff ||
+    user?.is_superuser ||
+    user?.group_names?.includes("AssetAdmin");
 
   return (
     <>
@@ -44,9 +51,7 @@ function Sidebar({ isOpen, onClose }) {
         <nav className="sidebar-nav">
           {user && (
             <>
-              {/* ✅ 2. เมนูทั่วไป (ซ่อนถ้าเป็น SurveyOnly)
-                 ถ้า isSurveyOnly = true บล็อกนี้จะไม่แสดงผล
-              */}
+              {/* --- กลุ่มเมนูทั่วไป (ซ่อนถ้าเป็น SurveyOnly) --- */}
               {!isSurveyOnly && (
                 <>
                   <NavLink
@@ -114,15 +119,26 @@ function Sidebar({ isOpen, onClose }) {
                 </>
               )}
 
-              {/* ✅ 3. เมนู "สำรวจครุภัณฑ์" (Assets)
-                 แสดงให้เห็นทุกคน (ทั้ง User ปกติ และ SurveyOnly)
-              */}
+              {/* --- กลุ่มเมนู ASSETS (แสดงให้ทุกคนเห็น) --- */}
+
+              {/* 1. เมนู User ปกติ */}
               <NavLink to="/assetnt" className="sidebar-link" onClick={onClose}>
                 <FiPackage /> <span>สำรวจครุภัณฑ์ (Assets)</span>
               </NavLink>
 
-              {/* ✅ 4. เมนูส่วนตัวอื่นๆ (ซ่อนถ้าเป็น SurveyOnly)
-               */}
+              {/* ✅ 2. เมนู Admin (แสดงเฉพาะคนมีสิทธิ์ AssetAdmin) */}
+              {isAssetAdmin && (
+                <NavLink
+                  to="/assets/admin"
+                  className="sidebar-link"
+                  onClick={onClose}
+                  style={{ color: "#d63384" }} // ใส่สีชมพูเข้มให้เด่น (แยกจาก User)
+                >
+                  <FiPieChart /> <span>บริหารงานสำรวจ (Admin)</span>
+                </NavLink>
+              )}
+
+              {/* --- กลุ่มเมนูส่วนตัว (ซ่อนถ้าเป็น SurveyOnly) --- */}
               {!isSurveyOnly && (
                 <>
                   <NavLink
@@ -147,8 +163,7 @@ function Sidebar({ isOpen, onClose }) {
                 </>
               )}
 
-              {/* ✅ 5. เมนู Admin (ซ่อนถ้าเป็น SurveyOnly แม้จะเป็น Staff ก็ตาม)
-               */}
+              {/* --- กลุ่ม ADMIN TOOLS (เฉพาะ Staff ตัวจริง) --- */}
               {user.is_staff && !isSurveyOnly && (
                 <>
                   <hr className="sidebar-divider" />
@@ -198,13 +213,8 @@ function Sidebar({ isOpen, onClose }) {
                   >
                     <FiHardDrive /> <span>System Logs</span>
                   </NavLink>
-                  <NavLink
-                    to="/assets/admin"
-                    className="sidebar-link"
-                    onClick={onClose}
-                  >
-                    <FiPieChart /> <span>บริหารงานสำรวจ (Assets)</span>
-                  </NavLink>
+
+                  {/* ❌ เอาเมนู Assets Admin ออกจากตรงนี้แล้ว (เพราะย้ายไปอยู่ข้างบน) */}
                 </>
               )}
             </>
