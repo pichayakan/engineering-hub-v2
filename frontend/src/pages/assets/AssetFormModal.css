@@ -1,5 +1,6 @@
 /* =========================================
    1. Overlay & Modal Container
+   (ส่วนโครงสร้างหลัก มักจะใช้ร่วมกันได้ ไม่ต้อง Scope)
    ========================================= */
 .modal-overlay {
   position: fixed;
@@ -7,12 +8,12 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6); /* พื้นหลังมืดลงเล็กน้อย */
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  backdrop-filter: blur(3px); /* เบลอฉากหลัง */
+  backdrop-filter: blur(3px);
   animation: fadeIn 0.2s ease-in-out;
 }
 
@@ -20,13 +21,13 @@
   background: #fff;
   width: 90%;
   max-width: 850px;
-  max-height: 90vh; /* สูงไม่เกินหน้าจอ */
+  max-height: 90vh;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   animation: slideIn 0.3s ease-out;
-  overflow: hidden; /* ป้องกัน header/footer ล้นขอบโค้ง */
+  overflow: hidden;
 }
 
 /* =========================================
@@ -66,27 +67,27 @@
 }
 
 /* =========================================
-   3. Form Body & Layout
+   3. Form Body & Layout (✅ Scope: .asset-form)
    ========================================= */
 .asset-form {
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow-y: auto; /* Scroll เฉพาะเนื้อหา */
+  overflow-y: auto;
 }
 
-.form-grid {
+.asset-form .form-grid {
   padding: 25px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.form-section {
+.asset-form .form-section {
   background: #fff;
 }
 
-.form-section h3 {
+.asset-form .form-section h3 {
   font-size: 1rem;
   color: #495057;
   border-bottom: 2px solid #e9ecef;
@@ -95,53 +96,54 @@
   margin-top: 0;
 }
 
-.full-width {
+.asset-form .full-width {
   width: 100%;
 }
 
-.grid-2 {
+.asset-form .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
 
 /* =========================================
-   4. Inputs & Groups (✅ ส่วนแก้ไขสำคัญ)
+   4. Inputs & Groups (✅ Scope: .asset-form)
    ========================================= */
-.form-group {
+.asset-form .form-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.form-group label {
+.asset-form .form-group label {
   font-size: 0.9rem;
   font-weight: 500;
   color: #495057;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+/* จำกัดผลลัพธ์เฉพาะ Input ในหน้านี้เท่านั้น */
+.asset-form .form-group input,
+.asset-form .form-group select,
+.asset-form .form-group textarea {
   padding: 10px 12px;
   border: 1px solid #ced4da;
   border-radius: 6px;
   font-size: 0.95rem;
   transition: all 0.2s;
 
-  /* ✅ บังคับพื้นหลังขาว และตัวหนังสือดำ (แก้ปัญหากล่องดำ) */
+  /* Force Style เพื่อแก้ปัญหาจอดำ */
   background-color: #ffffff !important;
   color: #333333 !important;
 }
 
-.form-group input::placeholder,
-.form-group textarea::placeholder {
+.asset-form .form-group input::placeholder,
+.asset-form .form-group textarea::placeholder {
   color: #adb5bd;
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+.asset-form .form-group input:focus,
+.asset-form .form-group select:focus,
+.asset-form .form-group textarea:focus {
   outline: none;
   border-color: #0d6efd;
   box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
@@ -149,35 +151,34 @@
   color: #333333 !important;
 }
 
-/* ✅ แก้ปัญหา Chrome Autofill เปลี่ยนสีพื้นหลัง */
-.form-group input:-webkit-autofill,
-.form-group input:-webkit-autofill:hover,
-.form-group input:-webkit-autofill:focus,
-.form-group input:-webkit-autofill:active {
+/* แก้ Chrome Autofill เฉพาะหน้านี้ */
+.asset-form .form-group input:-webkit-autofill,
+.asset-form .form-group input:-webkit-autofill:hover,
+.asset-form .form-group input:-webkit-autofill:focus,
+.asset-form .form-group input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
   -webkit-text-fill-color: #333333 !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
-/* Disabled State */
-.form-group input:disabled,
-.form-group select:disabled,
-.form-group textarea:disabled {
-  background-color: #e9ecef !important; /* พื้นหลังเทาเมื่อ disable */
+.asset-form .form-group input:disabled,
+.asset-form .form-group select:disabled,
+.asset-form .form-group textarea:disabled {
+  background-color: #e9ecef !important;
   border-color: #dee2e6;
   color: #6c757d !important;
   cursor: not-allowed;
 }
 
-.text-danger {
+.asset-form .text-danger {
   color: #dc3545;
   margin-left: 3px;
 }
 
 /* =========================================
-   5. Radio Cards (เลือกประเภทคำขอ)
+   5. Radio Cards (✅ Scope: .asset-form)
    ========================================= */
-.radio-label {
+.asset-form .radio-label {
   flex: 1;
   display: flex;
   align-items: center;
@@ -191,18 +192,18 @@
   color: #495057;
 }
 
-.radio-label:hover:not(.disabled) {
+.asset-form .radio-label:hover:not(.disabled) {
   background-color: #f8f9fa;
   border-color: #adb5bd;
 }
 
-.radio-label input[type="radio"] {
+.asset-form .radio-label input[type="radio"] {
   margin-right: 10px;
   accent-color: #0d6efd;
   transform: scale(1.2);
 }
 
-.radio-label.selected {
+.asset-form .radio-label.selected {
   border-color: #0d6efd;
   background-color: #e7f1ff;
   color: #0d6efd;
@@ -210,10 +211,10 @@
 }
 
 /* =========================================
-   6. Spec Boxes (กล่องแยกสีตามประเภท)
+   6. Spec Boxes (✅ Scope: .asset-form)
    ========================================= */
-.spec-box {
-  grid-column: 1 / -1; /* กินพื้นที่เต็มความกว้าง */
+.asset-form .spec-box {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
@@ -223,48 +224,48 @@
   animation: fadeIn 0.3s ease;
 }
 
-.air-spec {
+.asset-form .air-spec {
   background-color: #f0f8ff;
   border: 1px dashed #0d6efd;
   border-left: 4px solid #0d6efd;
 }
 
-.batt-spec {
+.asset-form .batt-spec {
   background-color: #e8f5e9;
   border: 1px dashed #198754;
   border-left: 4px solid #198754;
 }
 
-.ups-spec {
+.asset-form .ups-spec {
   background-color: #f3e5f5;
   border: 1px dashed #6f42c1;
   border-left: 4px solid #6f42c1;
 }
 
-.rect-spec {
+.asset-form .rect-spec {
   background-color: #fff3e0;
   border: 1px dashed #fd7e14;
   border-left: 4px solid #fd7e14;
 }
 
 /* =========================================
-   7. Age Calculator & Badge
+   7. Age Calculator & Badge (✅ Scope: .asset-form)
    ========================================= */
-.highlight-group {
+.asset-form .highlight-group {
   position: relative;
 }
 
-.age-calculator {
+.asset-form .age-calculator {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.age-calculator input {
+.asset-form .age-calculator input {
   flex: 1;
 }
 
-.age-badge {
+.asset-form .age-badge {
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 0.85rem;
@@ -274,26 +275,26 @@
   text-align: center;
 }
 
-.age-badge.new {
+.asset-form .age-badge.new {
   background-color: #d1e7dd;
   color: #0f5132;
 }
 
-.age-badge.old {
+.asset-form .age-badge.old {
   background-color: #f8d7da;
   color: #842029;
 }
 
 /* =========================================
-   8. Image Upload Area
+   8. Image Upload Area (✅ Scope: .asset-form)
    ========================================= */
-.upload-grid {
+.asset-form .upload-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
 }
 
-.upload-box {
+.asset-form .upload-box {
   position: relative;
   height: 150px;
   border: 2px dashed #dee2e6;
@@ -306,18 +307,18 @@
   transition: all 0.2s;
 }
 
-.upload-box:hover {
+.asset-form .upload-box:hover {
   border-color: #0d6efd;
   background-color: #fff;
 }
 
-.upload-box img {
+.asset-form .upload-box img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.upload-box .placeholder {
+.asset-form .upload-box .placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -326,7 +327,7 @@
   gap: 5px;
 }
 
-.upload-box input[type="file"] {
+.asset-form .upload-box input[type="file"] {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -335,9 +336,9 @@
 }
 
 /* =========================================
-   9. Footer Buttons
+   9. Footer Buttons (✅ Scope: .asset-form)
    ========================================= */
-.modal-footer {
+.asset-form .modal-footer {
   padding: 15px 25px;
   background-color: #f8f9fa;
   border-top: 1px solid #e9ecef;
@@ -346,8 +347,8 @@
   gap: 10px;
 }
 
-.btn-submit,
-.btn-cancel {
+.asset-form .btn-submit,
+.asset-form .btn-cancel {
   padding: 10px 20px;
   border-radius: 6px;
   font-size: 0.95rem;
@@ -357,28 +358,28 @@
   border: none;
 }
 
-.btn-submit {
+.asset-form .btn-submit {
   background-color: #0d6efd;
   color: white;
 }
 
-.btn-submit:hover:not(:disabled) {
+.asset-form .btn-submit:hover:not(:disabled) {
   background-color: #0b5ed7;
   transform: translateY(-1px);
 }
 
-.btn-submit:disabled {
+.asset-form .btn-submit:disabled {
   background-color: #a0c4ff;
   cursor: not-allowed;
 }
 
-.btn-cancel {
+.asset-form .btn-cancel {
   background-color: #fff;
   border: 1px solid #dee2e6;
   color: #495057;
 }
 
-.btn-cancel:hover {
+.asset-form .btn-cancel:hover {
   background-color: #e9ecef;
 }
 
@@ -411,61 +412,22 @@
     max-height: 95vh;
   }
 
-  .grid-2,
-  .spec-box,
-  .upload-grid {
-    grid-template-columns: 1fr; /* ปรับเป็นคอลัมน์เดียวบนมือถือ */
+  /* ✅ ใส่ .asset-form นำหน้าทั้งหมด */
+  .asset-form .grid-2,
+  .asset-form .spec-box,
+  .asset-form .upload-grid {
+    grid-template-columns: 1fr;
   }
 
-  .form-grid {
+  .asset-form .form-grid {
     padding: 15px;
   }
 
-  .radio-label {
+  .asset-form .radio-label {
     flex: 1 1 100%;
   }
 
-  .form-section > div[style*="display: flex"] {
+  .asset-form .form-section > div[style*="display: flex"] {
     flex-direction: column;
   }
-}
-
-/* Badge สำหรับประเภทคำขอ */
-.req-badge {
-  font-size: 0.75rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 600;
-  margin-right: 5px;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.req-badge.new {
-  background-color: #d1e7dd;
-  color: #0f5132;
-  border: 1px solid #badbcc;
-}
-
-.req-badge.replace {
-  background-color: #cff4fc;
-  color: #055160;
-  border: 1px solid #b6effb;
-}
-
-/* ปรับปรุงการแสดงผล Spec ในตาราง */
-.spec-container {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.spec-title {
-  font-weight: bold;
-  font-size: 0.95em;
-  display: flex;
-  align-items: center;
-}
-.spec-detail {
-  font-size: 0.85em;
-  color: #666;
 }

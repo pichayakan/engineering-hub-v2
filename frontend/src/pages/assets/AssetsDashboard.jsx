@@ -14,7 +14,7 @@ import {
   FiFilter,
   FiXCircle,
 } from "react-icons/fi";
-import "./AssetsDashboard.css";
+import "./UserAssetsDashboard.css";
 import AssetFormModal from "./AssetFormModal";
 import { SERVER_URL } from "../../api";
 
@@ -322,7 +322,7 @@ const AssetsDashboard = () => {
   };
 
   return (
-    <div className="assets-dashboard-container">
+    <div className="user-assets-dashboard">
       {/* Header */}
       <div className="assets-header">
         <div>

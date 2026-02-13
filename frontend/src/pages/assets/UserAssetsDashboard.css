@@ -1,0 +1,324 @@
+/* frontend/src/pages/assets/UserAssetsDashboard.css */
+
+/* ✅ เปลี่ยนชื่อ Container หลัก เพื่อ Scope ไม่ให้ตีกับ Admin */
+.user-assets-dashboard {
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  font-family: "Sarabun", sans-serif; /* แนะนำให้ระบุ Font ถ้ามี */
+}
+
+/* --- Header Section --- */
+.user-assets-dashboard .assets-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.user-assets-dashboard .assets-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #2c3e50;
+}
+
+.user-assets-dashboard .subtitle {
+  color: #6c757d;
+  margin-top: 5px;
+  font-size: 0.9rem;
+}
+
+.user-assets-dashboard .assets-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.user-assets-dashboard .campaign-select {
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 1rem;
+  min-width: 200px;
+}
+
+/* --- Buttons --- */
+.user-assets-dashboard .btn-add-asset {
+  background-color: #0d6efd;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.user-assets-dashboard .btn-add-asset:hover {
+  background-color: #0b5ed7;
+}
+
+.user-assets-dashboard .btn-add-asset:disabled {
+  background-color: #a0c4ff;
+  cursor: not-allowed;
+}
+
+.user-assets-dashboard .btn-refresh {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: #6c757d;
+  transition: transform 0.2s;
+}
+.user-assets-dashboard .btn-refresh:hover {
+  color: #0d6efd;
+  transform: rotate(180deg);
+}
+
+/* --- Stats Grid --- */
+.user-assets-dashboard .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.user-assets-dashboard .stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid #ccc;
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.user-assets-dashboard .stat-card.blue {
+  border-left-color: #0d6efd;
+}
+.user-assets-dashboard .stat-card.green {
+  border-left-color: #198754;
+}
+.user-assets-dashboard .stat-card.orange {
+  border-left-color: #fd7e14;
+}
+.user-assets-dashboard .stat-card.purple {
+  border-left-color: #6f42c1;
+}
+
+.user-assets-dashboard .stat-card h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6c757d;
+  text-transform: uppercase;
+}
+
+.user-assets-dashboard .stat-card .stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-top: 8px;
+}
+
+.user-assets-dashboard .stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.user-assets-dashboard .stat-card.active-filter {
+  background-color: #e7f1ff; /* สีพื้นหลังเมื่อเลือก */
+  transform: scale(1.02);
+}
+
+.user-assets-dashboard .filter-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 0.7rem;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #495057;
+}
+
+/* --- Table Section --- */
+.user-assets-dashboard .assets-table-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.user-assets-dashboard .table-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.user-assets-dashboard .table-responsive {
+  width: 100%;
+  overflow-x: auto; /* Scroll แนวนอน */
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}
+
+.user-assets-dashboard .data-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap; /* สำคัญ: บังคับให้ยาวไปทางขวา */
+  /* min-width: 100%; ไม่ต้องฟิก pixel ให้ยืดตาม content */
+}
+
+.user-assets-dashboard .data-table th,
+.user-assets-dashboard .data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 0.9rem;
+}
+
+.user-assets-dashboard .data-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  position: sticky; /* หัวตารางติดด้านบน */
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 0 #dee2e6; /* เส้นขอบเงาใต้หัวตาราง */
+}
+
+/* Custom Scrollbar */
+.user-assets-dashboard .table-responsive::-webkit-scrollbar {
+  height: 8px;
+}
+.user-assets-dashboard .table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.user-assets-dashboard .table-responsive::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+.user-assets-dashboard .table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* --- Badges & Status --- */
+.user-assets-dashboard .req-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  margin-right: 5px;
+}
+.user-assets-dashboard .req-badge.new {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+.user-assets-dashboard .req-badge.replace {
+  background-color: #cff4fc;
+  color: #055160;
+}
+
+.user-assets-dashboard .status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-block;
+}
+.user-assets-dashboard .status-approved {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+.user-assets-dashboard .status-rejected {
+  background-color: #f8d7da;
+  color: #842029;
+}
+.user-assets-dashboard .status-submitted {
+  background-color: #fff3cd;
+  color: #664d03;
+}
+.user-assets-dashboard .status-draft {
+  background-color: #e2e3e5;
+  color: #41464b;
+}
+
+.user-assets-dashboard .text-danger {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+/* --- Action Buttons (Sticky) --- */
+.user-assets-dashboard .action-buttons {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}
+
+.user-assets-dashboard .btn-icon-action {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-assets-dashboard .btn-icon-action.edit {
+  color: #fd7e14;
+  background-color: #fff3cd;
+}
+.user-assets-dashboard .btn-icon-action.edit:hover {
+  background-color: #ffecb5;
+}
+
+.user-assets-dashboard .btn-icon-action.delete {
+  color: #dc3545;
+  background-color: #f8d7da;
+}
+.user-assets-dashboard .btn-icon-action.delete:hover {
+  background-color: #f5c2c7;
+}
+
+.user-assets-dashboard .btn-icon-action.submit {
+  color: #198754;
+  background-color: #d1e7dd;
+}
+.user-assets-dashboard .btn-icon-action.submit:hover {
+  background-color: #a3cfbb;
+}
+
+.user-assets-dashboard .btn-icon-action.view {
+  color: #0dcaf0;
+  background-color: #cff4fc;
+}
+.user-assets-dashboard .btn-icon-action.view:hover {
+  background-color: #9eeaf9;
+}
+
+/* --- Empty & Loading States --- */
+.user-assets-dashboard .empty-state,
+.user-assets-dashboard .loading-state {
+  text-align: center;
+  padding: 60px;
+  color: #6c757d;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px dashed #dee2e6;
+  font-size: 1rem;
+}

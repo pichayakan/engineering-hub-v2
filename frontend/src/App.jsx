@@ -76,7 +76,7 @@ function App() {
               <Route path="/my-tasks" element={<MyTasksPage />} />
               <Route path="/share" element={<FileSharerPage />} />
               <Route path="/projects/:projectId" element={<ProjectDetail />} />
-              <Route path="/assets" element={<AssetsDashboard />} />
+              <Route path="/assetnt" element={<AssetsDashboard />} />
               <Route
                 path="/projects/:projectId/kanban"
                 element={<KanbanPage />}

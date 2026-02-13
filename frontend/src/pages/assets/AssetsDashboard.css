@@ -74,7 +74,7 @@
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   border-left: 4px solid #ccc;
-  position: relative; /* ✅ เพิ่มบรรทัดนี้ เพื่อให้ป้าย Viewing อยู่ถูกที่ */
+  position: relative;
   transition: all 0.2s ease;
 }
 
@@ -105,43 +105,14 @@
   margin-top: 8px;
 }
 
-/* Hover Effect */
 .stat-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* ✅ Active State (เมื่อถูกเลือกเป็น Filter) */
 .stat-card.active-filter {
   background-color: #f8f9fa;
   transform: scale(1.02);
-}
-
-/* ใช้ box-shadow สร้างเส้นขอบแทน border เพื่อไม่ให้แถบสีด้านซ้ายหาย */
-.stat-card.blue.active-filter {
-  box-shadow: 0 0 0 2px #0d6efd;
-}
-.stat-card.green.active-filter {
-  box-shadow: 0 0 0 2px #198754;
-}
-.stat-card.orange.active-filter {
-  box-shadow: 0 0 0 2px #fd7e14;
-}
-.stat-card.purple.active-filter {
-  box-shadow: 0 0 0 2px #6f42c1;
-}
-
-/* ป้าย Viewing */
-.filter-indicator {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 0.7rem;
-  background: rgba(0, 0, 0, 0.08);
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-weight: bold;
-  color: #555;
 }
 
 /* Table Section */
@@ -152,52 +123,41 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.table-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-/* 1. ส่วนคลุมตาราง ให้เลื่อนซ้ายขวาได้ */
 .table-responsive {
   width: 100%;
-  overflow-x: auto; /* ✅ หัวใจสำคัญ: ให้เลื่อนแนวนอน */
-  -webkit-overflow-scrolling: touch; /* ลื่นขึ้นในมือถือ/iPad */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   border: 1px solid #eee;
 }
 
-/* 2. ตัวตาราง */
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  white-space: nowrap; /* ✅ ห้ามตัดบรรทัด (ให้ยาวไปทางขวา) */
-  min-width: 1400px; /* ✅ กำหนดความกว้างขั้นต่ำ เพื่อให้ Scrollbar ขึ้นแน่นอน */
+  white-space: nowrap;
+  min-width: 1400px;
 }
 
-/* 3. หัวตารางและข้อมูล */
 .data-table th,
 .data-table td {
-  padding: 8px 10px; /* ✅ ลด Padding ให้กระชับ */
+  padding: 8px 10px;
   border-bottom: 1px solid #f0f0f0;
   text-align: left;
   vertical-align: middle;
-  font-size: 0.85rem; /* ✅ ปรับฟอนต์ให้เล็กลง (ประมาณ 13-14px) */
+  font-size: 0.85rem;
 }
 
 .data-table th {
   background-color: #f8f9fa;
   font-weight: 600;
   color: #495057;
-  position: sticky; /* (Optional) ให้หัวตารางติดด้านบนตอนเลื่อนลง */
+  position: sticky;
   top: 0;
   z-index: 10;
 }
 
-/* ปรับแต่ง Scrollbar ให้ดูดีขึ้น (Chrome/Safari/Edge) */
 .table-responsive::-webkit-scrollbar {
   height: 8px;
 }
@@ -213,28 +173,16 @@
   background: #a8a8a8;
 }
 
-/* Badge ต่างๆ ปรับให้เล็กลงตามฟอนต์ */
 .req-badge {
   font-size: 0.7rem;
   padding: 2px 5px;
 }
-.status-badge {
-  font-size: 0.75rem;
-  padding: 3px 8px;
-}
-
-.location-sub {
-  font-size: 0.85rem;
-  color: #6c757d;
-}
-
 .status-badge {
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
 }
-
 .status-approved {
   background-color: #d1e7dd;
   color: #0f5132;
@@ -257,46 +205,6 @@
   font-weight: bold;
 }
 
-.btn-edit {
-  background: none;
-  border: 1px solid #ced4da;
-  padding: 4px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-.btn-edit:hover {
-  background-color: #f8f9fa;
-  border-color: #adb5bd;
-}
-
-.btn-refresh {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.2rem;
-  color: #6c757d;
-}
-
-.btn-refresh:hover {
-  color: #0d6efd;
-  transform: rotate(45deg);
-  transition: 0.3s;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #6c757d;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-}
-
 .btn-icon-action {
   border: none;
   background: none;
@@ -311,21 +219,19 @@
 }
 
 .btn-icon-action.edit {
-  color: #fd7e14; /* สีส้ม */
+  color: #fd7e14;
 }
 .btn-icon-action.edit:hover {
   background: #fff3cd;
 }
-
 .btn-icon-action.delete {
-  color: #dc3545; /* สีแดง */
+  color: #dc3545;
 }
 .btn-icon-action.delete:hover {
   background: #f8d7da;
 }
-
 .btn-icon-action.submit {
-  color: #198754; /* สีเขียว */
+  color: #198754;
   font-weight: bold;
   background-color: #f0fff4;
   border: 1px solid #d1e7dd;
@@ -339,82 +245,252 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.text-muted {
-  color: #adb5bd;
-  font-size: 0.9em;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.stat-card.active-filter {
-  background-color: #f8f9fa; /* เปลี่ยนสีพื้นหลังนิดหน่อยเมื่อถูกเลือก */
-  transform: scale(1.02); /* ขยายใหญ่นิดนึง */
-}
-
-.filter-indicator {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 0.7rem;
-  background: rgba(0, 0, 0, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: bold;
-}
-/* =========================================
-   ส่วนเสริมสำหรับ Admin Dashboard
-   ========================================= */
-
-/* Utility Classes (เพื่อให้ใช้ classNames ใน React ได้ง่ายๆ) */
-.flex {
-  display: flex;
-}
-.items-center {
-  align-items: center;
-}
-.gap-2 {
-  gap: 0.5rem;
-}
-.mb-4 {
-  margin-bottom: 1rem;
-}
-.text-right {
-  text-align: right;
-}
-.text-center {
+.empty-state {
   text-align: center;
-}
-.font-bold {
-  font-weight: 600;
-}
-.text-lg {
-  font-size: 1.125rem;
-}
-.text-xl {
-  font-size: 1.25rem;
+  padding: 40px;
+  color: #6c757d;
 }
 
-/* Text Colors */
-.text-orange-500 {
-  color: #fd7e14;
+.location-name {
+  font-weight: 500;
+  color: #2c3e50;
 }
-.text-green-600 {
-  color: #198754;
+.location-sub {
+  font-size: 0.85rem;
+  color: #6c757d;
 }
 
-/* Admin Grid Layout (จัดหน้ากราฟซ้าย ขวา) */
 .admin-dashboard-layout {
   display: grid;
-  grid-template-columns: 1fr 2fr; /* ซ้าย 1 ส่วน, ขวา 2 ส่วน */
+  grid-template-columns: 1fr 2fr;
   gap: 20px;
 }
 
-/* Responsive: จอมือถือให้เรียงลงมา */
 @media (max-width: 992px) {
   .admin-dashboard-layout {
     grid-template-columns: 1fr;
   }
+}
+
+/* =========================================
+   ✅ Detailed Breakdown Section (ส่วนที่เพิ่มใหม่)
+   ========================================= */
+
+.detailed-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.breakdown-category-card {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid #e9ecef;
+}
+
+.category-title {
+  font-size: 1rem;
+  color: #333;
+  margin: 0 0 15px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: bold;
+}
+
+.specs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spec-item {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.spec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.spec-name {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.spec-total-badge {
+  background-color: #212529;
+  color: #fff;
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+/* Province Pills (เม็ดยาแสดงจังหวัด) */
+.province-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.province-pill {
+  font-size: 0.8rem;
+  background-color: #e9ecef;
+  color: #495057;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.province-pill .count {
+  font-weight: bold;
+  color: #0d6efd;
+}
+
+.province-pill:hover {
+  background-color: #e7f1ff;
+  border-color: #b6d4fe;
+}
+
+.dept-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dept-item {
+  background-color: #fcfcfc;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.dept-item:hover {
+  background-color: #e7f1ff; /* สีฟ้าอ่อน */
+  border-color: #b6d4fe;
+  color: #000; /* บังคับตัวหนังสือสีดำ */
+}
+
+/* ป้องกันตัวเลขข้างในเปลี่ยนสีแปลกๆ */
+.dept-item:hover span {
+  color: #000 !important;
+}
+
+.dept-header {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  border-bottom: 1px dashed #dee2e6;
+  padding-bottom: 4px;
+}
+
+.dept-detail-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start; /* ให้ไอคอนอยู่บนสุดถ้ายาวหลายบรรทัด */
+  margin-bottom: 4px;
+  color: #555;
+  line-height: 1.4;
+}
+
+.detail-icon {
+  color: #adb5bd;
+  margin-top: 2px; /* ดันไอคอนลงนิดนึงให้ตรงกับตัวหนังสือ */
+}
+
+.detail-text {
+  flex: 1;
+  word-break: break-word; /* ตัดคำถ้ายาวเกินไป */
+}
+
+.detail-text strong {
+  color: #495057;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+/* Budget Card (การ์ดงบประมาณรวม) */
+.stat-card.budget-card {
+  border-left-color: #ffd700; /* สีทอง */
+  background: #fffbea;
+}
+
+.stat-card.budget-card h3 {
+  color: #856404;
+}
+
+.stat-card.budget-card .stat-value {
+  color: #d63384; /* สีชมพูเข้มให้เด่น */
+}
+
+.stat-desc {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 5px;
+}
+
+/* Price Input Group */
+.price-input-group {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  overflow: hidden;
+  width: 140px;
+}
+
+.currency-symbol {
+  padding: 6px 10px;
+  background: #f8f9fa;
+  color: #666;
+  border-right: 1px solid #ced4da;
+  font-size: 0.9rem;
+}
+
+.price-input {
+  border: none;
+  padding: 6px 10px;
+  width: 100%;
+  font-size: 0.95rem;
+  outline: none;
+  text-align: right;
+  color: #0d6efd;
+  font-weight: bold;
+}
+
+.price-input::placeholder {
+  color: #adb5bd;
+  font-weight: normal;
+}
+
+/* Subtotal Banner */
+.spec-subtotal {
+  background-color: #e2e3e5;
+  color: #383d41;
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+/* ปรับปรุง Header ของ Breakdown ให้รองรับ Input */
+.spec-header {
+  align-items: flex-start; /* จัดชิดบน */
 }

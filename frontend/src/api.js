@@ -5,7 +5,7 @@ import axios from "axios";
 // ==========================================
 // เปลี่ยน IP ตรงนี้ที่เดียว มีผลทั้ง Project (ทั้ง API และ รูปภาพ)
 export const SERVER_URL = "http://202.139.196.7:8000";
-//export const SERVER_URL = "http://172.22.16.45:8000";
+//export const SERVER_URL = "http://172.22.16.28:8000";
 export const API_URL = `${SERVER_URL}/api`;
 
 // Helper: ฟังก์ชันดึง Token (ลด code ซ้ำซ้อน)

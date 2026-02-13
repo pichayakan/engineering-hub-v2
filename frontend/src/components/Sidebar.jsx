@@ -117,7 +117,7 @@ function Sidebar({ isOpen, onClose }) {
               {/* ✅ 3. เมนู "สำรวจครุภัณฑ์" (Assets)
                  แสดงให้เห็นทุกคน (ทั้ง User ปกติ และ SurveyOnly)
               */}
-              <NavLink to="/assets" className="sidebar-link" onClick={onClose}>
+              <NavLink to="/assetnt" className="sidebar-link" onClick={onClose}>
                 <FiPackage /> <span>สำรวจครุภัณฑ์ (Assets)</span>
               </NavLink>
 
