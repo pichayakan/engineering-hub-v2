@@ -18,18 +18,15 @@ import {
   FiHardDrive,
   FiPieChart,
   FiPackage,
+  FiMonitor, // ✅ Import ไอคอนใหม่
 } from "react-icons/fi";
 
 function Sidebar({ isOpen, onClose }) {
   const { user, logoutUser, unseenTaskCount } = useAuth();
   const [isProcurementOpen, setIsProcurementOpen] = useState(false);
 
-  // 1. ตรวจสอบสิทธิ์กลุ่ม SurveyOnly (เดิม)
-  // (ถ้าอยู่ในกลุ่มนี้ จะเห็นเมนูน้อยมาก)
   const isSurveyOnly = user?.group_names?.includes("SurveyOnly");
 
-  // ✅ 2. เพิ่มตัวเช็คสิทธิ์ Asset Admin
-  // เงื่อนไข: เป็น Staff หรือ Superuser หรือ อยู่ในกลุ่ม AssetAdmin
   const isAssetAdmin =
     user?.is_staff ||
     user?.is_superuser ||
@@ -51,7 +48,6 @@ function Sidebar({ isOpen, onClose }) {
         <nav className="sidebar-nav">
           {user && (
             <>
-              {/* --- กลุ่มเมนูทั่วไป (ซ่อนถ้าเป็น SurveyOnly) --- */}
               {!isSurveyOnly && (
                 <>
                   <NavLink
@@ -63,7 +59,6 @@ function Sidebar({ isOpen, onClose }) {
                     <FiHome /> <span>หน้าหลัก</span>
                   </NavLink>
 
-                  {/* --- Collapsible Procurement Menu --- */}
                   <div
                     className={`sidebar-link-group ${
                       isProcurementOpen ? "is-open" : ""
@@ -119,26 +114,32 @@ function Sidebar({ isOpen, onClose }) {
                 </>
               )}
 
-              {/* --- กลุ่มเมนู ASSETS (แสดงให้ทุกคนเห็น) --- */}
-
-              {/* 1. เมนู User ปกติ */}
+              {/* --- กลุ่มเมนู ASSETS --- */}
               <NavLink to="/assetnt" className="sidebar-link" onClick={onClose}>
-                <FiPackage /> <span>สำรวจครุภัณฑ์ (Assets)</span>
+                <FiPackage /> <span>ขอทดแทนครุภัณฑ์</span>
               </NavLink>
 
-              {/* ✅ 2. เมนู Admin (แสดงเฉพาะคนมีสิทธิ์ AssetAdmin) */}
+              {/* ✅ เพิ่มเมนูระบบสำรวจครุภัณฑ์ประจำปี */}
+              <NavLink
+                to="/annual-equipments"
+                className="sidebar-link"
+                onClick={onClose}
+                style={{ color: "#4facfe" }}
+              >
+                <FiMonitor /> <span>สำรวจครุภัณฑ์ประจำปี</span>
+              </NavLink>
+
               {isAssetAdmin && (
                 <NavLink
                   to="/assets/admin"
                   className="sidebar-link"
                   onClick={onClose}
-                  style={{ color: "#d63384" }} // ใส่สีชมพูเข้มให้เด่น (แยกจาก User)
+                  style={{ color: "#d63384" }}
                 >
                   <FiPieChart /> <span>บริหารงานสำรวจ (Admin)</span>
                 </NavLink>
               )}
 
-              {/* --- กลุ่มเมนูส่วนตัว (ซ่อนถ้าเป็น SurveyOnly) --- */}
               {!isSurveyOnly && (
                 <>
                   <NavLink
@@ -163,7 +164,6 @@ function Sidebar({ isOpen, onClose }) {
                 </>
               )}
 
-              {/* --- กลุ่ม ADMIN TOOLS (เฉพาะ Staff ตัวจริง) --- */}
               {user.is_staff && !isSurveyOnly && (
                 <>
                   <hr className="sidebar-divider" />
@@ -213,8 +213,6 @@ function Sidebar({ isOpen, onClose }) {
                   >
                     <FiHardDrive /> <span>System Logs</span>
                   </NavLink>
-
-                  {/* ❌ เอาเมนู Assets Admin ออกจากตรงนี้แล้ว (เพราะย้ายไปอยู่ข้างบน) */}
                 </>
               )}
             </>

@@ -17,10 +17,10 @@ function SignatureModal({
   const canvasContainerRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState(
-    initialData?.type === "type" ? "type" : "draw"
+    initialData?.type === "type" ? "type" : "draw",
   );
   const [typedName, setTypedName] = useState(
-    initialData?.type === "type" ? initialData.text : ""
+    initialData?.type === "type" ? initialData.text : "",
   );
 
   // --- ✅ State เครื่องมือและขนาดเส้น ---
@@ -88,31 +88,92 @@ function SignatureModal({
   };
 
   // ... (Logic วาดข้อความ type mode เหมือนเดิม) ...
+  // --- ✅ อัปเดต useEffect วาด Preview ข้อความ (คำนวณขนาดกว้างแบบ Dynamic ไม่ติดขอบขวาหลอก) ---
+  // --- ✅ อัปเดตขยายความกว้างข้อความให้ยาวชิดขอบกระดาษ A4 ---
   useEffect(() => {
     if (activeTab === "type" && typedName) {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-      const fontSize = 40;
-      const lineHeight = fontSize * 1.5;
-      const lines = typedName.split("\n");
+      const fontSize = 36;
+      const lineHeight = fontSize * 1.45;
+      const PADDING = 40;
+
+      // 1. 🌟 ขยายพื้นที่ความกว้างสูงสุดให้ยาวใกล้เคียงสัดส่วน A4 จริง
+      const maxAllowedWidth = 1700; // ปรับเพิ่มจากเดิมเพื่อให้บรรทัดยาวขึ้น ไม่ตัดคำเร็วเกินไป
       ctx.font = `normal ${fontSize}px ${typedSignatureFont}`;
-      let maxWidth = 0;
-      lines.forEach((line) => {
-        const metrics = ctx.measureText(line);
-        if (metrics.width > maxWidth) maxWidth = metrics.width;
+
+      const formattedLines = [];
+      const rawLines = typedName.split("\n");
+
+      rawLines.forEach((rawLine) => {
+        if (!rawLine) {
+          formattedLines.push("");
+          return;
+        }
+
+        const indentMatch = rawLine.match(/^(\s+)/);
+        const indent = indentMatch ? indentMatch[1] : "";
+        const content = rawLine.slice(indent.length);
+
+        const words = content.split(" ");
+        let currentLine = indent;
+
+        words.forEach((word) => {
+          const spacePrefix =
+            currentLine === indent || currentLine === "" ? "" : " ";
+          const testLine = currentLine + spacePrefix + word;
+          const metrics = ctx.measureText(testLine);
+
+          if (
+            metrics.width > maxAllowedWidth &&
+            currentLine !== indent &&
+            currentLine !== ""
+          ) {
+            formattedLines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        });
+
+        if (currentLine) {
+          formattedLines.push(currentLine);
+        }
       });
-      canvas.width = Math.max(600, maxWidth + 100);
-      canvas.height = Math.max(200, lines.length * lineHeight + 60);
+
+      // 2. คำนวณความกว้างจริงเพื่อตัดขอบว่างทิ้ง
+      let actualMaxTextWidth = 0;
+      formattedLines.forEach((line) => {
+        const metrics = ctx.measureText(line);
+        if (metrics.width > actualMaxTextWidth) {
+          actualMaxTextWidth = metrics.width;
+        }
+      });
+
+      const dynamicCanvasWidth = Math.max(
+        300,
+        actualMaxTextWidth + PADDING * 2,
+      );
+
+      canvas.width = dynamicCanvasWidth;
+      canvas.height = Math.max(
+        100,
+        formattedLines.length * lineHeight + PADDING * 2,
+      );
+
+      // 3. วาดข้อความลง Canvas
       ctx.font = `normal ${fontSize}px ${typedSignatureFont}`;
       ctx.fillStyle = "blue";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      const totalTextHeight = lines.length * lineHeight;
-      const startY = (canvas.height - totalTextHeight) / 2;
-      const startX = (canvas.width - maxWidth) / 2;
-      lines.forEach((line, index) => {
+
+      const startY = PADDING;
+      const startX = PADDING;
+
+      formattedLines.forEach((line, index) => {
         ctx.fillText(line, startX, startY + index * lineHeight);
       });
+
       setTypedSignatureUrl(canvas.toDataURL("image/png"));
     }
   }, [typedName, activeTab, typedSignatureFont]);
@@ -270,11 +331,36 @@ function SignatureModal({
         <div className="type-signature-container">
           <textarea
             className="type-signature-input"
-            placeholder="Type your text here... (e.g. เรียน ..., อนุมัติ)"
+            placeholder="พิมพ์ข้อความที่นี่...&#10;(สามารถกด Enter เพื่อขึ้นบรรทัดใหม่ จัดทรงได้ตามต้องการ)"
             value={typedName}
             onChange={(e) => setTypedName(e.target.value)}
+            onKeyDown={(e) => {
+              // ✅ ป้องกันปัญหาฟอร์มหรือ Modal ปิดตัวเองเมื่อกด Enter
+              if (e.key === "Enter") {
+                e.stopPropagation();
+              }
+              if (e.key === "Tab") {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const { selectionStart, selectionEnd } = e.target;
+                const tabSpaces = "    "; // กำหนดจำนวนระยะย่อหน้า (4 Spaces)
+
+                const newValue =
+                  typedName.substring(0, selectionStart) +
+                  tabSpaces +
+                  typedName.substring(selectionEnd);
+
+                setTypedName(newValue);
+
+                // คืนค่าตำแหน่ง Cursor ให้อยู่ต่อจากช่องว่างที่แทรกเข้าไป
+                setTimeout(() => {
+                  e.target.selectionStart = e.target.selectionEnd =
+                    selectionStart + tabSpaces.length;
+                }, 0);
+              }
+            }}
             rows={5}
-            style={{ whiteSpace: "pre-wrap" }}
           />
           {typedName && (
             <div className="type-signature-preview">

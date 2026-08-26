@@ -35,14 +35,14 @@ import ProcurementAnalyticsPage from "./pages/ProcurementAnalyticsPage";
 import HelpButton from "./components/HelpButton.jsx";
 
 import AssetsDashboard from "./pages/assets/AssetsDashboard";
-
-// ✅ 1. Import หน้า Admin Dashboard (ถ้ายังไม่มีบรรทัดนี้ให้เพิ่ม)
 import AssetsAdminDashboard from "./pages/assets/AssetsAdminDashboard";
+
+// ✅ 1. Import หน้าตรวจสอบครุภัณฑ์ประจำปี
+import AnnualEquipmentPage from "./pages/AnnualEquipmentPage.jsx";
 
 // Import Route Guards
 import ProtectedRoute from "./utils/ProtectedRoute.jsx";
 import AdminRoute from "./utils/AdminRoute.jsx";
-
 import RedirectIfAuth from "./utils/RedirectIfAuth";
 
 // Import Global CSS
@@ -79,9 +79,12 @@ function App() {
               {/* ✅ หน้า User Assets */}
               <Route path="/assetnt" element={<AssetsDashboard />} />
 
-              {/* ✅ ย้าย Assets Admin มาไว้ตรงนี้ (นอก AdminRoute) */}
-              {/* เพื่อให้ User ธรรมดาที่มี Group "AssetAdmin" สามารถเข้าถึงได้ */}
-              {/* (การเช็คสิทธิ์จะทำภายในไฟล์ AssetsAdminDashboard แทน) */}
+              {/* ✅ เพิ่ม Route สำหรับหน้าระบบสำรวจครุภัณฑ์ประจำปี */}
+              <Route
+                path="/annual-equipments"
+                element={<AnnualEquipmentPage />}
+              />
+
               <Route path="/assets/admin" element={<AssetsAdminDashboard />} />
 
               <Route
@@ -112,8 +115,6 @@ function App() {
                 />
                 <Route path="/tasks/all" element={<AllTasksPage />} />
                 <Route path="/admin/logs" element={<SystemLogsPage />} />
-
-                {/* ❌ เอา Assets Admin ออกจากตรงนี้แล้ว */}
               </Route>
 
               <Route path="/workflows" element={<ProjectWorkflowListPage />} />

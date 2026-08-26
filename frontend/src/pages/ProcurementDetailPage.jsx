@@ -17,7 +17,9 @@ import "react-pdf/dist/Page/TextLayer.css";
 import Draggable from "react-draggable";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
-import { PDFDocument } from "pdf-lib";
+//import { PDFDocument } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib"; // 👈 ต้องมีทั้ง PDFDocument และ rgb อยู่ในวงเล็บนี้
+import fontkit from "@pdf-lib/fontkit";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
@@ -448,6 +450,9 @@ function ProcurementDetailPage() {
         res.arrayBuffer(),
       );
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
+
+      pdfDoc.registerFontkit(fontkit);
+
       const allPages = pdfDoc.getPages();
 
       for (const pageNum of pagesToSign) {
@@ -476,25 +481,62 @@ function ProcurementDetailPage() {
           (sig) => sig.page === pageNum,
         );
 
-        for (const sig of signaturesOnThisPage) {
-          const sigResponse = await fetch(sig.image);
-          const contentType = sigResponse.headers.get("Content-Type") || "";
-          const signatureImageBytes = await sigResponse.arrayBuffer();
-          let signatureImg;
-          if (contentType.includes("png")) {
-            signatureImg = await pdfDoc.embedPng(signatureImageBytes);
-          } else if (
-            contentType.includes("jpg") ||
-            contentType.includes("jpeg")
-          ) {
-            signatureImg = await pdfDoc.embedJpg(signatureImageBytes);
-          } else {
-            continue;
-          }
+        // for (const sig of signaturesOnThisPage) {
+        //   const sigResponse = await fetch(sig.image);
+        //   const contentType = sigResponse.headers.get("Content-Type") || "";
+        //   const signatureImageBytes = await sigResponse.arrayBuffer();
+        //   let signatureImg;
+        //   if (contentType.includes("png")) {
+        //     signatureImg = await pdfDoc.embedPng(signatureImageBytes);
+        //   } else if (
+        //     contentType.includes("jpg") ||
+        //     contentType.includes("jpeg")
+        //   ) {
+        //     signatureImg = await pdfDoc.embedJpg(signatureImageBytes);
+        //   } else {
+        //     continue;
+        //   }
 
+        //   const page = allPages[sig.page - 1];
+        //   const pageDimensions = page.getSize();
+
+        //   const signatureScreenX =
+        //     wrapperRect.left + wrapperPaddingLeft + sig.position.x;
+        //   const signatureScreenY =
+        //     wrapperRect.top + wrapperPaddingTop + sig.position.y;
+
+        //   const signatureRelativeX_px = signatureScreenX - canvasRect.left;
+        //   const signatureRelativeY_px = signatureScreenY - canvasRect.top;
+
+        //   const pointsPerPixel = pageDimensions.width / canvasRect.width;
+        //   const sigWidthPts = sig.size.width * pointsPerPixel;
+        //   const sigHeightPts = sig.size.height * pointsPerPixel;
+
+        //   const X_OFFSET_PIXELS = 50;
+        //   const Y_OFFSET_PIXELS = 50;
+
+        //   let xPts = (signatureRelativeX_px + X_OFFSET_PIXELS) * pointsPerPixel;
+        //   let yPts =
+        //     pageDimensions.height -
+        //     (signatureRelativeY_px + Y_OFFSET_PIXELS) * pointsPerPixel -
+        //     sigHeightPts;
+
+        //   const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+        //   xPts = clamp(xPts, 0, pageDimensions.width - sigWidthPts);
+        //   yPts = clamp(yPts, 0, pageDimensions.height - sigHeightPts);
+
+        //   page.drawImage(signatureImg, {
+        //     x: xPts,
+        //     y: yPts,
+        //     width: sigWidthPts,
+        //     height: sigHeightPts,
+        //   });
+        // }
+        for (const sig of signaturesOnThisPage) {
           const page = allPages[sig.page - 1];
           const pageDimensions = page.getSize();
 
+          // คำนวณพิกัด X, Y (ใช้ logic เดิมของคุณ)
           const signatureScreenX =
             wrapperRect.left + wrapperPaddingLeft + sig.position.x;
           const signatureScreenY =
@@ -516,16 +558,119 @@ function ProcurementDetailPage() {
             (signatureRelativeY_px + Y_OFFSET_PIXELS) * pointsPerPixel -
             sigHeightPts;
 
-          const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
-          xPts = clamp(xPts, 0, pageDimensions.width - sigWidthPts);
-          yPts = clamp(yPts, 0, pageDimensions.height - sigHeightPts);
+          // const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+          // xPts = clamp(xPts, 0, pageDimensions.width - sigWidthPts);
+          // yPts = clamp(yPts, 0, pageDimensions.height - sigHeightPts);
+          // ✅ แก้ไขเป็นแบบนี้: (ยืดหยุ่นขอบขวาให้ตัวอักษรสามารถลากชิดขอบ PDF ได้)
+          const minX = 0;
+          // อนุญาตให้ขอบกล่องขยับเลยขอบขวาไปได้เล็กน้อย เผื่อกรณีมี Margin ข้างกล่อง
+          const maxX = Math.max(0, pageDimensions.width - sigWidthPts * 0.85);
 
-          page.drawImage(signatureImg, {
-            x: xPts,
-            y: yPts,
-            width: sigWidthPts,
-            height: sigHeightPts,
-          });
+          xPts = Math.min(Math.max(xPts, minX), maxX);
+          yPts = Math.min(
+            Math.max(yPts, 0),
+            pageDimensions.height - sigHeightPts,
+          );
+
+          // ==========================================
+          // ✅ แยกเงื่อนไขระหว่าง "พิมพ์ข้อความ" กับ "วาดมือ"
+          // ==========================================
+          if (sig.type === "type") {
+            try {
+              // 1. นำเข้า Font เพื่อทำ Text Layer สำหรับค้นหา
+              const fontUrl = `${import.meta.env.BASE_URL}fonts/THSarabunNew.ttf`;
+              const fontBytes = await fetch(fontUrl).then((res) =>
+                res.arrayBuffer(),
+              );
+              const customFont = await pdfDoc.embedFont(fontBytes);
+
+              // 2. คำนวณพิกัด (ใช้สูตรเดียวกับรูปภาพ เพื่อให้ตำแหน่งตรงเป๊ะ 100%)
+              const X_OFFSET_PIXELS = 50;
+              const Y_OFFSET_PIXELS = 50;
+              let xPts =
+                (signatureRelativeX_px + X_OFFSET_PIXELS) * pointsPerPixel;
+              let yPts =
+                pageDimensions.height -
+                (signatureRelativeY_px + Y_OFFSET_PIXELS) * pointsPerPixel -
+                sigHeightPts;
+
+              // 3. ดึง "รูปภาพข้อความ" มาแปะให้ตรงกับที่ตาเห็นบนหน้าจอ
+              const sigResponse = await fetch(sig.image);
+              const contentType = sigResponse.headers.get("Content-Type") || "";
+              const signatureImageBytes = await sigResponse.arrayBuffer();
+              let signatureImg;
+
+              if (contentType.includes("png")) {
+                signatureImg = await pdfDoc.embedPng(signatureImageBytes);
+              } else if (
+                contentType.includes("jpg") ||
+                contentType.includes("jpeg")
+              ) {
+                signatureImg = await pdfDoc.embedJpg(signatureImageBytes);
+              }
+
+              // ✅ วาดรูปภาพลงไป (ตำแหน่งและขนาดจะตรงกับหน้าจอเป๊ะ 100%)
+              if (signatureImg) {
+                page.drawImage(signatureImg, {
+                  x: xPts,
+                  y: yPts,
+                  width: sigWidthPts,
+                  height: sigHeightPts,
+                });
+              }
+
+              // 4. ✅ แปะ "ข้อความจริง" ทับลงไปแบบโปร่งใส (รองรับหลายบรรทัดและ Word Wrap)
+              const textString = sig.text || "";
+
+              // ก. กำหนดขนาด Font ให้มีขนาดมาตรฐานเสมอ (ไม่เล็กเป็นจุด และไม่ใหญ่ล้น)
+              // อิงตามความสูงกล่องนิดหน่อย แต่ล็อคให้อยู่ระหว่าง 8pt ถึง 16pt (ขนาดอ่านปกติ)
+              const clamp = (val, min, max) =>
+                Math.max(min, Math.min(max, val));
+              const safeFontSize = clamp(sigHeightPts * 0.2, 8, 16);
+
+              // ข. กำหนดจุดเริ่มต้นพิมพ์: ให้เริ่มจาก "มุมบนซ้าย" ของกล่อง
+              // (เพราะถ้ามีหลายบรรทัด pdf-lib จะพิมพ์ไล่จากบนลงล่าง)
+              const startX = xPts + sigWidthPts * 0.05; // ขยับเข้าขอบซ้ายนิดนึง
+              const startY = yPts + sigHeightPts - safeFontSize - 2; // ขอบบนของกล่อง
+
+              page.drawText(textString, {
+                x: startX,
+                y: startY,
+                size: safeFontSize,
+                font: customFont,
+                color: rgb(0, 0, 0),
+                opacity: 0, // ซ่อนไว้เหมือนเดิม
+                maxWidth: sigWidthPts * 0.9, // 🌟 บังคับตัดขึ้นบรรทัดใหม่เมื่อชนขอบขวากล่อง
+                lineHeight: safeFontSize * 1.2, // ระยะห่างระหว่างบรรทัดเมื่อถูกตัด
+              });
+            } catch (fontError) {
+              console.error("ไม่สามารถฝังข้อความภาษาไทยได้:", fontError);
+            }
+          } else {
+            // 2. กรณีวาดมือ (Draw) หรือรูปแบบเดิม -> ใช้การแปะรูปภาพตามเดิม
+            const sigResponse = await fetch(sig.image);
+            const contentType = sigResponse.headers.get("Content-Type") || "";
+            const signatureImageBytes = await sigResponse.arrayBuffer();
+            let signatureImg;
+
+            if (contentType.includes("png")) {
+              signatureImg = await pdfDoc.embedPng(signatureImageBytes);
+            } else if (
+              contentType.includes("jpg") ||
+              contentType.includes("jpeg")
+            ) {
+              signatureImg = await pdfDoc.embedJpg(signatureImageBytes);
+            } else {
+              continue;
+            }
+
+            page.drawImage(signatureImg, {
+              x: xPts,
+              y: yPts,
+              width: sigWidthPts,
+              height: sigHeightPts,
+            });
+          }
         }
       }
 
@@ -742,7 +887,7 @@ function ProcurementDetailPage() {
           ),
         );
 
-        setIsHeaderVisible(false);
+        //setIsHeaderVisible(false);
 
         toast.success(`พบข้อความบนหน้า ${currentPage} และวางลายเซ็นแล้ว`);
         pageElement.scrollIntoView({ behavior: "smooth", block: "center" });

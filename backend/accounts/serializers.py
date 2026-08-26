@@ -66,7 +66,9 @@ class DepartmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Department
-        fields = ["id", "name", "parent", "manager", "member_count"]
+        # ✅ เพิ่ม "cost_center" เข้ามาใน fields
+        fields = ["id", "name", "cost_center",
+                  "parent", "manager", "member_count"]
 
 # --- Serializers for Dashboards & Detailed Views ---
 

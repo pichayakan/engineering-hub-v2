@@ -17,6 +17,8 @@ class Department(models.Model):
         blank=True,
         related_name='managed_departments'
     )
+    cost_center = models.CharField(
+        "รหัสศูนย์ต้นทุน (cctr)", max_length=50, blank=True, null=True, unique=True)
 
     def __str__(self):
         return self.name

@@ -1,10 +1,11 @@
 # backend/accounts/views.py
 from django.db.models import Count
-from rest_framework import viewsets, permissions, generics, status
+from rest_framework import viewsets, permissions, generics, status, filters
+from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import login, logout, authenticate
 from rest_framework.views import APIView
 from rest_framework.response import Response
-# --- ✅ ADD THESE IMPORTS ---
+
 from rest_framework.decorators import api_view, permission_classes
 from workflows.models import ProjectWorkflow, StepStatus
 from workflows.serializers import SimpleProjectWorkflowSerializer
@@ -15,12 +16,11 @@ from .serializers import (
     UserRegistrationSerializer,
     UserListSerializer,
     DepartmentSerializer,
-    UserDetailSerializer,  # ✅ IMPORT THE NEW SERIALIZER
+    UserDetailSerializer,
 )
 
 
 class RegistrationView(APIView):
-    # ... (no changes)
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, format=None):
@@ -32,7 +32,6 @@ class RegistrationView(APIView):
 
 
 class LoginView(APIView):
-    # ... (no changes)
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, format=None):
@@ -50,14 +49,12 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
-    # ... (no changes)
     def post(self, request, format=None):
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UserDetailView(APIView):
-    # ... (no changes)
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, format=None):
@@ -74,15 +71,18 @@ class UserDetailView(APIView):
 
 
 class UserListView(generics.ListAPIView):
-    # ... (no changes)
     queryset = User.objects.filter(is_active=True).order_by("username")
     serializer_class = UserListSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
 class DepartmentViewSet(viewsets.ModelViewSet):
-    # ... (no changes)
     serializer_class = DepartmentSerializer
+
+    # ✅ เพิ่มระบบ Filter และ Search ให้สามารถค้นหาด้วยรหัสศูนย์ต้นทุน (cost_center) ได้
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['cost_center']
+    search_fields = ['name', 'cost_center']
 
     def get_queryset(self):
         return Department.objects.annotate(member_count=Count("members")).order_by("name")
@@ -93,8 +93,6 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = [permissions.IsAdminUser]
         return [permission() for permission in permission_classes]
-
-# --- ✅ ADD THIS NEW VIEW AT THE END OF THE FILE ---
 
 
 @api_view(['GET'])

@@ -1,7 +1,7 @@
 # backend/assets/admin.py
 
 from django.contrib import admin
-from .models import SurveyCampaign, AssetRequest
+from .models import SurveyCampaign, AssetRequest, AnnualEquipment
 
 
 @admin.register(SurveyCampaign)
@@ -73,3 +73,11 @@ class AssetRequestAdmin(admin.ModelAdmin):
     def age_display(self, obj):
         return f"{obj.age} ปี"
     age_display.short_description = "Age"
+
+
+@admin.register(AnnualEquipment)
+class AnnualEquipmentAdmin(admin.ModelAdmin):
+    list_display = ('asset_number', 'description', 'cost_center',
+                    'department', 'current_status', 'fiscal_year')
+    search_fields = ('asset_number', 'description', 'cost_center')
+    list_filter = ('fiscal_year', 'current_status', 'department')

@@ -173,3 +173,81 @@ class AssetRequest(models.Model):
             self.age = 0
 
         super().save(*args, **kwargs)
+
+
+class AnnualEquipment(models.Model):
+    """เก็บข้อมูลการสำรวจครุภัณฑ์ประจำปี ที่นำเข้าจากระบบ SAP"""
+    # --- ข้อมูลจากไฟล์ CSV ---
+    fiscal_year = models.CharField("ปีงบประมาณ", max_length=4, default="2026")
+    # 18 คอลัมน์หลักตามไฟล์ CSV
+    asset_class = models.CharField(
+        "คลาส", max_length=50, blank=True, null=True)
+    asset_number = models.CharField("สินทรัพย์", max_length=100, db_index=True)
+    s_no = models.CharField("SNo.", max_length=50, blank=True, null=True)
+    old_asset = models.CharField(
+        "ท/ส เดิม", max_length=100, blank=True, null=True)
+    description = models.CharField("คำอธิบายของสินทรัพย์", max_length=500)
+    cap_date = models.CharField(
+        "Cap.date", max_length=50, blank=True, null=True)
+    quantity = models.CharField("ปริมาณ", max_length=50, blank=True, null=True)
+    unit = models.CharField("Unit", max_length=50, blank=True, null=True)
+    cost_center = models.CharField("ศ.ต้นทุน", max_length=50, db_index=True)
+    rsp_cctr = models.CharField(
+        "Rsp.CCtr", max_length=50, blank=True, null=True)
+    fund_center = models.CharField(
+        "ศ.เงินทุน", max_length=50, blank=True, null=True)
+    act_typ = models.CharField("ActTyp", max_length=50, blank=True, null=True)
+    sub_dept = models.CharField(
+        "ปภ.ย่อยสท.", max_length=50, blank=True, null=True)
+    evg_3 = models.CharField("EVG.3", max_length=50, blank=True, null=True)
+    center_code = models.CharField(
+        "รหัสศูนย์", max_length=50, blank=True, null=True)
+    location = models.CharField(
+        "ที่ตั้ง", max_length=50, blank=True, null=True)
+
+    apc_value = models.DecimalField(
+        "ราคาทุน APC", max_digits=15, decimal_places=2, default=0)
+    book_value = models.DecimalField(
+        "มูลค่าตามบัญชี", max_digits=15, decimal_places=2, default=0)
+
+    # ผูกกับแผนกอัตโนมัติจาก Cost Center
+    department = models.ForeignKey(
+        'accounts.Department',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='annual_equipments'
+    )
+
+    responsible_unit = models.CharField(
+        "หน่วยงาน/ส่วนที่รับผิดชอบ", max_length=255, blank=True, null=True
+    )
+
+    image_current = models.ImageField(
+        upload_to='equipment_images/', null=True, blank=True, verbose_name="รูปภาพปัจจุบัน")
+    document_file = models.FileField(
+        upload_to='equipment_docs/', null=True, blank=True, verbose_name="เอกสารแนบ PDF")
+
+    # ฟิลด์สำหรับให้จังหวัดอัปเดต
+    STATUS_CHOICES = [
+        ('NORMAL', 'ใช้งานได้ปกติ'),
+        ('BROKEN', 'ชำรุด/รอซ่อม'),
+        ('LOST', 'สูญหาย'),
+        ('TRANSFER', 'โอนย้าย'),
+        ('NOT_FOUND', 'หาไม่พบ/ไม่ทราบสถานะ'),
+    ]
+    current_status = models.CharField(
+        "สถานะการสำรวจ", max_length=20, choices=STATUS_CHOICES, default='NORMAL')
+    remark = models.TextField("หมายเหตุจากพื้นที่", blank=True, null=True)
+
+    last_updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['cost_center', 'asset_number']
+        unique_together = ('fiscal_year', 'asset_number')
+
+    def __str__(self):
+        return f"{self.asset_number} - {self.description}"

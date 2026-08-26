@@ -106,37 +106,56 @@
   cursor: crosshair;
 }
 
+.modal-content,
+.signature-modal-container {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* ซ่อน scrollbar ส่วนเกินของกรอบนอก */
+}
+
 .type-signature-container {
-  padding: 1rem 0;
+  max-height: calc(90vh - 180px); /* ลบพื้นที่ส่วน Header และ ปุ่มออก */
+  overflow-y: auto; /* เติม Scrollbar เฉพาะส่วนเนื้อหา */
+  padding: 0.5rem 0.5rem 1rem 0.5rem;
+  box-sizing: border-box;
 }
 
 /* --- ✅ Updated for Textarea --- */
+/* --- ✅ Updated for Textarea (รองรับข้อความยาว) --- */
 .type-signature-input {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
+  box-sizing: border-box; /* ✅ คำนวณขนาด padding ให้อยู่ในความกว้างเสมอ */
+  max-width: 100%; /* ✅ ล็อคไม่ให้ความกว้างล้นขอบ */
+  padding: 0.75rem 1rem;
+  border: 1px solid #ced4da;
   border-radius: 8px;
   font-size: 1.2rem;
-  font-family: "THSarabunNew", sans-serif; /* Match the canvas font */
-  resize: vertical; /* Allow vertical resizing */
-  min-height: 120px; /* Set a reasonable min-height */
+  font-family: "THSarabunNew", sans-serif;
+  resize: vertical;
+  min-height: 120px;
   line-height: 1.5;
+  white-space: pre-wrap;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.type-signature-input:focus {
+  outline: none;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
 }
 
 .type-signature-preview {
-  margin-top: 1rem;
-  padding: 1rem;
-  background-color: #f8f9fa;
-  border: 2px dashed #ccc;
-  border-radius: 8px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100px; /* Ensure preview area has height */
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  max-height: 180px; /* จำกัดความสูง preview */
+  overflow: hidden;
 }
 .type-signature-preview img {
   max-width: 100%;
-  max-height: 200px; /* Limit preview height */
+  max-height: 160px; /* บีบรูป preview ให้อ่านออกแต่ไม่ดันปุ่มตกจอ */
   object-fit: contain;
 }
 
@@ -154,10 +173,13 @@
 }
 
 .signature-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid #dee2e6;
+  background-color: #fff;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 .btn-clear {
@@ -177,4 +199,53 @@
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
+}
+
+/* --- 📱 Responsive & Device Mode UI Overrides --- */
+
+/* 1. บังคับกรอบ Modal ไม่ให้ขยายกินเต็มจอ 100% บนหน้าจอมือถือ/Device Mode */
+@media (max-width: 768px) {
+  /* หาก Modal ใช้ Class แม่ เช่น .modal-content หรือ .modal-dialog */
+  .modal-content,
+  .signature-modal-container {
+    width: 92% !important; /* เว้นขอบซ้าย-ขวา ข้างละ 4% */
+    max-width: 480px !important; /* จำกัดความกว้างไม่ให้ใหญ่เกินไป */
+    max-height: 85vh !important; /* เว้นขอบบน-ล่าง */
+    margin: 20px auto !important; /* จัดให้อยู่กึ่งกลางจอ */
+    border-radius: 12px !important; /* เพิ่มมุมโค้งให้ดูเป็นกล่องป๊อปอัป */
+    padding: 1rem !important;
+  }
+
+  /* 2. ย่อขนาดพื้นที่พิมพ์ข้อความและ Preview ให้กะทัดรัดขึ้น */
+  .type-signature-input {
+    min-height: 90px !important;
+    font-size: 1rem !important;
+  }
+
+  .type-signature-preview {
+    max-height: 120px !important;
+    padding: 0.25rem !important;
+  }
+
+  .type-signature-preview img {
+    max-height: 100px !important;
+  }
+
+  /* 3. จัด Tab ปุ่มกดด้านบนให้อยู่ในแถวเดียวหรือบีบกะทัดรัด */
+  .signature-tabs button {
+    padding: 0.5rem 0.6rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* 4. ปรับขนาดปุ่ม Save / Clear ให้พอดีนิ้วแตะ */
+  .signature-actions {
+    padding-top: 0.75rem !important;
+    margin-top: 0.5rem !important;
+  }
+
+  .btn-save,
+  .btn-clear {
+    padding: 0.6rem 1.2rem !important;
+    font-size: 0.9rem !important;
+  }
 }
