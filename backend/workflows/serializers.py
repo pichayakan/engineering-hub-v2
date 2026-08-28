@@ -57,7 +57,7 @@ class ProjectWorkflowUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectWorkflow
         fields = ['title', 'pr_number', 'budget_amount',
-                  'fiscal_year', 'is_completed', 'start_date', 'category']
+                  'fiscal_year', 'is_completed', 'start_date', 'category', 'handlers']
 
 
 class ProjectWorkflowListSerializer(serializers.ModelSerializer):
@@ -66,12 +66,14 @@ class ProjectWorkflowListSerializer(serializers.ModelSerializer):
     current_step = StepStatusSerializer(read_only=True)
     category = WorkflowCategorySerializer(read_only=True)
     latest_completed_step = StepStatusSerializer(read_only=True)
+    handlers_details = UserListSerializer(
+        source='handlers', many=True, read_only=True)
 
     class Meta:
         model = ProjectWorkflow
         fields = [
             'id', 'title', 'template', 'category', 'pr_number', 'budget_amount',
-            'fiscal_year', 'created_at', 'start_date',
+            'fiscal_year', 'created_at', 'start_date', 'handlers_details',
             'is_completed', 'completed_step_count', 'total_step_count', 'current_step', 'latest_completed_step'
         ]
 
@@ -81,6 +83,8 @@ class ProjectWorkflowDetailSerializer(serializers.ModelSerializer):
     created_by_details = UserListSerializer(
         source='created_by', read_only=True)
     category = WorkflowCategorySerializer(read_only=True)
+    handlers_details = UserListSerializer(
+        source='handlers', many=True, read_only=True)
 
     class Meta:
         model = ProjectWorkflow

@@ -1,4 +1,5 @@
 # workflows/views.py
+from django.contrib.auth.models import Group  # 🌟 เพิ่ม Import Group ด้านบนสุด
 from django.db.models import Count
 from datetime import date
 from django.utils import timezone  # ✅ IMPORT
@@ -11,6 +12,7 @@ from rest_framework import viewsets, permissions, mixins, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django.contrib.auth import get_user_model
 from .models import ProjectWorkflow, StepStatus, StepAttachment, WorkflowCategory
 from .serializers import (
     ProjectWorkflowListSerializer,
@@ -20,6 +22,7 @@ from .serializers import (
     ProjectWorkflowUpdateSerializer,
     WorkflowCategorySerializer
 )
+from accounts.serializers import UserListSerializer
 from procurement.models import WorkflowTemplate
 from procurement.serializers import WorkflowTemplateSerializer
 import datetime
@@ -486,3 +489,34 @@ def workflow_summary_view(request):
         'nearing_sla_count': nearing_sla_count,
     }
     return Response(data)
+
+
+# backend/workflows/views.py
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def eligible_handlers_list(request, pk=None):
+    try:
+        workflow = ProjectWorkflow.objects.get(pk=pk)
+
+        # ดึง Group ทั้งหมดที่ถูกผูกไว้กับ Steps ใน Template
+        step_ids = workflow.template.steps.values_list('id', flat=True)
+        related_groups = Group.objects.filter(step__id__in=step_ids).distinct()
+
+        User = get_user_model()
+
+        # 🌟 ถ้าไม่มีการผูก Group ไว้ใน Step เลย ให้แสดงพนักงานทั้งหมดที่ Active
+        if not related_groups.exists():
+            users = User.objects.filter(is_active=True).order_by('first_name')
+        else:
+            # ถ้ามี Group ให้กรองเฉพาะคนใน Group + Admin
+            users = User.objects.filter(
+                Q(groups__in=related_groups) | Q(is_staff=True),
+                is_active=True
+            ).distinct().order_by('first_name')
+
+        serializer = UserListSerializer(users, many=True)
+        return Response(serializer.data)
+    except ProjectWorkflow.DoesNotExist:
+        return Response({'error': 'Workflow not found'}, status=404)

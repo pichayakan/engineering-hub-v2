@@ -65,6 +65,12 @@ class ProjectWorkflow(models.Model):
         blank=True,
         verbose_name="วันที่โปรเจกต์เสร็จสิ้น"
     )
+    handlers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="handled_workflows",
+        verbose_name="ผู้รับผิดชอบงาน"
+    )
 
     # --- ✅ THIS IS THE CORRECTED FUNCTION ---
     def recalculate_due_dates(self):

@@ -1,7 +1,7 @@
 # workflows/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ProjectWorkflowViewSet, StepStatusViewSet, workflow_summary_view, workflow_status_breakdown, workflow_performance_trend, WorkflowCategoryViewSet, workflow_template_list_view
+from .views import ProjectWorkflowViewSet, StepStatusViewSet, workflow_summary_view, workflow_status_breakdown, workflow_performance_trend, WorkflowCategoryViewSet, workflow_template_list_view, eligible_handlers_list
 
 router = DefaultRouter()
 router.register(r'projects', ProjectWorkflowViewSet,
@@ -19,4 +19,6 @@ urlpatterns = [
          name='workflow-status-breakdown'),
     path('summary/performance-trend/', workflow_performance_trend,
          name='workflow-performance-trend'),
+    path('projects/<int:pk>/eligible-handlers/',
+         eligible_handlers_list, name='eligible-handlers-list')
 ]

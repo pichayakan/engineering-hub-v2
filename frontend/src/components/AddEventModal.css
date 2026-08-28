@@ -1,0 +1,212 @@
+/* frontend/src/components/AddEventModal.css */
+
+/* Overlay ฉากหลังใสดำ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+/* Modal Content Box */
+.modal-content {
+  background-color: #1e1e1e;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  border: 1px solid #363636;
+  width: 100%;
+  max-width: 500px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  box-sizing: border-box;
+}
+
+/* Body Scrollable */
+.modal-body-scrollable {
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ปุ่มปิด (X) */
+.modal-close-button {
+  position: absolute;
+  top: 0.8rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: #cccccc;
+  font-size: 1.8rem;
+  cursor: pointer;
+  line-height: 1;
+  z-index: 10;
+}
+
+.modal-close-button:hover {
+  color: #ffffff;
+}
+
+/* Header Title */
+.modal-content h2 {
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  font-size: 1.3rem;
+  color: #ffffff; /* 🌟 ปรับเป็นสีขาวสว่าง */
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Form Group & Label */
+.modal-content .form-group {
+  margin-bottom: 1rem;
+}
+
+.modal-content label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  color: #e0e0e0; /* 🌟 ปรับสี Label เป็นสีขาวอมเทาสว่าง ให้เห็นชัดเจน */
+  font-weight: 500;
+}
+
+/* Input Fields */
+.modal-content input[type="text"],
+.modal-content input[type="datetime-local"],
+.modal-content textarea {
+  width: 100%;
+  padding: 0.75rem 0.8rem;
+  background-color: #2b2b2b;
+  border: 1px solid #4a4a4a;
+  border-radius: 8px;
+  color: #ffffff; /* 🌟 สีตัวหนังสือสีขาว */
+  font-size: 16px; /* ป้องกัน iOS ซูม */
+  font-family: "Sarabun", sans-serif;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.modal-content input:focus,
+.modal-content textarea:focus {
+  outline: none;
+  border-color: #5a9eee;
+  box-shadow: 0 0 0 2px rgba(90, 158, 238, 0.3);
+}
+
+.modal-content textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* File Upload Field */
+.modal-content .upload-input {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #2b2b2b;
+  border: 1px dashed #4a4a4a;
+  border-radius: 8px;
+  color: #e0e0e0;
+  cursor: pointer;
+  box-sizing: border-box;
+  font-size: 0.85rem;
+}
+
+/* MultiSelect (react-select) Dark Theme Integration */
+.multi-select-container .multi-select__control {
+  background-color: #2b2b2b;
+  border: 1px solid #4a4a4a;
+  border-radius: 8px;
+  box-shadow: none;
+  min-height: 42px;
+}
+
+.multi-select-container .multi-select__control--is-focused {
+  border-color: #5a9eee;
+}
+
+.multi-select-container .multi-select__input-container,
+.multi-select-container .multi-select__single-value {
+  color: #ffffff;
+}
+
+.multi-select-container .multi-select__menu {
+  background-color: #2b2b2b;
+  border: 1px solid #4a4a4a;
+  border-radius: 8px;
+  z-index: 9999;
+}
+
+.multi-select-container .multi-select__option {
+  background-color: #2b2b2b;
+  color: #ffffff;
+}
+
+.multi-select-container .multi-select__option--is-focused {
+  background-color: #3f3f3f;
+}
+
+.multi-select-container .multi-select__option--is-selected {
+  background-color: #5a9eee;
+  color: white;
+}
+
+.multi-select-container .multi-select__multi-value {
+  background-color: #3f3f3f;
+  border-radius: 4px;
+}
+
+.multi-select-container .multi-select__multi-value__label {
+  color: #ffffff;
+}
+
+.multi-select-container .multi-select__placeholder {
+  color: #888888;
+}
+
+/* Submit Button */
+.modal-content .submit-button {
+  width: 100%;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #0d6efd; /* สีฟ้าสว่าง อ่านง่าย */
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.75rem;
+  transition: background-color 0.2s ease;
+}
+
+.modal-content .submit-button:hover:not(:disabled) {
+  background-color: #0b5ed7;
+}
+
+.modal-content .submit-button:disabled {
+  background-color: #4a4a4a;
+  color: #888888;
+  cursor: not-allowed;
+}
+
+/* 📱 Mobile Specific Adjustments */
+@media screen and (max-width: 576px) {
+  .modal-overlay {
+    padding: 0.5rem; /* เว้นระยะขอบจอเล็กน้อย */
+  }
+
+  .modal-content {
+    padding: 1.25rem 1rem;
+    border-radius: 10px;
+    max-height: 94vh;
+  }
+}

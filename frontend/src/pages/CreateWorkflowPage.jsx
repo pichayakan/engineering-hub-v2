@@ -12,7 +12,7 @@ function CreateWorkflowPage() {
   const [budgetAmount, setBudgetAmount] = useState("");
   const [fiscalYear, setFiscalYear] = useState(new Date().getFullYear());
   const [startDate, setStartDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
 
   const [categories, setCategories] = useState([]);
@@ -74,7 +74,7 @@ function CreateWorkflowPage() {
       };
       const response = await apiClient.post(
         "/api/workflows/projects/",
-        payload
+        payload,
       );
       toast.success("Workflow created successfully!");
       navigate(`/workflows/${response.data.id}`);
@@ -91,13 +91,13 @@ function CreateWorkflowPage() {
   return (
     <div className="create-workflow-container">
       <div className="page-header">
-        <h1>Create New Project Workflow</h1>
+        <h1>+ สร้างงานใหม่ที่ต้องการติดตาม</h1>
       </div>
       <form onSubmit={handleSubmit} className="create-workflow-form">
         <div className="form-card">
           {/* ... other form groups for title, template, start_date, pr_number ... */}
           <div className="form-group">
-            <label htmlFor="title">Project Title</label>
+            <label htmlFor="title">ชื่องาน</label>
             <input
               type="text"
               id="title"
@@ -107,7 +107,7 @@ function CreateWorkflowPage() {
             />
           </div>
           <div className="form-group">
-            <label htmlFor="category">Workflow Category</label>
+            <label htmlFor="category">เลือกหมวดหมู่</label>
             <select
               id="category"
               value={categoryId}
@@ -125,7 +125,7 @@ function CreateWorkflowPage() {
             </select>
           </div>
           <div className="form-group">
-            <label htmlFor="template">Workflow Template</label>
+            <label htmlFor="template">เลือก Template งาน</label>
             <select
               id="template"
               value={templateId}
@@ -143,7 +143,7 @@ function CreateWorkflowPage() {
             </select>
           </div>
           <div className="form-group">
-            <label htmlFor="start_date">Workflow Start Date</label>
+            <label htmlFor="start_date">วันเริ่มต้น</label>
             <input
               type="date"
               id="start_date"
@@ -163,7 +163,7 @@ function CreateWorkflowPage() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="budget_amount">Budget Amount (max 10 digits)</label>
+            <label htmlFor="budget_amount">จำนวนงบประมาณ (max 10 digits)</label>
             <input
               type="number"
               step="0.01"
@@ -175,7 +175,7 @@ function CreateWorkflowPage() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="fiscal_year">Fiscal Year (Optional)</label>
+            <label htmlFor="fiscal_year">ปีงบประมาณ (Optional)</label>
             <input
               type="number"
               id="fiscal_year"

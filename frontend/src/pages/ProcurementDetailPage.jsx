@@ -173,30 +173,52 @@ function ProcurementDetailPage() {
     const img = new Image();
     img.src = imageSrc;
     img.onload = () => {
-      const initialWidth = 200;
       const aspectRatio = img.height / img.width;
       signatureAspectRatio.current = aspectRatio;
 
+      // 🎯 คำนวณความกว้างกล่องให้ใหญ่ขึ้นกว่าเดิม
+      const calculateTypeWidth = (imgWidth) => {
+        const currentScale = renderedPdfScale || 1;
+
+        // 🌟 ปรับตัวคูณขึ้นเป็น 0.50 (จากเดิม 0.38) เพื่อให้ข้อความเริ่มต้นขนาดใหญ่ขึ้น
+        const calculatedWidth = imgWidth * 0.5 * currentScale;
+        const maxCanvasWidth =
+          (pdfPageDetails?.originalWidth || 600) * currentScale * 0.95;
+
+        // กำหนดขั้นต่ำที่ 150px (จากเดิม 100px) เพื่อไม่ให้ข้อความสั้นเล็กเกินไป
+        return Math.min(maxCanvasWidth, Math.max(150, calculatedWidth));
+      };
+
       if (editingSignatureId) {
+        // 🔄 กรณีแก้ไขข้อความเดิม
         setSignatures((prev) =>
-          prev.map((sig) =>
-            sig.id === editingSignatureId
-              ? {
-                  ...sig,
-                  image: imageSrc,
-                  text: sigText,
-                  type: sigType,
-                  size: {
-                    width: sig.size.width,
-                    height: sig.size.width * aspectRatio,
-                  },
-                }
-              : sig,
-          ),
+          prev.map((sig) => {
+            if (sig.id === editingSignatureId) {
+              const newWidth =
+                sigType === "type"
+                  ? calculateTypeWidth(img.width)
+                  : sig.size.width;
+              return {
+                ...sig,
+                image: imageSrc,
+                text: sigText,
+                type: sigType,
+                size: {
+                  width: newWidth,
+                  height: newWidth * aspectRatio,
+                },
+              };
+            }
+            return sig;
+          }),
         );
         setEditingSignatureId(null);
         setSignatureToEdit(null);
       } else {
+        // ✨ กรณีสร้างลายเซ็น/ข้อความใหม่
+        const initialWidth =
+          sigType === "type" ? calculateTypeWidth(img.width) : 200;
+
         const newSignature = {
           id: `sig-${Date.now()}`,
           page: currentPage,
@@ -1316,9 +1338,15 @@ function ProcurementDetailPage() {
 
                       {sig.type === "type" && (
                         <button
-                          onClick={() => handleEditSignature(sig)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditSignature(sig);
+                          }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onTouchStart={(e) => e.stopPropagation()}
                           title="แก้ไขข้อความ"
-                          className="edit-signature-btn"
+                          className="edit-signature-btn no-drag"
+                          style={{ zIndex: 10 }}
                         >
                           <FiEdit3 size={12} />
                         </button>

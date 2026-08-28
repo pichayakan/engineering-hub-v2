@@ -1,218 +1,251 @@
 /* frontend/src/pages/AllTasksPage.css */
 
 .filter-container {
-    background-color: var(--nt-white);
-    border: 1px solid var(--nt-border-color);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  background-color: var(--nt-white);
+  border: 1px solid var(--nt-border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.05),
+    0 2px 4px -2px rgb(0 0 0 / 0.05);
 }
 
 .controls-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--nt-border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--nt-border-color);
 }
 
 @media (min-width: 768px) {
-    .controls-wrapper {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
+  .controls-wrapper {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
 }
 
-.filter-bar { 
-    display: flex; 
-    gap: 0.5rem; 
-    flex-wrap: wrap; 
+.filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.filter-button { 
-    background-color: #e9ecef; 
-    color: #495057; 
-    padding: 0.5rem 1rem; 
-    border: 1px solid #dee2e6; 
-    border-radius: 20px; 
-    cursor: pointer; 
-    transition: all 0.2s; 
-    font-weight: 500;
+.filter-button {
+  background-color: #e9ecef;
+  color: #495057;
+  padding: 0.5rem 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
 }
-.filter-button.active { 
-    background-color: var(--nt-yellow); 
-    color: var(--nt-text-dark); 
-    border-color: var(--nt-yellow); 
-    font-weight: 600;
+.filter-button.active {
+  background-color: var(--nt-yellow);
+  color: var(--nt-text-dark);
+  border-color: var(--nt-yellow);
+  font-weight: 600;
 }
-.filter-button:hover:not(.active) { 
-    background-color: #dee2e6; 
+.filter-button:hover:not(.active) {
+  background-color: #dee2e6;
 }
 
 .advanced-filters {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .filter-select {
-    background-color: var(--nt-white);
-    border: 1px solid var(--nt-border-color);
-    border-radius: 8px;
-    padding: 0.5rem 0.8rem;
-    font-family: 'Sarabun', sans-serif;
-    font-size: 0.9rem;
-    color: var(--nt-text-dark);
-    min-width: 180px;
+  background-color: var(--nt-white);
+  border: 1px solid var(--nt-border-color);
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  font-family: "Sarabun", sans-serif;
+  font-size: 0.9rem;
+  color: var(--nt-text-dark);
+  min-width: 180px;
 }
 
 .controls-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 @media (min-width: 768px) {
-    .controls-wrapper {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
+  .controls-wrapper {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
 }
 
-.filter-bar { 
-    display: flex; 
-    gap: 0.5rem; 
-    flex-wrap: wrap; 
+.filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.filter-button { 
-    background-color: #3f3f3f; 
-    color: #e0e0e0; 
-    padding: 0.5rem 1rem; 
-    border: 1px solid #555; 
-    border-radius: 20px; 
-    cursor: pointer; 
-    transition: all 0.2s; 
+.filter-button {
+  background-color: #3f3f3f;
+  color: #e0e0e0;
+  padding: 0.5rem 1rem;
+  border: 1px solid #555;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
-.filter-button.active { 
-    background-color: var(--nt-yellow); 
-    color: var(--nt-text-dark); 
-    border-color: var(--nt-yellow); 
-    font-weight: 600;
+.filter-button.active {
+  background-color: var(--nt-yellow);
+  color: var(--nt-text-dark);
+  border-color: var(--nt-yellow);
+  font-weight: 600;
 }
-.filter-button:hover:not(.active) { 
-    background-color: #4a4a4a; 
+.filter-button:hover:not(.active) {
+  background-color: #4a4a4a;
 }
 
-.tasks-table-wrapper { 
-    width: 100%; 
-    overflow-x: auto; 
-    border: 1px solid var(--nt-border-color); 
-    border-radius: 8px; 
-    background-color: var(--nt-white);
+.tasks-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--nt-border-color);
+  border-radius: 8px;
+  background-color: var(--nt-white);
 }
-.tasks-table { 
-    width: 100%; 
-    border-collapse: collapse; 
-    text-align: left; 
+.tasks-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
 }
-.tasks-table th, .tasks-table td { 
-    padding: 1rem; 
-    border-bottom: 1px solid var(--nt-border-color); 
-    vertical-align: top; /* จัดชิดบนเพื่อให้สม่ำเสมอ */
+.tasks-table th,
+.tasks-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--nt-border-color);
+  vertical-align: top; /* จัดชิดบนเพื่อให้สม่ำเสมอ */
 }
-.tasks-table th { 
-    font-size: 0.8rem; 
-    color: #6c757d; 
-    text-transform: uppercase; 
-    background-color: #f8f9fa; 
-    font-weight: 600;
+.tasks-table th {
+  font-size: 0.8rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  background-color: #f8f9fa;
+  font-weight: 600;
 }
 .tasks-table tbody tr:last-child td {
-    border-bottom: none; /* เอาเส้นใต้ของแถวสุดท้ายออก */
+  border-bottom: none; /* เอาเส้นใต้ของแถวสุดท้ายออก */
 }
-.tasks-table tbody tr:hover { 
-    background-color: #f1f3f5; 
+.tasks-table tbody tr:hover {
+  background-color: #f1f3f5;
 }
 
 /* --- ส่วนที่แก้ไข --- */
 .accepted-status .accepted,
 .accepted-status .not-accepted {
-    display: block; /* ทำให้แต่ละอันขึ้นบรรทัดใหม่ */
-    font-size: 0.85rem;
+  display: block; /* ทำให้แต่ละอันขึ้นบรรทัดใหม่ */
+  font-size: 0.85rem;
 }
 
 .accepted-status .accepted:not(:last-child),
 .accepted-status .not-accepted:not(:last-child) {
-    margin-bottom: 0.25rem; /* สร้างระยะห่างแทน gap */
+  margin-bottom: 0.25rem; /* สร้างระยะห่างแทน gap */
 }
 
-.accepted-status .accepted { 
-    color: #198754; /* สีเขียวเข้ม */
-    font-weight: 500;
+.accepted-status .accepted {
+  color: #198754; /* สีเขียวเข้ม */
+  font-weight: 500;
 }
-.accepted-status .not-accepted { 
-    color: #dc3545; /* สีแดงเข้ม */
-    font-style: italic;
+.accepted-status .not-accepted {
+  color: #dc3545; /* สีแดงเข้ม */
+  font-style: italic;
 }
 /* --- จบส่วนที่แก้ไข --- */
 
-.assignee-badge, .team-badge { 
-    padding: 0.25rem 0.6rem; 
-    border-radius: 12px; 
-    font-size: 0.8rem; 
-    font-weight: 500; 
-    line-height: 1.2; 
+.assignee-badge,
+.team-badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
-.assignee-badge { 
-    background-color: #e9ecef; 
-    color: #495057; 
+.assignee-badge {
+  background-color: #e9ecef;
+  color: #495057;
 }
-.team-badge { 
-    background-color: #0dcaf0; 
-    color: var(--nt-text-dark); 
+.team-badge {
+  background-color: #0dcaf0;
+  color: var(--nt-text-dark);
 }
-.task-title-link { 
-    color: var(--nt-text-dark); 
-    font-weight: 600; 
-    text-decoration: none; 
+.task-title-link {
+  color: var(--nt-text-dark);
+  font-weight: 600;
+  text-decoration: none;
 }
-.task-title-link:hover { 
-    color: #0d6efd; 
-    text-decoration: underline; 
+.task-title-link:hover {
+  color: #0d6efd;
+  text-decoration: underline;
 }
-.name-button { 
-    background: none; 
-    border: none; 
-    padding: 0; 
-    font: inherit; 
-    color: inherit; 
-    cursor: pointer; 
-    text-align: left; 
+.name-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
 }
-.name-button:hover { 
-    text-decoration: underline; 
-    color: #0d6efd; 
+.name-button:hover {
+  text-decoration: underline;
+  color: #0d6efd;
 }
-.phone-tooltip { 
-    position: fixed; 
-    bottom: 20px; 
-    left: 50%; 
-    transform: translateX(-50%); 
-    background-color: var(--nt-dark-gray); 
-    color: white; 
-    padding: 1rem; 
-    border-radius: 8px; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
-    z-index: 1000; 
+.phone-tooltip {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--nt-dark-gray);
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
 }
-.text-red-500 { color: #dc3545; }
-.text-yellow-500 { color: #ffc107; }
-.text-green-500 { color: #198754; }
-.text-gray-500 { color: #6c757d; }
-.font-bold { font-weight: 700; }
+.text-red-500 {
+  color: #dc3545;
+}
+.text-yellow-500 {
+  color: #ffc107;
+}
+.text-green-500 {
+  color: #198754;
+}
+.text-gray-500 {
+  color: #6c757d;
+}
+.font-bold {
+  font-weight: 700;
+}
+
+.handlers-badges-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 200px;
+}
+
+.handler-badge {
+  background-color: #e7f1ff;
+  color: #0d6efd;
+  border: 1px solid #b6d4fe;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.2;
+}

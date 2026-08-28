@@ -1,5 +1,5 @@
-// frontend/src/pages/workflows/components/EditWorkflowForm.jsx
 import React, { useState, useEffect } from "react";
+import Select from "react-select"; // 🌟 นำเข้า react-select สำหรับเลือกผู้รับผิดชอบงาน
 import "./EditWorkflowForm.css";
 import apiClient from "../../api";
 
@@ -10,13 +10,18 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
     budget_amount: "",
     fiscal_year: "",
     start_date: "",
-    category: "", // ✅ 2. เพิ่ม category ใน state
+    category: "",
+    handlers: [], // 🌟 เพิ่ม handlers สำหรับเก็บ Array ของ User IDs
   });
 
-  // ✅ 3. เพิ่ม State สำหรับเก็บรายการ Category ทั้งหมด
   const [categories, setCategories] = useState([]);
 
-  // ✅ 4. เพิ่ม useEffect สำหรับดึงข้อมูล Category ทั้งหมด
+  // 🌟 เพิ่ม State สำหรับจัดการตัวเลือก User ใน react-select
+  const [userOptions, setUserOptions] = useState([]);
+  const [selectedHandlersOptions, setSelectedHandlersOptions] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+  // ดึงข้อมูล Category ทั้งหมด
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -27,8 +32,52 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
       }
     };
     fetchCategories();
-  }, []); // ทำงานครั้งเดียว
+  }, []);
 
+  // 🌟 ดึงรายชื่อพนักงานที่กรองแล้ว (Eligible Handlers) สำหรับ Workflow นี้
+  useEffect(() => {
+    if (workflow?.id) {
+      const fetchEligibleUsers = async () => {
+        setIsLoadingUsers(true);
+        try {
+          const response = await apiClient.get(
+            `/api/workflows/projects/${workflow.id}/eligible-handlers/`,
+          );
+          // แปลง Format เป็น { value, label } สำหรับ react-select
+          const options = response.data.map((u) => ({
+            value: u.id,
+            label: `${u.first_name} ${u.last_name} (${u.username})`,
+          }));
+          setUserOptions(options);
+
+          // เซ็ตค่าผู้รับผิดชอบเดิมที่มีอยู่แล้ว (ถ้ามี)
+          if (
+            workflow.handlers_details &&
+            workflow.handlers_details.length > 0
+          ) {
+            const currentSelected = workflow.handlers_details.map((u) => ({
+              value: u.id,
+              label: `${u.first_name} ${u.last_name} (${u.username})`,
+            }));
+            setSelectedHandlersOptions(currentSelected);
+          } else if (workflow.handlers && workflow.handlers.length > 0) {
+            // กรณีมีเฉพาะ IDs มาใน workflow.handlers
+            const currentSelected = options.filter((opt) =>
+              workflow.handlers.includes(opt.value),
+            );
+            setSelectedHandlersOptions(currentSelected);
+          }
+        } catch (error) {
+          console.error("Failed to fetch eligible handlers", error);
+        } finally {
+          setIsLoadingUsers(false);
+        }
+      };
+      fetchEligibleUsers();
+    }
+  }, [workflow]);
+
+  // ตั้งค่า Form Data ตาม prop workflow
   useEffect(() => {
     if (workflow) {
       setFormData({
@@ -39,7 +88,8 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
         start_date: workflow.start_date
           ? new Date(workflow.start_date).toISOString().split("T")[0]
           : "",
-        category: workflow.category?.id || "", // ✅ 5. ตั้งค่า category ปัจจุบัน
+        category: workflow.category?.id || "",
+        handlers: workflow.handlers || [],
       });
     }
   }, [workflow]);
@@ -49,13 +99,24 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // 🌟 Handler เมื่อมีการเปลี่ยนแปลงการเลือกผู้รับผิดชอบใน react-select
+  const handleHandlersChange = (selectedOptions) => {
+    const selected = selectedOptions || [];
+    setSelectedHandlersOptions(selected);
+    setFormData((prev) => ({
+      ...prev,
+      handlers: selected.map((opt) => opt.value),
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = {
       ...formData,
       budget_amount: formData.budget_amount || null,
       fiscal_year: formData.fiscal_year || null,
-      category: formData.category || null, // ✅ 6. ส่ง category ที่เลือก
+      category: formData.category || null,
+      handlers: formData.handlers, // 🌟 ส่งรายชื่อ User IDs ที่เลือก
     };
     onSubmit(payload);
   };
@@ -73,7 +134,6 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
         />
       </div>
 
-      {/* --- ✅ 7. เพิ่ม Dropdown สำหรับ Category --- */}
       <div className="form-group">
         <label htmlFor="category">Workflow Category</label>
         <select
@@ -92,6 +152,22 @@ function EditWorkflowForm({ workflow, onSubmit, onCancel }) {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* 🌟 เพิ่ม Multi-Select สำหรับเลือกผู้รับผิดชอบงาน */}
+      <div className="form-group">
+        <label htmlFor="handlers">Handlers (ผู้รับผิดชอบงาน)</label>
+        <Select
+          id="handlers"
+          isMulti
+          options={userOptions}
+          value={selectedHandlersOptions}
+          onChange={handleHandlersChange}
+          isLoading={isLoadingUsers}
+          placeholder="พิมพ์ชื่อ รหัสพนักงาน หรือเลือกรายชื่อ..."
+          noOptionsMessage={() => "ไม่พบรายชื่อพนักงานที่เกี่ยวข้อง"}
+          classNamePrefix="react-select"
+        />
       </div>
 
       <div className="form-group">

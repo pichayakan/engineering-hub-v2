@@ -13,6 +13,8 @@ import {
   FiCheckCircle,
   FiAlertTriangle,
   FiClock,
+  FiEye,
+  FiEyeOff,
 } from "react-icons/fi";
 import "./WorkflowDashboard.css";
 import "./AllTasksPage.css";
@@ -20,7 +22,6 @@ import "./AllTasksPage.css";
 const generateYearOptions = () => {
   const currentYear = new Date().getFullYear();
   const years = [];
-  // Generate a list of the current year + 1, and the 4 previous years
   for (let i = 0; i < 5; i++) {
     years.push(currentYear + 1 - i);
   }
@@ -53,6 +54,9 @@ function ProjectWorkflowListPage() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // ✅ State สำหรับซ่อน/แสดง Dashboard
+  const [showDashboard, setShowDashboard] = useState(false);
+
   const [fiscalYear, setFiscalYear] = useState("");
   const [paginationData, setPaginationData] = useState(null);
   const [workflowsUrl, setWorkflowsUrl] = useState("/api/workflows/projects/");
@@ -65,7 +69,6 @@ function ProjectWorkflowListPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        // (API Endpoint นี้เราสร้างไว้ในขั้นตอนก่อนหน้า)
         const res = await apiClient.get("/api/workflows/categories/");
         setCategories(res.data.results || res.data);
       } catch (error) {
@@ -73,7 +76,7 @@ function ProjectWorkflowListPage() {
       }
     };
     fetchCategories();
-  }, []); // ทำงานครั้งเดียวตอนเปิดหน้า
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -127,14 +130,47 @@ function ProjectWorkflowListPage() {
   return (
     <>
       <div className="dashboard-grid">
-        <div className="page-header" style={{ marginBottom: 0 }}>
-          <h1>Workflow Command Center</h1>
+        <div
+          className="page-header"
+          style={{ marginBottom: showDashboard ? "1rem" : "0" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <h1>ระบบติดตามงาน</h1>
+            {/* ✅ ปุ่มกด Toggle */}
+            <button
+              onClick={() => setShowDashboard(!showDashboard)}
+              className="btn-secondary"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.4rem 0.8rem",
+                fontSize: "0.85rem",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+                backgroundColor: "#fff",
+                cursor: "pointer",
+                color: "#333",
+              }}
+            >
+              {showDashboard ? (
+                <>
+                  <FiEyeOff /> Hide Dashboard
+                </>
+              ) : (
+                <>
+                  <FiEye /> Show Dashboard
+                </>
+              )}
+            </button>
+          </div>
           <Link to="/workflows/new" className="create-request-btn">
-            + New Project Workflow
+            + สร้างใหม่
           </Link>
         </div>
 
-        {summary && (
+        {/* ✅ แสดง Summary Cards เฉพาะเมื่อ showDashboard เป็น true (เหลือ 1 ชุด) */}
+        {showDashboard && summary && (
           <div className="summary-grid">
             <SummaryCard
               title="In Progress"
@@ -160,9 +196,13 @@ function ProjectWorkflowListPage() {
         )}
       </div>
 
-      <DashboardCharts fiscalYear={fiscalYear} />
+      {/* ✅ ครอบ DashboardCharts ด้วย showDashboard เพื่อให้ซ่อนกราฟได้สมบูรณ์ */}
+      {showDashboard && <DashboardCharts fiscalYear={fiscalYear} />}
 
-      <div className="filter-controls">
+      <div
+        className="filter-controls"
+        style={{ marginTop: showDashboard ? "0" : "1rem" }}
+      >
         <select
           value={fiscalYear}
           onChange={(e) => {
@@ -181,7 +221,7 @@ function ProjectWorkflowListPage() {
           value={categoryFilter}
           onChange={(e) => {
             setCategoryFilter(e.target.value);
-            setWorkflowsUrl("/api/workflows/projects/"); // Reset Paging
+            setWorkflowsUrl("/api/workflows/projects/");
           }}
         >
           <option value="">All Categories</option>
@@ -202,10 +242,11 @@ function ProjectWorkflowListPage() {
                 <th>Title</th>
                 <th>Category</th>
                 <th>PR Number</th>
+                <th>Handlers</th>
                 <th>Start Date</th>
                 <th>Current Step</th>
                 <th>Due Date (SLA)</th>
-                <th style={{ width: "20%" }}>Progress</th>
+                <th style={{ width: "18%" }}>Progress</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -215,7 +256,6 @@ function ProjectWorkflowListPage() {
                   const sla = getSlaStatus(flow.current_step?.due_date);
                   const total = flow.total_step_count || 0;
                   const current = flow.completed_step_count || 0;
-                  // (ป้องกันการหารด้วย 0 และปัดเศษ)
                   const percentage =
                     total > 0 ? Math.round((current / total) * 100) : 0;
                   return (
@@ -223,7 +263,7 @@ function ProjectWorkflowListPage() {
                       key={flow.id}
                       className={flow.is_completed ? "is-completed" : ""}
                     >
-                      <td>
+                      <td data-label="Title">
                         <Link
                           to={`/workflows/${flow.id}`}
                           className="task-title-link"
@@ -231,10 +271,28 @@ function ProjectWorkflowListPage() {
                           {flow.title}
                         </Link>
                       </td>
-                      <td>{flow.category?.name || "---"}</td>
-                      <td>{flow.pr_number || "---"}</td>
-                      <td>{formatDate(flow.start_date)}</td>
-                      <td>
+                      <td data-label="Category">
+                        {flow.category?.name || "---"}
+                      </td>
+                      <td data-label="PR Number">{flow.pr_number || "---"}</td>
+                      <td data-label="Handlers">
+                        {flow.handlers_details &&
+                        flow.handlers_details.length > 0 ? (
+                          <div className="handlers-badges-wrapper">
+                            {flow.handlers_details.map((user) => (
+                              <span key={user.id} className="handler-badge">
+                                {user.first_name || user.username}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{ color: "#adb5bd" }}>---</span>
+                        )}
+                      </td>
+                      <td data-label="Start Date">
+                        {formatDate(flow.start_date)}
+                      </td>
+                      <td data-label="Current Step">
                         {flow.is_completed ? (
                           <span style={{ color: "#198754", fontWeight: 500 }}>
                             Completed
@@ -247,7 +305,6 @@ function ProjectWorkflowListPage() {
                               gap: "2px",
                             }}
                           >
-                            {/* 1. ถ้ามี Step ที่กำลังทำอยู่ (In Progress) ให้โชว์เป็นตัวหลัก */}
                             {flow.current_step?.status === "IN_PROGRESS" ? (
                               <span
                                 style={{ color: "#0d6efd", fontWeight: 500 }}
@@ -255,13 +312,11 @@ function ProjectWorkflowListPage() {
                                 ▶ {flow.current_step.step.name}
                               </span>
                             ) : (
-                              // 2. ถ้าเป็น Pending (ยังไม่เริ่ม) ให้โชว์ชื่อ Step แต่อาจจะทำเป็นสีเทาๆ
                               <span style={{ color: "#6c757d" }}>
                                 Next: {flow.current_step?.step?.name || "---"}
                               </span>
                             )}
 
-                            {/* 3. ✅ ส่วนที่เพิ่ม: โชว์ Step ล่าสุดที่เพิ่งเสร็จ (ถ้ามี) */}
                             {flow.latest_completed_step && (
                               <small
                                 style={{ color: "#198754", fontSize: "0.85em" }}
@@ -272,16 +327,13 @@ function ProjectWorkflowListPage() {
                           </div>
                         )}
                       </td>
-                      <td className={`sla-text ${sla.className}`}>
+                      <td
+                        data-label="Due Date (SLA)"
+                        className={`sla-text ${sla.className}`}
+                      >
                         {flow.is_completed ? "---" : sla.text}
                       </td>
-                      {/* <td>
-                        <ProgressBar
-                          current={flow.completed_step_count}
-                          total={flow.total_step_count}
-                        />
-                      </td> */}
-                      <td>
+                      <td data-label="Progress">
                         <div className="progress-cell-wrapper">
                           <ProgressBar current={current} total={total} />
                           <span className="progress-percentage">
@@ -289,7 +341,7 @@ function ProjectWorkflowListPage() {
                           </span>
                         </div>
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <span
                           className={`status-badge ${
                             flow.is_completed
@@ -305,8 +357,7 @@ function ProjectWorkflowListPage() {
                 })
               ) : (
                 <tr>
-                  {/* ✅ Updated colspan to 7 */}
-                  <td colSpan="8">
+                  <td colSpan="9">
                     <EmptyState message="No workflows found for the selected filter." />
                   </td>
                 </tr>

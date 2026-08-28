@@ -235,13 +235,13 @@ function SignatureModal({
           onClick={() => handleTabClick("draw")}
           className={activeTab === "draw" ? "active" : ""}
         >
-          Draw
+          วาด
         </button>
         <button
           onClick={() => handleTabClick("type")}
           className={activeTab === "type" ? "active" : ""}
         >
-          Type
+          พิมพ์ข้อความ
         </button>
         <button
           onClick={() => handleTabClick("fixed")}
