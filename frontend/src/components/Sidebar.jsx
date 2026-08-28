@@ -69,7 +69,7 @@ function Sidebar({ isOpen, onClose }) {
                       onClick={() => setIsProcurementOpen(!isProcurementOpen)}
                     >
                       <div className="menu-toggle-left">
-                        <FiShoppingCart /> <span>ระบบติดตามงาน วขตป.</span>
+                        <FiShoppingCart /> <span>วขตป.</span>
                       </div>
                       <FiChevronDown className="menu-chevron" />
                     </div>
@@ -109,7 +109,7 @@ function Sidebar({ isOpen, onClose }) {
                     className="sidebar-link"
                     onClick={onClose}
                   >
-                    <FiFileText /> <span>ระบบติดตามงานจัดหาฯ</span>
+                    <FiFileText /> <span>ระบบติดตามงาน</span>
                   </NavLink>
                 </>
               )}

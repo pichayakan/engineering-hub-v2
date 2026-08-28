@@ -81,7 +81,7 @@ function ProjectWorkflowDetailPage() {
   const fetchWorkflowDetails = async () => {
     try {
       const response = await apiClient.get(
-        `/api/workflows/projects/${workflowId}/`
+        `/api/workflows/projects/${workflowId}/`,
       );
       setWorkflow(response.data);
     } catch (error) {
@@ -112,13 +112,13 @@ function ProjectWorkflowDetailPage() {
       const response = await apiClient.post(
         `/api/workflows/step-statuses/${currentStep.id}/update-status/`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        { headers: { "Content-Type": "multipart/form-data" } },
       );
       // อัปเดต State ของ workflow เพื่อให้ข้อมูลในตารางเปลี่ยนตาม
       setWorkflow((prev) => ({
         ...prev,
         step_statuses: prev.step_statuses.map((ss) =>
-          ss.id === currentStep.id ? response.data : ss
+          ss.id === currentStep.id ? response.data : ss,
         ),
       }));
       toast.success(`Step "${response.data.step.name}" updated successfully!`);
@@ -137,7 +137,7 @@ function ProjectWorkflowDetailPage() {
     try {
       const response = await apiClient.patch(
         `/api/workflows/projects/${workflowId}/`,
-        updatedData
+        updatedData,
       );
       setWorkflow(response.data);
       toast.success("Workflow details updated successfully!");
@@ -156,7 +156,7 @@ function ProjectWorkflowDetailPage() {
 
     const newDuration = window.prompt(
       `Enter new duration (in days) for step:\n"${stepStatus.step.name}"\n\n(Leave blank to use template default: ${stepStatus.step.duration_days} days)`,
-      currentDuration ?? ""
+      currentDuration ?? "",
     );
 
     if (newDuration !== null) {
@@ -169,7 +169,7 @@ function ProjectWorkflowDetailPage() {
     try {
       const response = await apiClient.post(
         `/api/workflows/step-statuses/${stepStatus.id}/set-duration/`,
-        { duration: newDuration }
+        { duration: newDuration },
       );
 
       // --- 🔴 THIS IS THE CRITICAL FIX 🔴 ---
@@ -241,6 +241,49 @@ function ProjectWorkflowDetailPage() {
               )}
             </button>
           </div>
+
+          {/* 🌟 แสดง Handlers ใต้ Title */}
+          <div
+            style={{
+              marginTop: "0.4rem",
+              marginBottom: "0.6rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "0.85rem",
+                color: "#6c757d",
+                fontWeight: "600",
+              }}
+            >
+              ผู้ได้รับมอบหมาย:
+            </span>
+            {workflow.handlers_details &&
+            workflow.handlers_details.length > 0 ? (
+              workflow.handlers_details.map((handler) => (
+                <span key={handler.id} className="group-tag">
+                  👤{" "}
+                  {handler.first_name && handler.last_name
+                    ? `${handler.first_name} ${handler.last_name}`
+                    : handler.username}
+                </span>
+              ))
+            ) : (
+              <span
+                style={{
+                  fontSize: "0.85rem",
+                  color: "#888",
+                  fontStyle: "italic",
+                }}
+              >
+                ยังไม่ได้ระบุผู้รับผิดชอบ
+              </span>
+            )}
+          </div>
           {isDetailsVisible && <WorkflowDetails workflow={workflow} />}
         </div>
         <button className="edit-workflow-btn" onClick={handleOpenEditModal}>
@@ -276,7 +319,7 @@ function ProjectWorkflowDetailPage() {
                 }
                 const userGroupIds = user?.groups || [];
                 return userGroupIds.some((userGroupId) =>
-                  responsibleGroupIds.includes(userGroupId)
+                  responsibleGroupIds.includes(userGroupId),
                 );
               };
               const canUpdate = checkUserPermission();
