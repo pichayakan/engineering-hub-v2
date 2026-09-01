@@ -94,7 +94,7 @@ function CompletedTasksWidget({ tasks }) {
                     {tasks
                       .slice(
                         pageIndex * tasksPerPage,
-                        (pageIndex + 1) * tasksPerPage
+                        (pageIndex + 1) * tasksPerPage,
                       )
                       .map((task) => (
                         <div key={task.id} className="file-card">
@@ -172,7 +172,7 @@ function RecentFilesWidget({ files }) {
                     {files
                       .slice(
                         pageIndex * filesPerPage,
-                        (pageIndex + 1) * filesPerPage
+                        (pageIndex + 1) * filesPerPage,
                       )
                       .map((file) => (
                         <div key={file.id} className="file-card">

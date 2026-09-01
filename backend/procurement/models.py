@@ -101,7 +101,7 @@ class ProcurementRequest(models.Model):
     เรื่องการจัดหาหนึ่งเรื่อง ที่ใช้ Workflow ใด Workflow หนึ่ง
     """
 
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=500)
     project = models.ForeignKey(
         Project,
         on_delete=models.SET_NULL,

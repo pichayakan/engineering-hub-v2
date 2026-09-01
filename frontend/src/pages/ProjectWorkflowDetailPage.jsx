@@ -298,7 +298,19 @@ function ProjectWorkflowDetailPage() {
               <th style={{ width: "3%" }}>#</th>
               <th style={{ width: "22%" }}>Step Name</th>
               <th style={{ width: "15%" }}>Responsible Group</th>
-              <th style={{ width: "10%" }}>Due Date (SLA)</th>
+              <th style={{ width: "10%" }}>
+                Due Date (SLA)
+                <small
+                  style={{
+                    display: "block",
+                    fontSize: "0.7rem",
+                    color: "red",
+                    fontWeight: "normal",
+                  }}
+                >
+                  (นับเฉพาะวันทำการ)
+                </small>
+              </th>
               <th style={{ width: "10%" }}>Status</th>
               <th style={{ width: "5%" }}>Notes</th>
               <th style={{ width: "10%" }}>Completed By</th>
