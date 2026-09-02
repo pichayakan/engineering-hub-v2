@@ -983,7 +983,6 @@ function ProcurementDetailPage() {
       toast.info("กำลังเตรียมเอกสาร...", { autoClose: 2000 });
       setCurrentPdfName(attachment.name);
 
-      // ✅ สกัดเฉพาะ pathname
       let relativePath = attachment.file;
       if (
         relativePath.startsWith("http://") ||
@@ -993,8 +992,9 @@ function ProcurementDetailPage() {
         relativePath = urlObj.pathname;
       }
 
-      // ✅ รวมร่างกับ SERVER_URL
-      const targetUrl = `${SERVER_URL}${relativePath}`;
+      // ✅ decodeURIComponent ก่อนหนึ่งรอบเพื่อล้างตัวที่ถอดมาครึ่งๆ กลางๆ แล้ว encodeURI ให้คลีนสมบูรณ์
+      const cleanPath = encodeURI(decodeURIComponent(relativePath));
+      const targetUrl = `${SERVER_URL}${cleanPath}`;
 
       const response = await apiClient.get(targetUrl, {
         responseType: "blob",
@@ -1031,8 +1031,8 @@ function ProcurementDetailPage() {
         relativePath = urlObj.pathname;
       }
 
-      // ✅ รวมร่างกับ SERVER_URL ( Localhost = http://localhost:8000/media/... | Server = /media/... )
-      const targetUrl = `${SERVER_URL}${relativePath}`;
+      const cleanPath = encodeURI(decodeURIComponent(relativePath));
+      const targetUrl = `${SERVER_URL}${cleanPath}`;
 
       const response = await apiClient.get(targetUrl, { responseType: "blob" });
       const blob = new Blob([response.data], { type: "application/pdf" });
