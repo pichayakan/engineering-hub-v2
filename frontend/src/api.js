@@ -4,9 +4,11 @@ import axios from "axios";
 // 1. ✅ กำหนดค่า Config กลางที่นี่จุดเดียว (Single Source of Truth)
 // ==========================================
 // เปลี่ยน IP ตรงนี้ที่เดียว มีผลทั้ง Project (ทั้ง API และ รูปภาพ)
-export const SERVER_URL = "http://202.139.196.7:8000";
+//export const SERVER_URL = "http://202.139.196.7:8000";
 //export const SERVER_URL = "http://172.22.16.28:8000";
 //export const SERVER_URL = "http://localhost:8000";
+//export const API_URL = `${SERVER_URL}/api`;
+export const SERVER_URL = import.meta.env.DEV ? "http://localhost:8000" : "";
 export const API_URL = `${SERVER_URL}/api`;
 
 // Helper: ฟังก์ชันดึง Token (ลด code ซ้ำซ้อน)
@@ -36,7 +38,9 @@ const clearTokens = () => {
 // 2. สร้าง Axios Instance
 // ==========================================
 const apiClient = axios.create({
-  baseURL: SERVER_URL, // ใช้ตัวแปรที่ประกาศด้านบน
+  // ✅ ใช้ SERVER_URL เป็น baseURL แทน (ตัด /api ออก)
+  // เวลาเรียก apiClient.get("/api/announcements/") จะกลายเป็น http://localhost:8000/api/announcements/ พอดี
+  baseURL: SERVER_URL,
   headers: {
     "Content-Type": "application/json",
   },
