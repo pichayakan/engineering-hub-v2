@@ -1,7 +1,8 @@
 // frontend/src/pages/ProcurementDetailPage.jsx
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import apiClient from "../api";
+//import apiClient from "../api";
+import apiClient, { SERVER_URL } from "../api";
 import { useAuth } from "../context/AuthContext";
 import ProcessStepper from "../components/ProcessStepper.jsx";
 import SignatureModal from "../components/SignatureModal.jsx";
@@ -32,6 +33,8 @@ import {
   FiPlus, // ✅ ปุ่ม Zoom +
   FiMinus, // ✅ ปุ่ม Zoom -
 } from "react-icons/fi";
+
+//import apiClient, { SERVER_URL } from "../api";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
 
@@ -965,7 +968,6 @@ function ProcurementDetailPage() {
   //   setHasViewedPdf(true);
   // };
   const handleViewPdf = async (attachment) => {
-    // 1. Logic เดิม: เช็คสิทธิ์การเซ็น
     const latestHistoryId =
       request.history.length > 0
         ? request.history[request.history.length - 1].id
@@ -977,23 +979,28 @@ function ProcurementDetailPage() {
       setCanSignCurrentPdf(false);
     }
 
-    // 2. Logic ใหม่: โหลดไฟล์เป็น Blob แทนการใช้ URL ตรงๆ
     try {
-      // แสดง Loading แจ้ง User ว่ากำลังโหลดไฟล์
       toast.info("กำลังเตรียมเอกสาร...", { autoClose: 2000 });
-
-      // ✅ 1. จำชื่อไฟล์จริงเอาไว้ (เช่น "ใบเสนอราคา.pdf")
       setCurrentPdfName(attachment.name);
 
-      // เรียก API ไปที่ URL ของไฟล์ (apiClient จะแนบ Token ไปให้)
-      const response = await apiClient.get(attachment.file, {
-        responseType: "blob", // ⚠️ สำคัญมาก: บอกให้รับค่าเป็นไฟล์ Binary
+      // ✅ สกัดเฉพาะ pathname
+      let relativePath = attachment.file;
+      if (
+        relativePath.startsWith("http://") ||
+        relativePath.startsWith("https://")
+      ) {
+        const urlObj = new URL(relativePath);
+        relativePath = urlObj.pathname;
+      }
+
+      // ✅ รวมร่างกับ SERVER_URL
+      const targetUrl = `${SERVER_URL}${relativePath}`;
+
+      const response = await apiClient.get(targetUrl, {
+        responseType: "blob",
       });
 
-      // สร้าง Blob URL (Link ชั่วคราวใน Memory)
       const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-
-      // set URL ใหม่ที่เป็น Blob (เปิดได้เฉพาะเครื่องนี้)
       setSelectedPdfUrl(blobUrl);
       setHasViewedPdf(true);
     } catch (error) {
@@ -1003,64 +1010,47 @@ function ProcurementDetailPage() {
   };
 
   const handleSecureDownload = async (fileUrl, fileName) => {
-    // ----------------------------------------------------------------
-    // 1. ด่านตรวจ: เช็คว่าเป็น LINE In-App Browser หรือไม่?
-    // ----------------------------------------------------------------
-    // LINE ไม่รองรับการดาวน์โหลด Blob หรือไฟล์ที่ต้อง Auth ซับซ้อน
-    // จึงต้องแจ้งให้ User ไปเปิด Browser จริงๆ แทน
     const userAgent = navigator.userAgent || navigator.vendor || window.opera;
     const isLine = /Line/i.test(userAgent);
 
     if (isLine) {
       alert(
         "⚠️ ไม่สามารถดาวน์โหลดไฟล์ผ่าน LINE ได้\n\n" +
-          "กรุณากดที่เมนูมุมขวาบน (สัญลักษณ์ ⋮ หรือ ↗️)\n" +
-          "แล้วเลือก 'เปิดในเบราว์เซอร์' (Open in external browser) เพื่อดาวน์โหลด",
+          "กรุณากดที่เมนูมุมขวาบน แล้วเลือก 'เปิดในเบราว์เซอร์' เพื่อดาวน์โหลด",
       );
-      return; // ⛔ จบการทำงานทันที ไม่ต้องไปโหลดไฟล์ให้เสียเวลา
+      return;
     }
 
-    // แจ้งเตือน User ว่าเริ่มทำงานแล้ว
     toast.info("กำลังเตรียมดาวน์โหลด...", { autoClose: 2000 });
 
     try {
-      // ----------------------------------------------------------------
-      // 2. ดึงข้อมูลไฟล์จาก Backend (ผ่าน apiClient เพื่อพ่วง Token)
-      // ----------------------------------------------------------------
-      const response = await apiClient.get(fileUrl, { responseType: "blob" });
+      // ✅ สกัดเฉพาะ pathname (ตัด domain/port เดิมออกถ้ามี)
+      let relativePath = fileUrl;
+      if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
+        const urlObj = new URL(fileUrl);
+        relativePath = urlObj.pathname;
+      }
 
-      // สร้าง Blob Object จากข้อมูลที่ได้
-      // สำคัญ: ต้องระบุ type เป็น application/pdf เพื่อให้ Browser รู้จักชนิดไฟล์
+      // ✅ รวมร่างกับ SERVER_URL ( Localhost = http://localhost:8000/media/... | Server = /media/... )
+      const targetUrl = `${SERVER_URL}${relativePath}`;
+
+      const response = await apiClient.get(targetUrl, { responseType: "blob" });
       const blob = new Blob([response.data], { type: "application/pdf" });
       const blobUrl = window.URL.createObjectURL(blob);
 
-      // ----------------------------------------------------------------
-      // 3. แยกการทำงานตามอุปกรณ์ (Mobile vs PC)
-      // ----------------------------------------------------------------
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       if (isMobile) {
-        // ✅ กรณี Mobile (iOS/Android):
-        // ใช้ window.location.assign เพื่อเปลี่ยนหน้าปัจจุบันเป็นไฟล์ PDF
-        // วิธีนี้แก้ปัญหา "หน้าขาว" (Blank Page) บน Safari iOS ได้ 100%
-        // และแก้ปัญหา Pop-up Blocker ได้ดีกว่า window.open
         window.location.assign(blobUrl);
       } else {
-        // ✅ กรณี PC/Desktop:
-        // ใช้วิธีสร้าง <a> tag จำลองเพื่อสั่ง Auto Download ลงเครื่อง
         const link = document.createElement("a");
         link.href = blobUrl;
-        link.setAttribute("download", fileName); // ตั้งชื่อไฟล์ตอนเซฟ
+        link.setAttribute("download", fileName);
         document.body.appendChild(link);
-        link.click(); // จำลองการกดคลิก
-        link.remove(); // ลบทิ้งหลังกดเสร็จ
+        link.click();
+        link.remove();
       }
 
-      // ----------------------------------------------------------------
-      // 4. Cleanup Memory
-      // ----------------------------------------------------------------
-      // ตั้งเวลาล้าง Blob URL ออกจาก Memory
-      // ตั้งไว้นานหน่อย (60วิ) เผื่อใน Mobile Browser User ต้องการเวลาในการ render PDF
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
     } catch (error) {
       console.error("Download error:", error);
