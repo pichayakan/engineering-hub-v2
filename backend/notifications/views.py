@@ -160,7 +160,7 @@ def line_webhook(request):
                             send_line_push_message(current_user, msg)
 
                     # -------------------------------------------------------------
-                    # 3. คำสั่งเช็คปฏิทินนัดหมาย (ดึงช่วงเวลาที่ถูกต้อง)
+                    # 3. คำสั่งเช็คปฏิทินนัดหมาย (ปฏิทินกลางส่วน วขตป.)
                     # -------------------------------------------------------------
                     elif user_text in ['ปฏิทิน', 'นัดหมาย', 'ตารางงาน', 'schedule', 'today']:
                         now = timezone.localtime(timezone.now())
@@ -178,10 +178,8 @@ def line_webhook(request):
                         end_of_week_date = today + \
                             timedelta(days=(6 - today.weekday()))
 
-                        # 🔍 Query นัดหมาย (กรองเฉพาะรายการของผู้ใช้ปัจจุบัน)
+                        # 🔍 Query ดึงนัดหมายทั้งหมดในระบบ (ไม่กรอง User) สำหรับเป็นปฏิทินกลาง
                         all_events = CalendarEvent.objects.filter(
-                            Q(created_by=current_user) | Q(
-                                participants=current_user),
                             start_time__gte=start_of_today,
                             start_time__lte=end_of_month
                         ).distinct().order_by('start_time')
@@ -203,7 +201,7 @@ def line_webhook(request):
                                     later_this_month_events.append(
                                         (ev, local_start))
 
-                            msg = f"📅 **ปฏิทินนัดหมายของคุณ {current_user.first_name or current_user.username}**\n"
+                            msg = f"📅 **ปฏิทินนัดหมายส่วนวิศกรรมและบริหารโครงข่าย (วขตป.)**\n"
                             msg += f"ประจำเดือน {today.strftime('%B %Y')}\n"
                             msg += "========================================\n\n"
 
@@ -237,10 +235,10 @@ def line_webhook(request):
                                     msg += f"  • [{local_start.strftime('%d/%m')} - อีก {days_diff} วัน] {ev.title} ({local_start.strftime('%H:%M')} น.)\n"
                                 msg += "\n"
 
-                            msg += "🔗 ดูปฏิทินทั้งหมดบนระบบเว็บ:\nhttps://tasktracker-bot.com/calendar"
+                            msg += "🔗 เปิดดูปฏิทินทั้งหมดบนระบบเว็บ:\nhttps://tasktracker-bot.com/calendar"
                         else:
-                            msg = f"📅 **ปฏิทินนัดหมายประจำเดือน {today.strftime('%B %Y')}**\n"
-                            msg += f"🎉 คุณ {current_user.first_name or current_user.username} (Username: {current_user.username}) ไม่มีรายการนัดหมายตั้งแต่วันนี้ถึงสิ้นเดือนครับ"
+                            msg = f"📅 **ปฏิทินนัดหมายส่วน วขตป. ประจำเดือน {today.strftime('%B %Y')}**\n"
+                            msg += f"🎉 ไม่มีรายการนัดหมายตั้งแต่วันนี้ถึงสิ้นเดือนครับ"
 
                         if current_user.notify_enabled:
                             send_line_push_message(current_user, msg)
