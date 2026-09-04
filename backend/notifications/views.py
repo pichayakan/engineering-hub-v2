@@ -1,9 +1,12 @@
 import json
-from datetime import date
+from datetime import date, datetime, time, timedelta
+import calendar
+
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.utils import timezone
 
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
@@ -17,7 +20,7 @@ from .line_utils import send_line_push_message
 
 # 🔹 Import Models สำหรับ Workflow และ Calendar
 from workflows.models import ProjectWorkflow
-from api.models import CalendarEvent  # ดึงจาก app api ที่เก็บ CalendarEvent ไว้
+from api.models import CalendarEvent
 
 User = get_user_model()
 
@@ -91,135 +94,96 @@ def line_webhook(request):
                             if user.notify_enabled:
                                 send_line_push_message(
                                     user,
-                                    f"✅ ผูกบัญชี LINE กับผู้ใช้งาน '{user.username}' เรียบร้อยแล้วครับ!"
+                                    f"✅ ผูกบัญชี LINE กับผู้ใช้งาน '{user.username}' (ID: {user.id}) เรียบร้อยแล้วครับ!"
                                 )
+                        else:
+                            # ถ้าไม่พบ User ให้ Push แจ้งเตือนกลับ
+                            temp_user = User(line_user_id=line_user_id)
+                            send_line_push_message(
+                                temp_user,
+                                f"❌ ไม่พบชื่อผู้ใช้งานหรืออีเมล '{identifier}' ในระบบครับ"
+                            )
                         continue
 
-                    # ค้นหา User จาก line_user_id สำหรับคำสั่งถัดๆ ไป
+                    # ค้นหา User จาก line_user_id
                     current_user = User.objects.filter(
                         line_user_id=line_user_id).first()
                     if not current_user:
                         continue
 
                     # -------------------------------------------------------------
-                    # 2. คำสั่งเช็คงาน Workflow (แสดง Note สำหรับเสนอเจ้านาย)
+                    # 2. คำสั่งเช็คงาน Workflow (แสดง Note)
                     # -------------------------------------------------------------
-                    elif user_text in ['ปฏิทิน', 'นัดหมาย', 'ตารางงาน', 'schedule', 'today']:
-                        from datetime import timedelta
-                        from django.utils import timezone  # 👈 ใช้ timezone ของ Django
-                        import calendar
+                    if user_text in ['งาน', 'workflow', 'workflows', 'งานค้าง', 'จัดซื้อ']:
+                        user_groups = current_user.groups.all()
 
-                        # ดึงวันที่ปัจจุบันตาม Timezone ของ Server/ระบบ (Asia/Bangkok)
-                        now = timezone.localtime(timezone.now())
-                        today = now.date()
+                        user_workflows = ProjectWorkflow.objects.filter(
+                            is_completed=False
+                        ).filter(
+                            Q(created_by=current_user) |
+                            Q(handlers=current_user) |
+                            Q(step_statuses__status__in=['IN_PROGRESS', 'PENDING'],
+                              step_statuses__step__responsible_groups__in=user_groups)
+                        ).distinct().order_by('-created_at')[:5]
 
-                        end_of_week = today + \
-                            timedelta(days=(6 - today.weekday()))
-                        _, last_day_of_month = calendar.monthrange(
-                            today.year, today.month)
-                        end_of_month = date(
-                            today.year, today.month, last_day_of_month)
+                        if user_workflows.exists():
+                            msg = f"📊 **ระบบติดตามงาน Workflow (Task Tracker)**\n"
+                            msg += f"ผู้ใช้งาน: {current_user.first_name or current_user.username}\n"
+                            msg += "----------------------------------------\n\n"
 
-                        # 🔍 Query นัดหมาย (ใช้วันที่กรองจาก DB)
-                        all_events = CalendarEvent.objects.filter(
-                            Q(created_by=current_user) | Q(
-                                participants=current_user),
-                            start_time__date__gte=today,
-                            start_time__date__lte=end_of_month
-                        ).distinct().order_by('start_time')
+                            for idx, wf in enumerate(user_workflows, 1):
+                                curr_step = wf.current_step
+                                step_name = curr_step.step.name if curr_step else "ไม่ระบุสเต็ป"
+                                due_date_str = curr_step.due_date.strftime(
+                                    '%d/%m/%Y') if (curr_step and curr_step.due_date) else "-"
+                                step_note = curr_step.notes.strip() if (
+                                    curr_step and curr_step.notes) else "ไม่มีหมายเหตุ"
 
-                        if all_events.exists():
-                            today_events = []
-                            this_week_events = []
-                            later_this_month_events = []
+                                handlers_list = ", ".join(
+                                    [h.first_name or h.username for h in wf.handlers.all()])
+                                if not handlers_list:
+                                    handlers_list = "ยังไม่ระบุผู้รับผิดชอบ"
 
-                            for ev in all_events:
-                                # 💡 จุดสำคัญ: แปลง start_time เป็น Localtime ของไทยก่อนดึง .date()
-                                local_start_time = timezone.localtime(
-                                    ev.start_time)
-                                ev_date = local_start_time.date()
+                                msg += f"{idx}. **{wf.title}**\n"
+                                if wf.pr_number:
+                                    msg += f"   • เลขที่ PR: {wf.pr_number}\n"
+                                msg += f"   • ขั้นตอนปัจจุบัน: {step_name}\n"
+                                msg += f"   • ผู้รับผิดชอบ (Handlers): {handlers_list}\n"
+                                msg += f"   • กำหนดเสร็จสเต็ปนี้: {due_date_str}\n"
+                                msg += f"   • 📝 Note: {step_note}\n\n"
 
-                                if ev_date == today:
-                                    today_events.append((ev, local_start_time))
-                                elif ev_date <= end_of_week:
-                                    this_week_events.append(
-                                        (ev, local_start_time))
-                                else:
-                                    later_this_month_events.append(
-                                        (ev, local_start_time))
-
-                            msg = f"📅 **ปฏิทินนัดหมายของคุณ {current_user.first_name or current_user.username}**\n"
-                            msg += f"ประจำเดือน {today.strftime('%B %Y')}\n"
-                            msg += "========================================\n\n"
-
-                            # 🟢 1. วันนี้
-                            msg += f"📌 **วันนี้ ({today.strftime('%d/%m/%Y')}):**\n"
-                            if today_events:
-                                for ev, local_time in today_events:
-                                    local_end_time = timezone.localtime(
-                                        ev.end_time)
-                                    start_t = local_time.strftime('%H:%M')
-                                    end_t = local_end_time.strftime('%H:%M')
-                                    msg += f"  • {ev.title} ({start_t} - {end_t} น.)\n"
-                            else:
-                                msg += "  • ไม่มีนัดหมายสำหรับวันนี้\n"
-                            msg += "\n"
-
-                            # 🔵 2. สัปดาห์นี้
-                            msg += "🗓️ **สัปดาห์นี้:**\n"
-                            if this_week_events:
-                                for ev, local_time in this_week_events:
-                                    days_diff = (
-                                        local_time.date() - today).days
-                                    date_str = local_time.strftime('%d/%m')
-                                    start_t = local_time.strftime('%H:%M')
-                                    msg += f"  • [{date_str} - อีก {days_diff} วัน] {ev.title} ({start_t} น.)\n"
-                            else:
-                                msg += "  • ไม่มีนัดหมายเพิ่มเติมในสัปดาห์นี้\n"
-                            msg += "\n"
-
-                            # 🟣 3. ถัดไปในเดือนนี้
-                            if later_this_month_events:
-                                msg += "📆 **ช่วงถัดไปในเดือนนี้:**\n"
-                                for ev, local_time in later_this_month_events:
-                                    days_diff = (
-                                        local_time.date() - today).days
-                                    date_str = local_time.strftime('%d/%m')
-                                    start_t = local_time.strftime('%H:%M')
-                                    msg += f"  • [{date_str} - อีก {days_diff} วัน] {ev.title} ({start_t} น.)\n"
-                                msg += "\n"
-
-                            msg += "🔗 ดูปฏิทินทั้งหมดบนระบบเว็บ:\nhttps://tasktracker-bot.com/calendar"
+                            msg += "🔗 เปิดดูรายละเอียดบนระบบเว็บ:\nhttps://tasktracker-bot.com/workflows"
                         else:
-                            msg = f"📅 **ปฏิทินนัดหมายประจำเดือน {today.strftime('%B %Y')}**\n"
-                            msg += f"🎉 คุณ {current_user.first_name or current_user.username} ไม่มีรายการนัดหมายตั้งแต่วันนี้ถึงสิ้นเดือนครับ"
+                            msg = f"🎉 ไม่พบรายการงาน Workflow ที่ค้างดำเนินการในขณะนี้ครับ"
 
                         if current_user.notify_enabled:
                             send_line_push_message(current_user, msg)
 
                     # -------------------------------------------------------------
-                    # 3. คำสั่งเช็คปฏิทินนัดหมาย (แบ่งกลุ่ม: วันนี้ / สัปดาห์นี้ / เดือนนี้)
+                    # 3. คำสั่งเช็คปฏิทินนัดหมาย (ดึงช่วงเวลาที่ถูกต้อง)
                     # -------------------------------------------------------------
                     elif user_text in ['ปฏิทิน', 'นัดหมาย', 'ตารางงาน', 'schedule', 'today']:
-                        from datetime import datetime, time, timedelta
-                        import calendar
+                        now = timezone.localtime(timezone.now())
+                        today = now.date()
 
-                        today = date.today()
-                        # หาวันสุดท้ายของสัปดาห์นี้ (วันอาทิตย์)
-                        end_of_week = today + \
-                            timedelta(days=(6 - today.weekday()))
-                        # หาวันสุดท้ายของเดือนนี้
-                        _, last_day_of_month = calendar.monthrange(
+                        start_of_today = timezone.make_aware(
+                            datetime.combine(today, time.min))
+                        _, last_day = calendar.monthrange(
                             today.year, today.month)
-                        end_of_month = date(
-                            today.year, today.month, last_day_of_month)
+                        end_of_month_date = date(
+                            today.year, today.month, last_day)
+                        end_of_month = timezone.make_aware(
+                            datetime.combine(end_of_month_date, time.max))
 
-                        # 🔍 Query ดึงนัดหมายตั้งแต่วันนี้จนถึงสิ้นเดือน
+                        end_of_week_date = today + \
+                            timedelta(days=(6 - today.weekday()))
+
+                        # 🔍 Query นัดหมาย (กรองเฉพาะรายการของผู้ใช้ปัจจุบัน)
                         all_events = CalendarEvent.objects.filter(
                             Q(created_by=current_user) | Q(
                                 participants=current_user),
-                            start_time__date__gte=today,
-                            start_time__date__lte=end_of_month
+                            start_time__gte=start_of_today,
+                            start_time__lte=end_of_month
                         ).distinct().order_by('start_time')
 
                         if all_events.exists():
@@ -227,59 +191,85 @@ def line_webhook(request):
                             this_week_events = []
                             later_this_month_events = []
 
-                            # แยกหมวดหมู่นัดหมาย
                             for ev in all_events:
-                                ev_date = ev.start_time.date()
+                                local_start = timezone.localtime(ev.start_time)
+                                ev_date = local_start.date()
+
                                 if ev_date == today:
-                                    today_events.append(ev)
-                                elif ev_date <= end_of_week:
-                                    this_week_events.append(ev)
+                                    today_events.append((ev, local_start))
+                                elif ev_date <= end_of_week_date:
+                                    this_week_events.append((ev, local_start))
                                 else:
-                                    later_this_month_events.append(ev)
+                                    later_this_month_events.append(
+                                        (ev, local_start))
 
                             msg = f"📅 **ปฏิทินนัดหมายของคุณ {current_user.first_name or current_user.username}**\n"
                             msg += f"ประจำเดือน {today.strftime('%B %Y')}\n"
                             msg += "========================================\n\n"
 
-                            # 🟢 1. วันนี้
+                            # 📌 วันนี้
                             msg += f"📌 **วันนี้ ({today.strftime('%d/%m/%Y')}):**\n"
                             if today_events:
-                                for ev in today_events:
-                                    start_t = ev.start_time.strftime('%H:%M')
-                                    end_t = ev.end_time.strftime('%H:%M')
-                                    msg += f"  • {ev.title} ({start_t} - {end_t} น.)\n"
+                                for ev, local_start in today_events:
+                                    local_end = timezone.localtime(ev.end_time)
+                                    msg += f"  • {ev.title} ({local_start.strftime('%H:%M')} - {local_end.strftime('%H:%M')} น.)\n"
                             else:
                                 msg += "  • ไม่มีนัดหมายสำหรับวันนี้\n"
                             msg += "\n"
 
-                            # 🔵 2. สัปดาห์นี้ (ไม่รวมวันนี้)
+                            # 🗓️ สัปดาห์นี้
                             msg += "🗓️ **สัปดาห์นี้:**\n"
                             if this_week_events:
-                                for ev in this_week_events:
+                                for ev, local_start in this_week_events:
                                     days_diff = (
-                                        ev.start_time.date() - today).days
-                                    date_str = ev.start_time.strftime('%d/%m')
-                                    start_t = ev.start_time.strftime('%H:%M')
-                                    msg += f"  • [{date_str} - อีก {days_diff} วัน] {ev.title} ({start_t} น.)\n"
+                                        local_start.date() - today).days
+                                    msg += f"  • [{local_start.strftime('%d/%m')} - อีก {days_diff} วัน] {ev.title} ({local_start.strftime('%H:%M')} น.)\n"
                             else:
                                 msg += "  • ไม่มีนัดหมายเพิ่มเติมในสัปดาห์นี้\n"
                             msg += "\n"
 
-                            # 🟣 3. ถัดไปในเดือนนี้
+                            # 📆 ช่วงถัดไปในเดือนนี้
                             if later_this_month_events:
                                 msg += "📆 **ช่วงถัดไปในเดือนนี้:**\n"
-                                for ev in later_this_month_events:
+                                for ev, local_start in later_this_month_events:
                                     days_diff = (
-                                        ev.start_time.date() - today).days
-                                    date_str = ev.start_time.strftime('%d/%m')
-                                    start_t = ev.start_time.strftime('%H:%M')
-                                    msg += f"  • [{date_str} - อีก {days_diff} วัน] {ev.title} ({start_t} น.)\n"
+                                        local_start.date() - today).days
+                                    msg += f"  • [{local_start.strftime('%d/%m')} - อีก {days_diff} วัน] {ev.title} ({local_start.strftime('%H:%M')} น.)\n"
                                 msg += "\n"
 
                             msg += "🔗 ดูปฏิทินทั้งหมดบนระบบเว็บ:\nhttps://tasktracker-bot.com/calendar"
                         else:
                             msg = f"📅 **ปฏิทินนัดหมายประจำเดือน {today.strftime('%B %Y')}**\n"
-                            msg += f"🎉 คุณ {current_user.first_name or current_user.username} ไม่มีรายการนัดหมายตั้งแต่วันนี้ถึงสิ้นเดือนครับ"
+                            msg += f"🎉 คุณ {current_user.first_name or current_user.username} (Username: {current_user.username}) ไม่มีรายการนัดหมายตั้งแต่วันนี้ถึงสิ้นเดือนครับ"
+
+                        if current_user.notify_enabled:
+                            send_line_push_message(current_user, msg)
+
+                    # -------------------------------------------------------------
+                    # 4. คำสั่งเช็คสถานะบัญชี (Status Check)
+                    # -------------------------------------------------------------
+                    elif user_text in ['สถานะ', 'status']:
+                        msg = f"👤 **ข้อมูลสถานะการเชื่อมต่อ LINE**\n"
+                        msg += f"• ชื่อผู้ใช้งาน: {current_user.username}\n"
+                        msg += f"• ชื่อ-นามสกุล: {current_user.get_full_name() or '-'}\n"
+                        msg += f"• สถานะการแจ้งเตือน: {'✅ เปิด' if current_user.notify_enabled else '❌ ปิด'}\n"
+                        msg += f"• LINE User ID: {line_user_id[:10]}..."
+
+                        if current_user.notify_enabled:
+                            send_line_push_message(current_user, msg)
+
+                    # -------------------------------------------------------------
+                    # 5. คำสั่งช่วยเหลือ (Help / Guide)
+                    # -------------------------------------------------------------
+                    elif user_text in ['ช่วยเหลือ', 'help', 'คู่มือ']:
+                        msg = f"💡 **คำสั่งที่รองรับในระบบ LINE OA**\n\n"
+                        msg += f"1. พิมพ์ **`งาน`** : เช็ครายการงาน Workflow ที่ค้างอยู่\n"
+                        msg += f"2. พิมพ์ **`ปฏิทิน`** : เช็คตารางนัดหมายประจำเดือนนี้\n"
+                        msg += f"3. พิมพ์ **`สถานะ`** : ตรวจสอบข้อมูลบัญชีที่ผูกไว้\n"
+                        msg += f"4. พิมพ์ **`bind <username>`** : ผูกบัญชีใช้งานกับระบบ\n\n"
+                        msg += f"----------------------------------------\n"
+                        msg += f"ส่วนวิศวกรรมและบริหารโครงข่าย (วขตป.)\n"
+                        msg += f"โทร. 043-235668"
 
                         if current_user.notify_enabled:
                             send_line_push_message(current_user, msg)
