@@ -1,7 +1,7 @@
 // frontend/src/pages/ProjectWorkflowDetailPage.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import apiClient from "../api";
+import apiClient, { SERVER_URL } from "../api";
 import Modal from "../components/Modal";
 import UpdateStepStatusForm from "../components/workflows/UpdateStepStatusForm";
 import EditWorkflowForm from "../components/workflows/EditWorkflowForm";
@@ -209,6 +209,81 @@ function ProjectWorkflowDetailPage() {
     return { text: `${diffDays}d left`, className: "sla-on-time" };
   };
 
+  const getCleanFileUrl = (fileUrl) => {
+    if (!fileUrl) return "#";
+
+    let relativePath = fileUrl;
+    if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
+      try {
+        const urlObj = new URL(fileUrl);
+        relativePath = urlObj.pathname;
+      } catch (e) {
+        console.error("Invalid URL:", fileUrl);
+      }
+    }
+
+    // คลีน Path ป้องกันปัญหาภาษาไทย ช่องว่าง และ Path ซ้ำซ้อน
+    const cleanPath = encodeURI(decodeURIComponent(relativePath));
+    return `${SERVER_URL}${cleanPath}`;
+  };
+
+  const handleViewWorkflowFile = async (e, fileUrl, fileName) => {
+    e.preventDefault();
+
+    // 🛑 ดักจับถ้า Backend ส่ง file:/// หรือ path เสียมา
+    if (!fileUrl || fileUrl.startsWith("file://")) {
+      toast.error("เส้นทางไฟล์ไม่ถูกต้อง (ระบบบันทึกเป็น Local Path)");
+      return;
+    }
+
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    const isLine = /Line/i.test(userAgent);
+    if (isLine) {
+      alert("⚠️ กรุณากดเปิดในเบราว์เซอร์เพื่อดาวน์โหลดไฟล์");
+      return;
+    }
+
+    toast.info("กำลังเตรียมดาวน์โหลด...", { autoClose: 2000 });
+
+    try {
+      let relativePath = fileUrl;
+      if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
+        try {
+          const urlObj = new URL(fileUrl);
+          relativePath = urlObj.pathname;
+        } catch (err) {
+          console.error("URL parsing error:", err);
+        }
+      }
+
+      const cleanPath = encodeURI(decodeURIComponent(relativePath));
+      const targetUrl = `${SERVER_URL}${cleanPath}`;
+
+      // ยิงผ่าน apiClient เพื่อเอา Binary Blob
+      const response = await apiClient.get(targetUrl, { responseType: "blob" });
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        window.location.assign(blobUrl);
+      } else {
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.setAttribute("download", fileName || "document.pdf");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("ไม่สามารถดาวน์โหลดไฟล์ได้ กรุณาลองใหม่อีกครั้ง");
+    }
+  };
+
   if (loading) return <div>Loading workflow details...</div>;
   if (!workflow) return <div>Could not load workflow data.</div>;
 
@@ -408,14 +483,25 @@ function ProjectWorkflowDetailPage() {
                     <div className="cell-content-wrapper attachments-cell">
                       {status.attachments.length > 0
                         ? status.attachments.map((att) => (
-                            <a
+                            <button
                               key={att.id}
-                              href={att.file}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              type="button"
+                              className="file-download-btn"
+                              onClick={(e) =>
+                                handleViewWorkflowFile(e, att.file, att.name)
+                              }
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: "#0d6efd",
+                                textDecoration: "underline",
+                                cursor: "pointer",
+                                padding: 0,
+                                fontSize: "inherit",
+                              }}
                             >
                               📎 {att.name}
-                            </a>
+                            </button>
                           ))
                         : "No files"}
                     </div>
