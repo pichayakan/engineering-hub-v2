@@ -63,31 +63,52 @@ function EditEventModal({
 
   if (!isOpen || !event) return null;
 
+  // 🟢 ยิง API แก้ไขนัดหมายตรงนี้
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
     setIsSubmitting(true);
+
     const participantIds = participants.map((p) => p.value);
+
     try {
-      await onEventUpdated({
+      await apiClient.put(`/api/events/${event.id}/`, {
         title,
         description,
         start_time: startTime,
         end_time: endTime,
         participants: participantIds,
       });
+
+      if (onEventUpdated) {
+        await onEventUpdated(); // รีเฟรชหน้า HomePage
+      }
       onClose();
     } catch (error) {
       console.error("Failed to update event", error);
-      alert("ไม่สามารถแก้ไขนัดหมายได้");
+      alert("ไม่สามารถบันทึกการแก้ไขได้ กรุณาตรวจสอบข้อมูลอีกครั้ง");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = () => {
+  // 🔴 ยิง API ลบนัดหมายตรงนี้
+  const handleDelete = async () => {
     if (window.confirm("คุณต้องการลบนัดหมายนี้ใช่หรือไม่?")) {
-      onDeleteEvent(event.id);
+      setIsSubmitting(true);
+      try {
+        await apiClient.delete(`/api/events/${event.id}/`);
+
+        if (onDeleteEvent) {
+          await onDeleteEvent(); // รีเฟรชหน้า HomePage
+        }
+        onClose();
+      } catch (error) {
+        console.error("Failed to delete event", error);
+        alert("ไม่สามารถลบนัดหมายได้");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -170,7 +191,7 @@ function EditEventModal({
               onClick={handleDelete}
               disabled={isSubmitting}
             >
-              🗑️ ลบนัดหมาย
+              {isSubmitting ? "กำลังลบ..." : "🗑️ ลบนัดหมาย"}
             </button>
             <div className="edit-event-footer-right">
               <button

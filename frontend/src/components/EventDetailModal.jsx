@@ -1,19 +1,34 @@
 // frontend/src/components/EventDetailModal.jsx
-import React from "react";
+import React, { useState } from "react";
+import apiClient from "../api";
 import "./EventDetailModal.css";
 import { useAuth } from "../context/AuthContext";
 
 function EventDetailModal({ event, onClose, onEdit, onDelete }) {
   const { user } = useAuth();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!event) return null;
 
   const isCreator =
     user && event.created_by_details && user.id === event.created_by_details.id;
 
-  const handleDelete = () => {
+  // 🟢 เพิ่มฟังก์ชันยิง API ลบตรงนี้
+  const handleDelete = async () => {
     if (window.confirm("คุณต้องการลบนัดหมายนี้ใช่หรือไม่?")) {
-      onDelete(event.id);
+      setIsDeleting(true);
+      try {
+        await apiClient.delete(`/api/events/${event.id}/`);
+        if (onDelete) {
+          await onDelete(); // เรียก handleEventChange เพื่อรีเฟรชหน้าเว็บ
+        }
+        onClose();
+      } catch (error) {
+        console.error("Failed to delete event:", error);
+        alert("ไม่สามารถลบนัดหมายได้ กรุณาลองใหม่อีกครั้ง");
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -39,11 +54,16 @@ function EventDetailModal({ event, onClose, onEdit, onDelete }) {
                 <button
                   className="event-btn-edit"
                   onClick={() => onEdit(event)}
+                  disabled={isDeleting}
                 >
                   ✏️ แก้ไข
                 </button>
-                <button className="event-btn-delete" onClick={handleDelete}>
-                  🗑️ ลบ
+                <button
+                  className="event-btn-delete"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? "กำลังลบ..." : "🗑️ ลบ"}
                 </button>
               </div>
             )}
