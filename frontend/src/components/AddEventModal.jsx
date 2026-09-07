@@ -2,9 +2,6 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import apiClient from "../api";
-import "./AddProject.css";
-import "./EditTaskModal.css";
-import "./MultiSelect.css";
 import "./AddEventModal.css";
 
 function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
@@ -50,7 +47,7 @@ function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
 
   const userOptions = allUsers.map((user) => ({
     value: user.id,
-    label: `${user.first_name} ${user.last_name} (${user.username})`,
+    label: `${user.first_name || user.username} ${user.last_name || ""} (${user.username})`,
   }));
 
   const handleFileChange = (e) => {
@@ -59,28 +56,13 @@ function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
+
     const participantIds = participants.map((p) => p.value);
 
-    const eventData = {
-      title,
-      description,
-      start_time: startTime,
-      end_time: endTime,
-      participants: participantIds,
-    };
-    console.log("DEBUG 1: Data being sent from AddEventModal:", eventData);
-
     try {
-      await onEventAdded(eventData);
-      onClose();
-    } catch (error) {
-      console.error("Event creation failed in modal", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-
-    try {
+      // 1. สร้าง Event หลัก
       const eventResponse = await apiClient.post("/api/events/", {
         title,
         description,
@@ -90,6 +72,7 @@ function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
       });
       const newEventId = eventResponse.data.id;
 
+      // 2. อัปโหลดไฟล์แนบ (ถ้ามี)
       if (files.length > 0) {
         const uploadPromises = Array.from(files).map((file) => {
           const formData = new FormData();
@@ -97,25 +80,25 @@ function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
           return apiClient.post(
             `/api/events/${newEventId}/attachments/`,
             formData,
-            {
-              headers: { "Content-Type": "multipart/form-data" },
-            },
+            { headers: { "Content-Type": "multipart/form-data" } },
           );
         });
         await Promise.all(uploadPromises);
       }
 
-      //-- เคลียร์ State ของฟอร์ม ---
+      // 3. เคลียร์ค่า และแจ้ง Parent Component อัปเดต UI
       setTitle("");
       setDescription("");
       setParticipants([]);
       setFiles([]);
 
-      onEventAdded();
+      if (onEventAdded) {
+        await onEventAdded(eventResponse.data);
+      }
       onClose();
     } catch (error) {
       console.error("Event creation failed", error);
-      alert("Could not create the event. Check console for details.");
+      alert("ไม่สามารถสร้างนัดหมายได้ กรุณาตรวจสอบข้อมูลอีกครั้ง");
     } finally {
       setIsSubmitting(false);
     }
@@ -124,67 +107,78 @@ function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close-button" onClick={onClose}>
-          &times;
-        </button>
-        <div
-          className="form-card"
-          style={{ margin: 0, padding: 0, border: "none", boxShadow: "none" }}
-        >
-          <form onSubmit={handleSubmit}>
-            <h2>Create New Event</h2>
+        <div className="modal-header">
+          <h2>📅 เพิ่มนัดหมายใหม่</h2>
+          <button className="modal-close-button" onClick={onClose}>
+            &times;
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="modal-body-scrollable">
             <div className="form-group">
-              <label htmlFor="eventTitle">Event Title</label>
+              <label htmlFor="eventTitle">ชื่อกิจกรรม / เรื่องนัดหมาย *</label>
               <input
                 id="eventTitle"
                 type="text"
+                placeholder="เช่น ประชุมสรุปงานประจำสัปดาห์"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
               />
             </div>
+
+            {/* จัดเวลาเป็น 2 คอลัมน์คู่กัน */}
+            <div className="form-row-2col">
+              <div className="form-group">
+                <label htmlFor="startTime">เวลาเริ่ม *</label>
+                <input
+                  id="startTime"
+                  type="datetime-local"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="endTime">เวลาสิ้นสุด *</label>
+                <input
+                  id="endTime"
+                  type="datetime-local"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
             <div className="form-group">
-              <label htmlFor="eventDescription">Description</label>
+              <label htmlFor="eventDescription">รายละเอียดเพิ่มเติม</label>
               <textarea
                 id="eventDescription"
+                placeholder="ระบุห้องประชุม หรือรายละเอียดงาน..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                rows={3}
               />
             </div>
+
             <div className="form-group">
-              <label htmlFor="startTime">Start Time</label>
-              <input
-                id="startTime"
-                type="datetime-local"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="endTime">End Time</label>
-              <input
-                id="endTime"
-                type="datetime-local"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="participants">Participants</label>
+              <label htmlFor="participants">ผู้เข้าร่วม</label>
               <Select
                 id="participants"
                 isMulti
                 options={userOptions}
+                placeholder="ค้นหาและเลือกผู้เข้าร่วม..."
                 className="multi-select-container"
                 classNamePrefix="multi-select"
                 value={participants}
                 onChange={setParticipants}
               />
             </div>
+
             <div className="form-group">
-              <label htmlFor="eventAttachments">Attach Files</label>
+              <label htmlFor="eventAttachments">ไฟล์แนบประกอบ (ถ้ามี)</label>
               <input
                 id="eventAttachments"
                 type="file"
@@ -193,15 +187,26 @@ function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
                 className="upload-input"
               />
             </div>
+          </div>
+
+          <div className="modal-footer">
+            <button
+              type="button"
+              className="cancel-button"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              ยกเลิก
+            </button>
             <button
               type="submit"
               className="submit-button"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Creating..." : "Create Event"}
+              {isSubmitting ? "กำลังบันทึก..." : "บันทึกนัดหมาย"}
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );
