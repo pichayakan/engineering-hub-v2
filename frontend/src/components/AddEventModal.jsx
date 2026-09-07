@@ -62,7 +62,7 @@ function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
     const participantIds = participants.map((p) => p.value);
 
     try {
-      // 1. สร้าง Event หลัก
+      // 1. ยิง API สร้าง Event
       const eventResponse = await apiClient.post("/api/events/", {
         title,
         description,
@@ -86,12 +86,13 @@ function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
         await Promise.all(uploadPromises);
       }
 
-      // 3. เคลียร์ค่า และแจ้ง Parent Component อัปเดต UI
+      // 3. เคลียร์ Form State
       setTitle("");
       setDescription("");
       setParticipants([]);
       setFiles([]);
 
+      // 4. แจ้ง Parent Component เพื่อรีเฟรชหน้าเว็บแล้วปิด Modal
       if (onEventAdded) {
         await onEventAdded(eventResponse.data);
       }
@@ -128,7 +129,7 @@ function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
               />
             </div>
 
-            {/* จัดเวลาเป็น 2 คอลัมน์คู่กัน */}
+            {/* 2 Column Grid สำหรับวันที่เริ่ม - สิ้นสุด */}
             <div className="form-row-2col">
               <div className="form-group">
                 <label htmlFor="startTime">เวลาเริ่ม *</label>

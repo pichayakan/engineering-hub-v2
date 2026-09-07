@@ -1,96 +1,116 @@
-import React from 'react'
-// Import CSS files used by other modals
-
-import './EditTaskModal.css'
-import './AttachmentSection.css'
-
-import { useAuth } from '../context/AuthContext'
+// frontend/src/components/EventDetailModal.jsx
+import React from "react";
+import "./EventDetailModal.css";
+import { useAuth } from "../context/AuthContext";
 
 function EventDetailModal({ event, onClose, onEdit, onDelete }) {
+  const { user } = useAuth();
 
-  const { user } = useAuth()
+  if (!event) return null;
 
- if (!event) return null
- 
- const isCreator =
-   user && event.created_by_details && user.id === event.created_by_details.id
+  const isCreator =
+    user && event.created_by_details && user.id === event.created_by_details.id;
+
+  const handleDelete = () => {
+    if (window.confirm("คุณต้องการลบนัดหมายนี้ใช่หรือไม่?")) {
+      onDelete(event.id);
+    }
+  };
 
   return (
-    <div className='modal-overlay' onClick={onClose}>
-      <div className='modal-content' onClick={(e) => e.stopPropagation()}>
-        <button className='modal-close-button' onClick={onClose}>
-          &times;
-        </button>
-
-        <div
-          className='task-header'
-          style={{
-            paddingBottom: '1rem',
-            borderBottom: '1px solid #363636',
-            marginBottom: '1rem',
-          }}
-        >
-          <h2>{event.title}</h2>
-          {isCreator && (
-            <div className='modal-actions'>
-              <button
-                className='action-button edit'
-                onClick={() => onEdit(event)}
-              >
-                Edit
-              </button>
-              <button
-                className='action-button delete'
-                onClick={() => onDelete(event.id)}
-              >
-                Delete
-              </button>
-            </div>
-          )}
-          <p style={{ margin: 0, color: '#6c757d' }}>
-            From: {new Date(event.start_time).toLocaleString()} <br />
-            To: {new Date(event.end_time).toLocaleString()}
-          </p>
+    <div className="event-detail-overlay" onClick={onClose}>
+      <div
+        className="event-detail-content"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="event-detail-header">
+          <h2>📌 รายละเอียดนัดหมาย</h2>
+          <button className="event-detail-close-button" onClick={onClose}>
+            &times;
+          </button>
         </div>
 
-        <div className='modal-body-scrollable'>
-          <div className='task-body'>
+        <div className="event-detail-body-scrollable">
+          <div className="event-title-section">
+            <h3 className="event-title-text">{event.title}</h3>
+
+            {isCreator && (
+              <div className="event-action-buttons">
+                <button
+                  className="event-btn-edit"
+                  onClick={() => onEdit(event)}
+                >
+                  ✏️ แก้ไข
+                </button>
+                <button className="event-btn-delete" onClick={handleDelete}>
+                  🗑️ ลบ
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="event-time-badge">
             <p>
-              <strong>Description:</strong>{' '}
-              {event.description || 'No description.'}
+              <strong>🕒 เวลาเริ่ม:</strong>{" "}
+              {new Date(event.start_time).toLocaleString("th-TH")}
             </p>
             <p>
-              <strong>Participants:</strong>{' '}
-              {event.participants_details?.map((p) => p.username).join(', ') ||
-                'None'}
+              <strong>⌛ เวลาสิ้นสุด:</strong>{" "}
+              {new Date(event.end_time).toLocaleString("th-TH")}
             </p>
           </div>
 
-          <div className='attachment-section'>
-            <h3>Attachments</h3>
-            <ul className='attachment-list'>
-              {event.attachments?.length > 0 ? (
-                event.attachments.map((att) => (
-                  <li key={att.id} className='attachment-item'>
+          <div className="event-info-box">
+            <p>
+              <strong>📝 รายละเอียด:</strong>
+              <br />
+              {event.description || "ไม่มีรายละเอียดเพิ่มเติม"}
+            </p>
+            <p style={{ marginTop: "0.8rem" }}>
+              <strong>👥 ผู้เข้าร่วม:</strong>
+              <br />
+              {event.participants_details?.length > 0
+                ? event.participants_details
+                    .map(
+                      (p) =>
+                        `${p.first_name || p.username} ${p.last_name || ""}`,
+                    )
+                    .join(", ")
+                : "ไม่มีผู้เข้าร่วม"}
+            </p>
+          </div>
+
+          <div className="event-attachment-section">
+            <h4>📎 ไฟล์แนบประกอบ</h4>
+            {event.attachments?.length > 0 ? (
+              <ul className="event-attachment-list">
+                {event.attachments.map((att) => (
+                  <li key={att.id} className="event-attachment-item">
                     <a
                       href={att.file}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className='attachment-link'
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="event-attachment-link"
                     >
-                      📎 {att.name}
+                      📄 {att.name || "ดาวน์โหลดไฟล์แนบ"}
                     </a>
                   </li>
-                ))
-              ) : (
-                <p style={{ color: '#a0a0a0' }}>No files attached.</p>
-              )}
-            </ul>
+                ))}
+              </ul>
+            ) : (
+              <p className="no-attachments-text">ไม่มีไฟล์แนบ</p>
+            )}
           </div>
+        </div>
+
+        <div className="event-detail-footer">
+          <button className="event-close-btn-bottom" onClick={onClose}>
+            ปิดหน้าต่าง
+          </button>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default EventDetailModal
+export default EventDetailModal;

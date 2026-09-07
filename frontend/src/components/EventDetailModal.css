@@ -1,0 +1,227 @@
+/* frontend/src/components/EventDetailModal.css */
+
+/* Overlay ฉากหลังใสดำ */
+.event-detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+/* Modal Content Box ธีมสีขาวสะอาด */
+.event-detail-content {
+  background-color: #ffffff !important;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border: 1px solid #e2e8f0;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Header */
+.event-detail-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8fafc;
+}
+
+.event-detail-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #1e293b !important;
+  font-weight: 600;
+}
+
+.event-detail-close-button {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.event-detail-close-button:hover {
+  color: #0f172a;
+}
+
+/* Body Scrollable Area */
+.event-detail-body-scrollable {
+  padding: 1.25rem;
+  overflow-y: auto;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  box-sizing: border-box;
+}
+
+/* Section หัวข้อกิจกรรม + ปุ่มแอ็กชัน */
+.event-title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.event-title-text {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #0f172a !important;
+  font-weight: 700;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.event-action-buttons {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.event-btn-edit {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.event-btn-edit:hover {
+  background-color: #e2e8f0;
+}
+
+.event-btn-delete {
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.event-btn-delete:hover {
+  background-color: #fee2e2;
+}
+
+/* กล่องแสดงช่วงเวลา */
+.event-time-badge {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.event-time-badge p {
+  margin: 0.2rem 0;
+  font-size: 0.88rem;
+  color: #334155 !important;
+}
+
+/* กล่องรายละเอียดและผู้เข้าร่วม */
+.event-info-box {
+  margin-bottom: 1.25rem;
+}
+
+.event-info-box p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #1e293b !important;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* กล่องไฟล์แนบ */
+.event-attachment-section {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.event-attachment-section h4 {
+  margin: 0 0 0.6rem 0;
+  font-size: 0.95rem;
+  color: #0f172a !important;
+  font-weight: 600;
+}
+
+.event-attachment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.event-attachment-item {
+  margin-bottom: 0.4rem;
+}
+
+.event-attachment-item:last-child {
+  margin-bottom: 0;
+}
+
+.event-attachment-link {
+  color: #2563eb !important;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.event-attachment-link:hover {
+  text-decoration: underline;
+}
+
+.no-attachments-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #94a3b8 !important;
+}
+
+/* Footer & Button */
+.event-detail-footer {
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.event-close-btn-bottom {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.event-close-btn-bottom:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}

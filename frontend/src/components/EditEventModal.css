@@ -1,7 +1,7 @@
-/* frontend/src/components/AddEventModal.css */
+/* frontend/src/components/EditEventModal.css */
 
 /* Overlay ฉากหลังใสดำ */
-.modal-overlay {
+.edit-event-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -17,14 +17,14 @@
   box-sizing: border-box;
 }
 
-/* Modal Content Box (ธีมสีขาวสะอาด) */
-.modal-content {
+/* Modal Box สีขาวสะอาด */
+.edit-event-content {
   background-color: #ffffff !important;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   border: 1px solid #e2e8f0;
   width: 100%;
-  max-width: 520px;
+  max-width: 500px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -33,7 +33,7 @@
 }
 
 /* Header */
-.modal-header {
+.edit-event-header {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
@@ -42,14 +42,14 @@
   background-color: #f8fafc;
 }
 
-.modal-header h2 {
+.edit-event-header h2 {
   margin: 0;
   font-size: 1.15rem;
   color: #1e293b !important;
   font-weight: 600;
 }
 
-.modal-close-button {
+.edit-event-close-button {
   background: none;
   border: none;
   color: #64748b;
@@ -58,20 +58,20 @@
   line-height: 1;
 }
 
-.modal-close-button:hover {
+.edit-event-close-button:hover {
   color: #0f172a;
 }
 
-/* Form Structure */
-.modal-form {
+/* Form Layout */
+.edit-event-form {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   flex: 1;
 }
 
-/* Body Scrollable Area (ปิด Scrollbar แนวนอนเด็ดขาด) */
-.modal-body-scrollable {
+/* Body Scrollable Area */
+.edit-event-body-scrollable {
   padding: 1.25rem;
   overflow-y: auto;
   overflow-x: hidden !important;
@@ -80,27 +80,14 @@
   box-sizing: border-box;
 }
 
-/* 2-Column Row (ตั้ง min-width: 0 ป้องกันไอคอนปฏิทินดันขอบ) */
-.form-row-2col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.form-row-2col .form-group {
-  min-width: 0 !important;
-}
-
 /* Form Group & Label */
-.modal-content .form-group {
+.edit-event-form-group {
   margin-bottom: 1rem;
   width: 100%;
   box-sizing: border-box;
 }
 
-.modal-content label {
+.edit-event-form-group label {
   display: block;
   margin-bottom: 0.35rem;
   font-size: 0.88rem;
@@ -108,56 +95,37 @@
   font-weight: 600;
 }
 
-/* Input Fields (สไตล์สว่าง อ่านง่าย ไม่ล้นขอบ) */
-.modal-content input[type="text"],
-.modal-content input[type="datetime-local"],
-.modal-content textarea {
+/* Input Fields */
+.edit-event-form-group input[type="text"],
+.edit-event-form-group input[type="datetime-local"],
+.edit-event-form-group textarea {
   width: 100% !important;
   max-width: 100% !important;
-  padding: 0.6rem 0.65rem !important;
+  padding: 0.6rem 0.75rem !important;
   background-color: #f8fafc !important;
   border: 1px solid #cbd5e1 !important;
   border-radius: 6px;
   color: #0f172a !important;
-  font-size: 0.88rem !important;
+  font-size: 0.9rem !important;
   font-family: inherit;
   box-sizing: border-box !important;
   transition: all 0.2s ease;
 }
 
-/* ปรับบีบช่องวันที่ให้พอดีไม่ตกขอบขวา */
-.modal-content input[type="datetime-local"] {
-  font-size: 0.82rem !important;
-  padding: 0.5rem 0.4rem !important;
-}
-
-.modal-content input:focus,
-.modal-content textarea:focus {
+.edit-event-form-group input:focus,
+.edit-event-form-group textarea:focus {
   outline: none;
   border-color: #2563eb !important;
   background-color: #ffffff !important;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-.modal-content textarea {
+.edit-event-form-group textarea {
   resize: vertical;
   min-height: 75px;
 }
 
-/* File Upload Field */
-.modal-content .upload-input {
-  width: 100% !important;
-  padding: 0.5rem;
-  background-color: #f8fafc !important;
-  border: 1px dashed #cbd5e1 !important;
-  border-radius: 6px;
-  color: #475569 !important;
-  cursor: pointer;
-  box-sizing: border-box;
-  font-size: 0.85rem;
-}
-
-/* MultiSelect (react-select) Light Theme */
+/* MultiSelect (react-select) Custom Styling */
 .multi-select-container .multi-select__control {
   background-color: #f8fafc !important;
   border: 1px solid #cbd5e1 !important;
@@ -212,16 +180,21 @@
 }
 
 /* Footer & Buttons */
-.modal-footer {
+.edit-event-footer {
   padding: 0.85rem 1.25rem;
   border-top: 1px solid #e2e8f0;
   background-color: #f8fafc;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edit-event-footer-right {
+  display: flex;
   gap: 0.5rem;
 }
 
-.modal-footer button {
+.edit-event-footer button {
   padding: 0.55rem 1.1rem;
   border-radius: 6px;
   font-size: 0.9rem;
@@ -230,31 +203,34 @@
   transition: all 0.2s ease;
 }
 
-.cancel-button {
+.edit-event-delete-button {
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+}
+
+.edit-event-delete-button:hover:not(:disabled) {
+  background-color: #fee2e2;
+  border-color: #f87171;
+}
+
+.edit-event-cancel-button {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   color: #475569;
 }
 
-.cancel-button:hover {
+.edit-event-cancel-button:hover {
   background-color: #f1f5f9;
   color: #0f172a;
 }
 
-.submit-button {
+.edit-event-submit-button {
   border: none;
   background-color: #2563eb;
   color: #ffffff;
 }
 
-.submit-button:hover:not(:disabled) {
+.edit-event-submit-button:hover:not(:disabled) {
   background-color: #1d4ed8;
-}
-
-/* Mobile Responsive */
-@media screen and (max-width: 576px) {
-  .form-row-2col {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
 }
