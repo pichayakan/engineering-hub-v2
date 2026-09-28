@@ -2,9 +2,8 @@
 import os
 import re
 import pypdf
-import google.generativeai as genai
 import time
-from google import genai
+from google import genai  # 🟢 ใช้ SDK ตัวใหม่ตัวเดียวเท่านั้น
 from django.conf import settings
 from django.db import transaction
 from .utils import generate_signed_filename
@@ -36,7 +35,7 @@ from .models import (
     ProcurementRequest,
     RequestHistory,
     ProcurementAttachment,
-    ProcurementCategory,  # ✅ IMPORTED
+    ProcurementCategory,
 )
 from .serializers import (
     WorkflowTemplateSerializer,
@@ -65,18 +64,13 @@ def procurement_summary_view(request):
         is_completed=False, is_cancelled=False)
     ongoing_count = ongoing_qs.count()
 
-    # Placeholder for overdue
     overdue_count = 0
 
-    # Completed this month
     completed_this_month_count = ProcurementRequest.objects.filter(
         is_completed=True,
         is_cancelled=False,
-        # updated_at__year=timezone.now().year, # This requires an updated_at field
-        # updated_at__month=timezone.now().month
     ).count()
 
-    # Pending your approval
     user_group_ids = user.groups.values_list('id', flat=True)
     pending_your_approval_count = ongoing_qs.filter(
         current_step__responsible_groups__id__in=user_group_ids
@@ -91,11 +85,9 @@ def procurement_summary_view(request):
     return Response(data)
 
 
-# --- ✅ ADDED THIS NEW VIEWSET ---
 class ProcurementCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint for listing available procurement categories.
-    (Managed via Django Admin)
     """
     queryset = ProcurementCategory.objects.all()
     serializer_class = ProcurementCategorySerializer
@@ -105,9 +97,7 @@ class ProcurementCategoryViewSet(viewsets.ReadOnlyModelViewSet):
 class WorkflowTemplateViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint for listing available workflow templates.
-    (Managed via Django Admin)
     """
-
     queryset = WorkflowTemplate.objects.filter(
         is_active=True,
         template_type=WorkflowTemplate.TemplateTypes.PROCUREMENT
@@ -117,58 +107,34 @@ class WorkflowTemplateViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ProcurementRequestViewSet(viewsets.ModelViewSet):
-    # queryset = ProcurementRequest.objects.all().order_by("-created_at")
-    # serializer_class = ProcurementRequestSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
-
     pagination_class = StandardResultsSetPagination
-
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-
-    # Fields available for exact match filtering (e.g., ?category=1)
-    # filterset_fields = ['category', 'is_completed',
-    #                     'is_cancelled', 'project', 'requesting_department']
-
     filterset_class = ProcurementRequestFilter
-
-    # Fields available for text searching (e.g., ?search=test)
     search_fields = ['title', 'project__name',
                      'created_by__username', 'category__name', 'document_number', 'history__document_number']
-
-    # Fields available for ordering (e.g., ?ordering=title)
     ordering_fields = ['created_at', 'title']
 
     def get_queryset(self):
         user = self.request.user
         queryset = ProcurementRequest.objects.all().order_by("-created_at")
 
-        # 1. Superuser: เห็นหมด
         if user.is_superuser:
             return queryset
 
-        # 2. เช็คแผนก (สำคัญ)
         if not user.department:
-            # กรณี User ไม่มีแผนก -> ให้เห็นเฉพาะที่ตัวเองสร้าง
             return queryset.filter(created_by=user)
 
         user_dept_name = user.department.name
         CENTRAL_DEPT_NAME = "ส่วนวิศวกรรมและบริหารโครงข่าย (วขตป.)"
 
-        # 3. ถ้าเป็น "วขตป." -> เห็นหมดทุกงาน
         if user_dept_name == CENTRAL_DEPT_NAME:
             return queryset
 
-        # 4. ถ้าเป็นแผนกอื่น -> เห็นเฉพาะงานที่ "Requesting Department" ตรงกับแผนกตัวเอง
-        # (ตัด Logic เรื่อง Group ออกไปเลย ตามที่คุณต้องการ)
         return queryset.filter(requesting_department=user_dept_name)
 
     def get_serializer_class(self):
-        """
-        เลือกใช้ Serializer ตาม action:
-        - ถ้าเป็น 'list' (ดูรายการทั้งหมด) ให้ใช้ ProcurementListSerializer
-        - ถ้าเป็น action อื่นๆ (เช่น 'retrieve', 'create') ให้ใช้ ProcurementRequestSerializer
-        """
         if self.action == 'list':
             return ProcurementListSerializer
         return ProcurementRequestSerializer
@@ -177,7 +143,6 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
         workflow = serializer.validated_data.get("workflow_template")
         first_step = workflow.steps.order_by("order").first()
 
-        # --- ✅ เพิ่ม Logic ดึงชื่อแผนก ---
         user_department_name = ""
         if self.request.user.department:
             user_department_name = self.request.user.department.name
@@ -188,12 +153,9 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             requesting_department=user_department_name
         )
 
-        # Now, create notifications for the first step
         if first_step:
             for group in first_step.responsible_groups.all():
                 for user_to_notify in group.user_set.all():
-                    # --- ✅ ADD THIS CHECK ---
-                    # Only send a notification if the recipient is not the person who created the request
                     if user_to_notify != self.request.user:
                         Notification.objects.create(
                             recipient=user_to_notify,
@@ -203,14 +165,11 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="advance-step")
     def advance_step(self, request, pk=None):
-        print("--- DATA RECEIVED FROM FRONTEND ---")  # ✨ เพิ่มบรรทัดนี้
-        print(request.data)                        # ✨ และบรรทัดนี้
-        print("---------------------------------")
-        instance = self.get_object()  # เปลี่ยนชื่อตัวแปรให้สั้นลง
+        instance = self.get_object()
         user = request.user
         notes = request.data.get("notes", "")
         files = request.FILES.getlist("files")
-        document_number_to_save = ""  # เตรียมตัวแ แปรไว้ก่อน
+        document_number_to_save = ""
 
         if instance.is_completed:
             return Response({"error": "This request is already completed."}, status=status.HTTP_400_BAD_REQUEST)
@@ -219,13 +178,11 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
         if not current_step:
             return Response({"error": "This request has no current step defined."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # --- Permission Check ---
         responsible_pks = current_step.responsible_groups.values_list(
             'pk', flat=True)
         if (responsible_pks.exists() and not user.is_staff and not user.groups.filter(pk__in=responsible_pks).exists()):
             return Response({"error": "You do not have permission to approve this step."}, status=status.HTTP_403_FORBIDDEN)
 
-        # --- ✨ 2. เพิ่ม Logic ตรวจสอบเลขที่หนังสือ ---
         if current_step.requires_document_number:
             doc_number = request.data.get('document_number')
             if not doc_number or not doc_number.strip():
@@ -235,11 +192,9 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 )
             document_number_to_save = doc_number.strip()
 
-        # ✅ อัปเดตเลขที่หนังสือลงในตัวงานหลักด้วย เพื่อให้ดึงไปใช้ใน PDF ได้ทันที
             instance.document_number = document_number_to_save
             instance.save()
 
-        # --- Signature Check ---
         if current_step.is_signature_required:
             if not any(f.name.startswith('signed_') for f in files):
                 return Response(
@@ -247,23 +202,20 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        # ✅ --- เพิ่ม Logic ตรวจสอบการแนบไฟล์ ---
         if current_step.requires_attachment:
-            if not files:  # ตรวจสอบว่ามีไฟล์แนบมาหรือไม่
+            if not files:
                 return Response(
                     {'error': 'ขั้นตอนนี้จำเป็นต้องแนบไฟล์ประกอบ'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        # ✨ 1. ใช้ transaction.atomic เพื่อให้แน่ใจว่าทุกอย่างสำเร็จพร้อมกัน
         with transaction.atomic():
-            # ✨ 3. บันทึกเลขที่หนังสือลงใน History
             history_entry = RequestHistory.objects.create(
                 procurement_request=instance,
                 step=current_step,
                 approved_by=user,
                 notes=notes,
-                document_number=document_number_to_save  # เพิ่ม field นี้
+                document_number=document_number_to_save
             )
 
             for file in files:
@@ -275,13 +227,9 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                     name=file.name
                 )
 
-            # --- ✅ 3. แทรกส่วนสร้าง PDF อัตโนมัติ ตรงนี้! ---
             if current_step.should_generate_pdf:
                 try:
-                    # สร้างไฟล์ PDF ใน Memory
                     pdf_file = generate_procurement_pdf(instance, user)
-
-                    # บันทึกลง Database ผูกกับ History นี้
                     ProcurementAttachment.objects.create(
                         procurement_request=instance,
                         history_entry=history_entry,
@@ -289,11 +237,8 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                         uploaded_by=user,
                         name=pdf_file.name
                     )
-                    print(f"Auto-generated PDF: {pdf_file.name}")
                 except Exception as e:
-                    # Log error แต่ไม่ให้ระบบล่ม (หรือจะ raise e เพื่อ rollback ก็ได้)
                     print(f"Error generating PDF: {e}")
-            # ------------------------------------------------
 
             next_step = Step.objects.filter(
                 workflow_template=instance.workflow_template, order__gt=current_step.order
@@ -302,7 +247,6 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             if next_step:
                 instance.current_step = next_step
 
-                # แจ้งเตือนผู้รับผิดชอบใน Step ถัดไป
                 for group in next_step.responsible_groups.all():
                     for user_to_notify in group.user_set.all():
                         Notification.objects.create(
@@ -311,10 +255,8 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                             link=f"/procurement/requests/{instance.id}"
                         )
 
-                        # ✨ 4. ย้าย Logic การแจ้งเตือน Line เข้ามาใน Loop
                         requester_name = f"{instance.created_by.first_name} {instance.created_by.last_name}"
                         recipient_name = f"{user_to_notify.first_name} {user_to_notify.last_name}"
-                        # 👈 ควรเปลี่ยนเป็น Domain จริง
                         link_to_task = f"http://202.139.196.7/procurement/requests/{instance.id}"
 
                         line_message = (
@@ -326,14 +268,11 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                             f"กรุณาตรวจสอบและดำเนินการที่: \n\n"
                             f"{link_to_task}"
                         )
-                        # ยกเลิก comment เพื่อใช้งานจริง
                         send_notifications(user_to_notify, line_message)
             else:
-                # ถ้าไม่มี Step ถัดไป ให้ปิดงาน
                 instance.current_step = None
                 instance.is_completed = True
 
-                # แจ้งเตือนผู้สร้างงานว่างานเสร็จแล้ว
                 if instance.created_by != user:
                     Notification.objects.create(
                         recipient=instance.created_by,
@@ -341,7 +280,7 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                         link=f"/procurement/requests/{instance.id}"
                     )
 
-            instance.save()  # บันทึกการเปลี่ยนแปลงทั้งหมด
+            instance.save()
 
         return Response(self.get_serializer(instance).data)
 
@@ -350,9 +289,6 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
         procurement_request = self.get_object()
         user = request.user
 
-        # --- Permission Check ---
-        # 1. Only the user who created the request can cancel it.
-        # 2. A request cannot be cancelled if it's already completed or cancelled.
         if procurement_request.created_by != user:
             return Response({'error': 'You do not have permission to cancel this request.'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -384,17 +320,12 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # ✅ sanitize original filename
         original_name = signed_file.name
         base_name, ext = original_name.rsplit('.', 1)
 
-        # ลบ prefix signed_ และ timestamp เก่าออก
-        # ตัด signed_ ด้านหน้า
         base_name = re.sub(r'^signed_', '', base_name)
-        base_name = re.sub(r'_\d{4}-\d{2}-\d{2}T.*$', '',
-                           base_name)  # ตัด timestamp ถ้ามี
+        base_name = re.sub(r'_\d{4}-\d{2}-\d{2}T.*$', '', base_name)
 
-        # ✅ ใช้ timestamp ใหม่เสมอ
         timestamp = timezone.now().strftime("%Y%m%d-%H%M%S")
         new_filename = f"signed_{base_name}_{timestamp}.pdf"
 
@@ -422,7 +353,6 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Basic permission check
         if not user.groups.filter(pk__in=procurement_request.current_step.responsible_groups.all()).exists() and not user.is_staff:
             return Response({'error': 'You do not have permission to perform this action.'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -432,7 +362,6 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
         except Step.DoesNotExist:
             return Response({'error': 'Invalid target step.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create a "Sent Back" history record
         RequestHistory.objects.create(
             procurement_request=procurement_request,
             step=procurement_request.current_step,
@@ -441,11 +370,9 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             action='SENT_BACK'
         )
 
-        # Update the request to the target step
         procurement_request.current_step = target_step
         procurement_request.save()
 
-        # Notify the responsible users of the target step
         for group in target_step.responsible_groups.all():
             for user_to_notify in group.user_set.all():
                 Notification.objects.create(
@@ -458,17 +385,11 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='test-generate-pdf')
     def test_generate_pdf(self, request, pk=None):
-        """
-        Action สำหรับทดสอบสร้าง PDF และดาวน์โหลดทันที
-        """
         procurement_request = self.get_object()
 
         try:
-            # 1. เรียกใช้ฟังก์ชันสร้าง PDF (จาก utils.py)
             pdf_file = generate_procurement_pdf(
                 procurement_request, request.user)
-
-            # 2. ส่งไฟล์กลับไปให้ Browser (เป็น Attachment)
             response = HttpResponse(pdf_file, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{pdf_file.name}"'
             return response
@@ -482,8 +403,6 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='summarize')
     def summarize_procurement_document(self, request, pk=None):
-        import time
-
         instance = self.get_object()
         current_step = instance.current_step
 
@@ -493,7 +412,6 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 1. ดึงไฟล์แนบที่เลือก
         attachment_id = request.data.get('attachment_id')
         target_attachment = None
 
@@ -513,13 +431,29 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             )
 
         try:
+            # 🟢 1. ดึง Gemini API Key พร้อมการตรวจสอบความถูกต้อง
+            # 🟢 ดึง API Key
+            gemini_key = getattr(settings, 'GEMINI_API_KEY',
+                                 '') or os.getenv('GEMINI_API_KEY', '')
+
+            # 🔍 เพิ่มบรรทัดนี้เพื่อเช็คใน Terminal บน Server
+            print(
+                f"DEBUG: Loaded GEMINI_API_KEY length = {len(gemini_key)}, prefix = {gemini_key[:5]}")
+
+            if not gemini_key:
+                return Response(
+                    {"error": "ระบบไม่พบ GEMINI_API_KEY กรุณาตรวจสอบการตั้งค่าไฟล์ .env บน Server"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+            client = genai.Client(api_key=gemini_key)
+
             pdf_path = target_attachment.file.path
             reader = pypdf.PdfReader(pdf_path)
             extracted_text = ""
             for page in reader.pages[:10]:
                 extracted_text += page.extract_text() or ""
 
-            client = genai.Client(api_key=settings.GEMINI_API_KEY)
             uploaded_file = None
 
             base_prompt = f"""
@@ -532,32 +466,25 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             5. ข้อเสนอแนะ/ข้อสังเกตุจาก AI
             """
 
-            # 🟢 2. เตรียมข้อมูลสำหรับส่งให้ AI
             is_scanned_pdf = not extracted_text.strip()
             temp_pdf_path = None
 
             if is_scanned_pdf:
                 print(
                     f"📄 Scanned PDF detected: {target_attachment.name}. Cutting top 5 pages...")
-
                 import tempfile
-                # ❌ ลบบรรทัด import pypdf ตรงนี้ออก เพราะ import ไว้ที่หัวไฟล์แล้ว
 
-                # ⚡ 1. อ่านและตัดเอาเฉพาะ 5 หน้าแรก
                 writer = pypdf.PdfWriter()
                 for page in reader.pages[:5]:
                     writer.add_page(page)
 
-                # ⚡ 2. บันทึกลงไฟล์ Temp ภาษาอังกฤษ
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
                     writer.write(tmp_file.name)
                     temp_pdf_path = tmp_file.name
 
                 try:
-                    # ⚡ 3. อัปโหลดเฉพาะไฟล์ Temp 5 หน้าขึ้น Gemini API
                     uploaded_file = client.files.upload(file=temp_pdf_path)
                 finally:
-                    # ลบไฟล์ Temp บน Server ทันทีเมื่ออัปโหลดเสร็จ
                     if temp_pdf_path and os.path.exists(temp_pdf_path):
                         os.remove(temp_pdf_path)
 
@@ -565,14 +492,14 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             else:
                 contents_payload = f"{base_prompt}\n\nเนื้อหาเอกสาร:\n{extracted_text[:4000]}"
 
-            # 🟢 3. Retry Mechanism & Fallback Model (ใช้ชื่อโมเดลมาตรฐานที่รองรับ)
-            models_to_try = ['gemini-3.6-flash',
-                             'gemini-2.0-flash', 'gemini-2.0-flash-lite']
+            models_to_try = ['gemini-2.5-flash',
+                             'gemini-1.5-flash',
+                             'gemini-2.5-flash-lite',]
             response = None
             last_error = None
 
             for model_name in models_to_try:
-                for attempt in range(2):  # ลองโมเดลละ 2 รอบ
+                for attempt in range(2):
                     try:
                         print(
                             f"🤖 Requesting Gemini API using model: {model_name} (Attempt {attempt + 1})")
@@ -586,13 +513,11 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                         last_error = api_err
                         err_str = str(api_err)
 
-                        # ถ้าติด 503 หรือ UNAVAILABLE ให้รอ 2 วินาทีแล้วลองซ้ำ
                         if "503" in err_str or "UNAVAILABLE" in err_str:
                             print(
                                 f"⚠️ Gemini 503 High Demand on {model_name}. Retrying in 2 seconds...")
                             time.sleep(2)
                         else:
-                            # ถ้าเจอ Error อื่นๆ (เช่น Model not found) ให้หลุดไปลองโมเดลถัดไปทันที
                             print(
                                 f"⚠️ Model {model_name} error: {err_str}. Switching model...")
                             break
@@ -603,7 +528,6 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
                 raise last_error or Exception(
                     "ไม่สามารถเชื่อมต่อ Gemini API ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง")
 
-            # 🟢 4. Token Usage & Cost Report
             if hasattr(response, 'usage_metadata') and response.usage_metadata:
                 usage = response.usage_metadata
                 prompt_tokens = usage.prompt_token_count or 0
@@ -632,7 +556,6 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             instance.save(
                 update_fields=['ai_summary', 'ai_summary_generated_at'])
 
-            # Clean up ไฟล์บน Gemini Server
             if uploaded_file:
                 try:
                     client.files.delete(name=uploaded_file.name)
@@ -655,40 +578,30 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
 @permission_classes([permissions.IsAuthenticated])
 def procurement_analytics_view(request):
     try:
-        # 1. รับค่า Query Params
         year = request.query_params.get('year')
         month = request.query_params.get('month')
         template_id = request.query_params.get('template_id')
 
-        # ถ้าไม่ส่งปีมา ให้ใช้ปีปัจจุบัน
         if not year:
             year = timezone.now().year
 
-        # 2. Base Queryset: กรองตามปี และ ตัดงานที่ยกเลิกออก
         queryset = ProcurementRequest.objects.filter(
             created_at__year=year,
             is_cancelled=False
         )
 
-        # 3. กรองตามเดือน (ถ้ามี และไม่ใช่ 'all')
         if month and month != 'all':
             queryset = queryset.filter(created_at__month=month)
 
-        # 4. กรองตาม Template (ถ้ามีการเลือก และไม่ใช่ 'all')
         if template_id and template_id != 'all':
             queryset = queryset.filter(workflow_template_id=template_id)
 
-        # ---------------------------------------------------------
-        # ส่วนที่ 1: KPIs (Key Performance Indicators)
-        # ---------------------------------------------------------
         total_requests = queryset.count()
         completed_requests = queryset.filter(is_completed=True).count()
 
-        # ป้องกันการหารด้วยศูนย์
         success_rate = (completed_requests / total_requests *
                         100) if total_requests > 0 else 0
 
-        # คำนวณงบประมาณรวม (Total Budget)
         total_budget = 0
         try:
             budget_agg = queryset.aggregate(Sum('budget_amount'))
@@ -696,45 +609,31 @@ def procurement_analytics_view(request):
         except Exception:
             total_budget = 0
 
-        # Avg Cycle Time (Placeholder)
         avg_cycle_time = 0
 
-        # ---------------------------------------------------------
-        # ส่วนที่ 2: Monthly Stats (กราฟปริมาณงานรายเดือน)
-        # ---------------------------------------------------------
         monthly_stats = queryset.annotate(month=TruncMonth('created_at')).values('month').annotate(
             created_count=Count('id'),
             completed_count=Count('id', filter=Q(is_completed=True))
         ).order_by('month')
 
-        # ---------------------------------------------------------
-        # ส่วนที่ 3: Step Analysis (วิเคราะห์เวลาแต่ละขั้นตอน)
-        # ---------------------------------------------------------
         step_chart_data = []
 
-        # จะแสดงกราฟ Step ก็ต่อเมื่อเลือก Template เจาะจงเท่านั้น
         if template_id and template_id != 'all':
             try:
-                # ดึง Step จริงๆ ของ Template นั้นมาเรียงตามลำดับ
                 steps = Step.objects.filter(
                     workflow_template_id=template_id).order_by('order')
 
                 for step in steps:
                     step_chart_data.append({
                         "name": step.name,
-                        # (ใช้ค่า Standard Duration)
                         "avg_days": step.duration_days
                     })
             except Exception as e:
                 step_chart_data = []
 
-        # ---------------------------------------------------------
-        # ส่วนที่ 4: User Stats (Top Requesters) - ✅ แก้ไข Logic ใหม่
-        # ---------------------------------------------------------
-        # Group ตาม created_by (User ID) เพื่อความแม่นยำ
         top_users = queryset.values('created_by').annotate(
             count=Count('id')
-        ).order_by('-count')[:10]  # เอา 10 อันดับแรก
+        ).order_by('-count')[:10]
 
         formatted_user_stats = []
         for item in top_users:
@@ -742,11 +641,10 @@ def procurement_analytics_view(request):
             count = item['count']
 
             try:
-                # ดึงชื่อจาก User Model
                 u = User.objects.get(pk=user_id)
                 display_name = f"{u.first_name} {u.last_name}".strip()
                 if not display_name:
-                    display_name = u.username  # ถ้าไม่มีชื่อจริง ให้ใช้ username
+                    display_name = u.username
             except User.DoesNotExist:
                 display_name = f"Unknown ({user_id})"
 
@@ -755,16 +653,10 @@ def procurement_analytics_view(request):
                 "count": count
             })
 
-        # ---------------------------------------------------------
-        # ส่วนที่ 5: Department Stats (สัดส่วนงานตามแผนก)
-        # ---------------------------------------------------------
         dept_stats = queryset.values('requesting_department').annotate(
             count=Count('id')
         ).order_by('-count')
 
-        # ---------------------------------------------------------
-        # สร้าง Response Data
-        # ---------------------------------------------------------
         data = {
             'kpi': {
                 'total': total_requests,
@@ -776,7 +668,7 @@ def procurement_analytics_view(request):
             'monthly_chart': monthly_stats,
             'step_chart': step_chart_data,
             'dept_chart': dept_stats,
-            'user_chart': formatted_user_stats  # ✅ ส่งข้อมูลที่แก้แล้วกลับไป
+            'user_chart': formatted_user_stats
         }
 
         return Response(data)
