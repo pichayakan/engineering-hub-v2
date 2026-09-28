@@ -10,12 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -247,4 +250,4 @@ LINE_CHANNEL_ACCESS_TOKEN = "6QtgKQBg+An0/2Rj9bv5uarez415HKjs13JKVYo3xRE0TNFo0Yb
 TELEGRAM_BOT_TOKEN = "8442416581:AAEOVzVPyt9yDBsHSXOpIQ93P12NPGyWOgE"
 TELEGRAM_GROUP_CHAT_ID = "-4806022242"
 
-GEMINI_API_KEY = "AQ.Ab8RN6LelkUEjBMMDKBiKtNYX4SxfkRaOKpVBtb-meNwgkUDqQ"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
