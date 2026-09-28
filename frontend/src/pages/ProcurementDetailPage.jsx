@@ -664,7 +664,7 @@ function ProcurementDetailPage() {
                 size: safeFontSize,
                 font: customFont,
                 color: rgb(0, 0, 0),
-                opacity: 1, // ซ่อนไว้เหมือนเดิม
+                opacity: 0, // ซ่อนไว้เหมือนเดิม
                 maxWidth: sigWidthPts * 0.9, // 🌟 บังคับตัดขึ้นบรรทัดใหม่เมื่อชนขอบขวากล่อง
                 lineHeight: safeFontSize * 1.2, // ระยะห่างระหว่างบรรทัดเมื่อถูกตัด
               });
