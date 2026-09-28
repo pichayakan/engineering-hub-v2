@@ -1,24 +1,22 @@
+// frontend/src/api.js
 import axios from "axios";
 
 // ==========================================
-// 1. ✅ กำหนดค่า Config กลางที่นี่จุดเดียว (Single Source of Truth)
+// 1. ✅ กำหนดค่า Config กลาง (Single Source of Truth)
 // ==========================================
-// เปลี่ยน IP ตรงนี้ที่เดียว มีผลทั้ง Project (ทั้ง API และ รูปภาพ)
-//export const SERVER_URL = "http://202.139.196.7:8000";
-//export const SERVER_URL = "http://172.22.16.28:8000";
-//export const SERVER_URL = "http://localhost:8000";
-//export const API_URL = `${SERVER_URL}/api`;
 export const SERVER_URL = import.meta.env.DEV ? "http://localhost:8000" : "";
-export const API_URL = `${SERVER_URL}/api`;
+export const API_URL = import.meta.env.DEV
+  ? "http://localhost:8000/api"
+  : "/api";
 
-// Helper: ฟังก์ชันดึง Token (ลด code ซ้ำซ้อน)
+// Helper: ฟังก์ชันดึง Token
 const getStoredTokens = () => {
   const local = localStorage.getItem("authTokens");
   const session = sessionStorage.getItem("authTokens");
   return local ? JSON.parse(local) : session ? JSON.parse(session) : null;
 };
 
-// Helper: ฟังก์ชันเก็บ Token (ลด code ซ้ำซ้อน)
+// Helper: ฟังก์ชันเก็บ Token
 const setStoredTokens = (tokens) => {
   const storage = localStorage.getItem("authTokens")
     ? localStorage
@@ -38,8 +36,8 @@ const clearTokens = () => {
 // 2. สร้าง Axios Instance
 // ==========================================
 const apiClient = axios.create({
-  // ✅ ใช้ SERVER_URL เป็น baseURL แทน (ตัด /api ออก)
-  // เวลาเรียก apiClient.get("/api/announcements/") จะกลายเป็น http://localhost:8000/api/announcements/ พอดี
+  // 🟢 ตั้ง baseURL เป็น SERVER_URL ("http://localhost:8000" บน Dev หรือ "" บน Production)
+  // วิธีนี้จะทำให้ยิงได้ทั้ง /api/xxx และ /auth/xxx โดยไม่เกิด /api/api/ ซ้ำซ้อน
   baseURL: SERVER_URL,
   headers: {
     "Content-Type": "application/json",
@@ -51,7 +49,7 @@ const apiClient = axios.create({
 // ==========================================
 apiClient.interceptors.request.use(
   (config) => {
-    const authTokens = getStoredTokens(); // เรียกใช้ Helper
+    const authTokens = getStoredTokens();
 
     if (authTokens?.access) {
       config.headers["Authorization"] = `Bearer ${authTokens.access}`;
@@ -69,29 +67,28 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // ถ้าเจอ 401 (Unauthorized) และยังไม่เคยลอง Retry
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       const authTokens = getStoredTokens();
 
-      // ถ้ามี Refresh Token ให้ลองขอ Access Token ใหม่
       if (authTokens?.refresh) {
         try {
-          // ✅ ใช้ API_URL ตัวแปรกลาง แทนการ Hardcode URL
-          const response = await axios.post(`${API_URL}/token/refresh/`, {
+          // 🟢 สั่ง Refresh Token ยิงไปที่ /api/token/refresh/ เสมอ
+          const refreshEndpoint = import.meta.env.DEV
+            ? "http://localhost:8000/api/token/refresh/"
+            : "/api/token/refresh/";
+
+          const response = await axios.post(refreshEndpoint, {
             refresh: authTokens.refresh,
           });
 
-          // บันทึก Token ใหม่ลง Storage เดิม
           setStoredTokens(response.data);
 
-          // แนบ Token ใหม่แล้วยิง Request เดิมซ้ำ
           originalRequest.headers["Authorization"] =
             `Bearer ${response.data.access}`;
           return apiClient(originalRequest);
         } catch (refreshError) {
           console.error("Token refresh failed:", refreshError);
-          // ถ้า Refresh ไม่ผ่าน ให้เคลียร์ข้อมูลแล้วเด้งออก
           clearTokens();
           window.dispatchEvent(
             new CustomEvent("sessionExpired", {
@@ -101,7 +98,6 @@ apiClient.interceptors.response.use(
           return Promise.reject(refreshError);
         }
       } else {
-        // ถ้าไม่มี Refresh Token
         clearTokens();
         window.dispatchEvent(
           new CustomEvent("sessionExpired", {
