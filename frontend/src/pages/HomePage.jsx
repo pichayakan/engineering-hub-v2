@@ -227,8 +227,13 @@ function RecentFilesWidget({ files }) {
 
 function CalendarWidget({ events, tasks, onDateClick, onEventClick }) {
   const now = new Date();
+
+  // 🟢 ตรวจสอบให้แน่ใจว่าทั้ง events และ tasks เป็น Array เสมอ
+  const safeEvents = Array.isArray(events) ? events : [];
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+
   const calendarEvents = [
-    ...(events || []).map((e) => ({
+    ...safeEvents.map((e) => ({
       id: `event-${e.id}`,
       title: e.title,
       start: e.start_time,
@@ -237,8 +242,8 @@ function CalendarWidget({ events, tasks, onDateClick, onEventClick }) {
       borderColor: new Date(e.end_time) < now ? "#6c757d" : "#d9534f",
       extendedProps: { type: "event", originalEvent: e },
     })),
-    ...(tasks || [])
-      .filter((t) => t.due_date)
+    ...safeTasks
+      .filter((t) => t && t.due_date) // เพิ่มการเช็ค t
       .map((t) => {
         const dueDate = new Date(t.due_date);
         dueDate.setHours(23, 59, 59, 999);
@@ -320,12 +325,16 @@ function HomePage() {
         apiClient.get("/api/recently-completed-tasks/"),
         apiClient.get("/api/my-tasks/"),
       ]);
+
       setData({
-        announcements: announcementsRes.data.results || announcementsRes.data,
-        events: eventsRes.data.results || eventsRes.data,
-        recentFiles: filesRes.data,
-        completedTasks: completedTasksRes.data,
-        myTasks: myTasksRes.data,
+        announcements:
+          announcementsRes.data.results || announcementsRes.data || [],
+        events: eventsRes.data.results || eventsRes.data || [],
+        recentFiles: filesRes.data.results || filesRes.data || [],
+        completedTasks:
+          completedTasksRes.data.results || completedTasksRes.data || [],
+        // 🟢 เพิ่มการดึง .results || .data || [] ป้องกันกรณี myTasks ไม่ใช่ Array
+        myTasks: myTasksRes.data.results || myTasksRes.data || [],
       });
     } catch (error) {
       console.error("Failed to load dashboard hub data", error);

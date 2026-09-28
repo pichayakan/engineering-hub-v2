@@ -19,9 +19,12 @@ function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
       const fetchUsers = async () => {
         try {
           const response = await apiClient.get("/api/auth/users/");
-          setAllUsers(response.data);
+          // 🟢 แก้ไขสกัดเอาเฉพาะ Array (รองรับทั้ง Paginated Response และ Array ปกติ)
+          const userList = response.data.results || response.data || [];
+          setAllUsers(Array.isArray(userList) ? userList : []);
         } catch (error) {
           console.error("Failed to fetch users", error);
+          setAllUsers([]);
         }
       };
       fetchUsers();
@@ -45,7 +48,8 @@ function AddEventModal({ isOpen, onClose, onEventAdded, initialDate }) {
 
   if (!isOpen) return null;
 
-  const userOptions = allUsers.map((user) => ({
+  // 🟢 แก้ไขบรรทัดที่ 48: ครอบเช็ค Array.isArray() ป้องกัน Error .map is not a function
+  const userOptions = (Array.isArray(allUsers) ? allUsers : []).map((user) => ({
     value: user.id,
     label: `${user.first_name || user.username} ${user.last_name || ""} (${user.username})`,
   }));

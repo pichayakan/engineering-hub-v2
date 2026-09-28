@@ -88,6 +88,12 @@ class Step(models.Model):
         help_text="หากเลือก ระบบจะสร้าง PDF บันทึกข้อความอัตโนมัติและแนบไฟล์ให้เมื่ออนุมัติผ่านขั้นตอนนี้"
     )
 
+    allow_ai_summary = models.BooleanField(
+        "อนุญาตให้ใช้ AI สรุปเอกสาร",
+        default=False,
+        help_text="หากเลือก ผู้ใช้งานจะสามารถกดปุ่มสรุปเอกสารด้วย AI ในขั้นตอนนี้ได้"
+    )
+
     class Meta:
         ordering = ["workflow_template", "order"]
         unique_together = ("workflow_template", "order")
@@ -146,6 +152,14 @@ class ProcurementRequest(models.Model):
     is_completed = models.BooleanField(default=False)
 
     is_cancelled = models.BooleanField(default=False)
+
+    ai_summary = models.TextField(
+        "สรุปเอกสารโดย AI",
+        blank=True,
+        null=True,
+        help_text="ข้อความสรุปสาระสำคัญของโครงการที่ประมวลผลโดย AI"
+    )
+    ai_summary_generated_at = models.DateTimeField(blank=True, null=True)
 
     @property
     def current_step_due_date(self):

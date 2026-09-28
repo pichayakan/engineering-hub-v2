@@ -69,7 +69,8 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    # ถ้าคุณมีการตั้งค่าอื่นๆ อยู่แล้ว ให้คงไว้
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
 }
 
 SIMPLE_JWT = {
@@ -222,13 +223,19 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.ngrok-free.app'
 ]
 
+# --- ✅ การตั้งค่ารองรับ Reverse Proxy / Cloudflare HTTPS (แก้ไขจุดนี้) ---
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
+# 👈 เพิ่มบรรทัดนี้ เพื่อให้ Django ไม่หลุด Port หรือ protocol ตอน gen pagination
+USE_X_FORWARDED_PORT = True
 
+# ปรับค่า Cookie ให้รองรับ HTTPS บน Domain จริง
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_SECURE = False
+
+# หากใช้ Domain https://tasktracker-bot.com แนะนำปรับสองตัวนี้เป็น True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -239,3 +246,5 @@ LINE_CHANNEL_ACCESS_TOKEN = "6QtgKQBg+An0/2Rj9bv5uarez415HKjs13JKVYo3xRE0TNFo0Yb
 
 TELEGRAM_BOT_TOKEN = "8442416581:AAEOVzVPyt9yDBsHSXOpIQ93P12NPGyWOgE"
 TELEGRAM_GROUP_CHAT_ID = "-4806022242"
+
+GEMINI_API_KEY = "AQ.Ab8RN6LelkUEjBMMDKBiKtNYX4SxfkRaOKpVBtb-meNwgkUDqQ"

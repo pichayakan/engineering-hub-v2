@@ -27,7 +27,7 @@ class StepInline(admin.TabularInline):
     extra = 1  # Show 1 empty slot for a new step by default
     fields = ("order", "name", "responsible_groups",
               "duration_days", "is_signature_required", "requires_document_number", "requires_attachment",
-              "should_generate_pdf")
+              "should_generate_pdf", 'allow_ai_summary')
     filter_horizontal = ("responsible_groups",)
 
 

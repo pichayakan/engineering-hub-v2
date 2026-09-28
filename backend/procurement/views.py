@@ -1,6 +1,11 @@
 # backend/procurement/views.py
 import os
 import re
+import pypdf
+import google.generativeai as genai
+import time
+from google import genai
+from django.conf import settings
 from django.db import transaction
 from .utils import generate_signed_filename
 from django.core.files.base import ContentFile
@@ -472,6 +477,176 @@ class ProcurementRequestViewSet(viewsets.ModelViewSet):
             print(f"PDF Generation Error: {e}")
             return Response(
                 {'error': f'Failed to generate PDF: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'], url_path='summarize')
+    def summarize_procurement_document(self, request, pk=None):
+        import time
+
+        instance = self.get_object()
+        current_step = instance.current_step
+
+        if not current_step or not current_step.allow_ai_summary:
+            return Response(
+                {"error": "ขั้นตอนนี้ไม่ได้รับอนุญาตให้ใช้งาน AI สรุปเอกสาร"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 1. ดึงไฟล์แนบที่เลือก
+        attachment_id = request.data.get('attachment_id')
+        target_attachment = None
+
+        if attachment_id:
+            target_attachment = instance.attachments.filter(
+                id=attachment_id).first()
+
+        if not target_attachment:
+            target_attachment = instance.attachments.filter(
+                file__icontains='.pdf'
+            ).order_by('-uploaded_at').first()
+
+        if not target_attachment:
+            return Response(
+                {"error": "ไม่พบไฟล์ PDF ในระบบสำหรับนำมาสรุปเนื้อหา"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            pdf_path = target_attachment.file.path
+            reader = pypdf.PdfReader(pdf_path)
+            extracted_text = ""
+            for page in reader.pages[:10]:
+                extracted_text += page.extract_text() or ""
+
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            uploaded_file = None
+
+            base_prompt = f"""
+            คุณเป็นผู้ช่วยวิเคราะห์เอกสารงานพิจารณาด้านต่างๆของ บมจ.โทรคมนาคมแห่งชาติ ของส่วนงานวิศวกรรมและบริหารโครงข่าย
+            กรุณาสรุปข้อมูลสำคัญจากเอกสารชื่อ "{target_attachment.name}" (เน้นอ่านจากบันทึกข้อความสรุปหน้าแรก) ให้ผู้บริหารอ่านเข้าใจง่าย สั้นกระชับ ไม่เกิน 5 ข้อ:
+            1. วัตถุประสงค์และเนื้องานหลัก
+            2. วงเงินงบประมาณ (ถ้ามี)
+            3. ระยะเวลาดำเนินการ/ส่งมอบ (ถ้ามี)
+            4. เงื่อนไขหรือจุดสังเกตสำคัญ (ถ้ามี)
+            5. ข้อเสนอแนะ/ข้อสังเกตุจาก AI
+            """
+
+            # 🟢 2. เตรียมข้อมูลสำหรับส่งให้ AI
+            is_scanned_pdf = not extracted_text.strip()
+            temp_pdf_path = None
+
+            if is_scanned_pdf:
+                print(
+                    f"📄 Scanned PDF detected: {target_attachment.name}. Cutting top 5 pages...")
+
+                import tempfile
+                # ❌ ลบบรรทัด import pypdf ตรงนี้ออก เพราะ import ไว้ที่หัวไฟล์แล้ว
+
+                # ⚡ 1. อ่านและตัดเอาเฉพาะ 5 หน้าแรก
+                writer = pypdf.PdfWriter()
+                for page in reader.pages[:5]:
+                    writer.add_page(page)
+
+                # ⚡ 2. บันทึกลงไฟล์ Temp ภาษาอังกฤษ
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                    writer.write(tmp_file.name)
+                    temp_pdf_path = tmp_file.name
+
+                try:
+                    # ⚡ 3. อัปโหลดเฉพาะไฟล์ Temp 5 หน้าขึ้น Gemini API
+                    uploaded_file = client.files.upload(file=temp_pdf_path)
+                finally:
+                    # ลบไฟล์ Temp บน Server ทันทีเมื่ออัปโหลดเสร็จ
+                    if temp_pdf_path and os.path.exists(temp_pdf_path):
+                        os.remove(temp_pdf_path)
+
+                contents_payload = [uploaded_file, base_prompt]
+            else:
+                contents_payload = f"{base_prompt}\n\nเนื้อหาเอกสาร:\n{extracted_text[:4000]}"
+
+            # 🟢 3. Retry Mechanism & Fallback Model (ใช้ชื่อโมเดลมาตรฐานที่รองรับ)
+            models_to_try = ['gemini-3.6-flash',
+                             'gemini-2.0-flash', 'gemini-2.0-flash-lite']
+            response = None
+            last_error = None
+
+            for model_name in models_to_try:
+                for attempt in range(2):  # ลองโมเดลละ 2 รอบ
+                    try:
+                        print(
+                            f"🤖 Requesting Gemini API using model: {model_name} (Attempt {attempt + 1})")
+                        response = client.models.generate_content(
+                            model=model_name,
+                            contents=contents_payload,
+                        )
+                        if response:
+                            break
+                    except Exception as api_err:
+                        last_error = api_err
+                        err_str = str(api_err)
+
+                        # ถ้าติด 503 หรือ UNAVAILABLE ให้รอ 2 วินาทีแล้วลองซ้ำ
+                        if "503" in err_str or "UNAVAILABLE" in err_str:
+                            print(
+                                f"⚠️ Gemini 503 High Demand on {model_name}. Retrying in 2 seconds...")
+                            time.sleep(2)
+                        else:
+                            # ถ้าเจอ Error อื่นๆ (เช่น Model not found) ให้หลุดไปลองโมเดลถัดไปทันที
+                            print(
+                                f"⚠️ Model {model_name} error: {err_str}. Switching model...")
+                            break
+                if response:
+                    break
+
+            if not response:
+                raise last_error or Exception(
+                    "ไม่สามารถเชื่อมต่อ Gemini API ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง")
+
+            # 🟢 4. Token Usage & Cost Report
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                usage = response.usage_metadata
+                prompt_tokens = usage.prompt_token_count or 0
+                candidate_tokens = usage.candidates_token_count or 0
+                total_tokens = usage.total_token_count or 0
+
+                cost_usd = ((prompt_tokens / 1_000_000) * 0.075) + \
+                    ((candidate_tokens / 1_000_000) * 0.30)
+                cost_thb = cost_usd * 35
+
+                print(f"\n================ [AI Usage Report] ================")
+                print(f"📄 File: {target_attachment.name}")
+                print(f"📥 Input Tokens  : {prompt_tokens:,}")
+                print(f"📤 Output Tokens : {candidate_tokens:,}")
+                print(f"📊 Total Tokens  : {total_tokens:,}")
+                print(
+                    f"💵 Est. Cost     : ${cost_usd:.6f} USD (~{cost_thb:.4f} บาท)")
+                print(f"===================================================\n")
+
+            summary_text = f"📄 **สรุปจากไฟล์: {target_attachment.name}**\n\n"
+            summary_text += response.text if hasattr(
+                response, 'text') else str(response)
+
+            instance.ai_summary = summary_text
+            instance.ai_summary_generated_at = timezone.now()
+            instance.save(
+                update_fields=['ai_summary', 'ai_summary_generated_at'])
+
+            # Clean up ไฟล์บน Gemini Server
+            if uploaded_file:
+                try:
+                    client.files.delete(name=uploaded_file.name)
+                except Exception as cleanup_error:
+                    print(
+                        f"Warning: Failed to delete temp file: {cleanup_error}")
+
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"AI Summarize Error: {e}")
+            return Response(
+                {"error": f"เกิดข้อผิดพลาดในการประมวลผล AI: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

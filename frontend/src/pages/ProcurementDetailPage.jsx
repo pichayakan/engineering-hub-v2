@@ -664,7 +664,7 @@ function ProcurementDetailPage() {
                 size: safeFontSize,
                 font: customFont,
                 color: rgb(0, 0, 0),
-                opacity: 0, // ซ่อนไว้เหมือนเดิม
+                opacity: 1, // ซ่อนไว้เหมือนเดิม
                 maxWidth: sigWidthPts * 0.9, // 🌟 บังคับตัดขึ้นบรรทัดใหม่เมื่อชนขอบขวากล่อง
                 lineHeight: safeFontSize * 1.2, // ระยะห่างระหว่างบรรทัดเมื่อถูกตัด
               });
@@ -1151,6 +1151,59 @@ function ProcurementDetailPage() {
           )}
         </p>
       </div>
+      {request.ai_summary && (
+        <div
+          className="ai-summary-card"
+          style={{
+            backgroundColor: "#f0fdf4",
+            border: "1px solid #bbf7d0",
+            borderRadius: "12px",
+            padding: "1.25rem 1.5rem",
+            marginBottom: "2rem",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "0.75rem",
+            }}
+          >
+            <h3
+              style={{
+                margin: 0,
+                color: "#166534",
+                fontSize: "1.1rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
+            >
+              ⚡ สรุปสาระสำคัญโดย AI (Procurement Summary)
+            </h3>
+            {request.ai_summary_generated_at && (
+              <small style={{ color: "#15803d", fontSize: "0.8rem" }}>
+                อัปเดตล่าสุด:{" "}
+                {new Date(request.ai_summary_generated_at).toLocaleString(
+                  "th-TH",
+                )}
+              </small>
+            )}
+          </div>
+          <div
+            style={{
+              color: "#14532d",
+              fontSize: "0.95rem",
+              lineHeight: "1.6",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {request.ai_summary}
+          </div>
+        </div>
+      )}
       <ProcessStepper
         steps={workflow.steps}
         currentStepId={request.current_step}
@@ -1478,30 +1531,13 @@ function ProcurementDetailPage() {
                     {h.attachments.map((att) => (
                       <div
                         key={att.id}
-                        // ✅ 2. เพิ่ม Class highlight-latest ถ้าเป็นรายการล่าสุด
                         className={`attachment-item ${
                           isLatestHistory ? "highlight-latest" : ""
                         }`}
                       >
-                        {/* ❌ Comment Code เดิมออก (ไม่ปลอดภัย เพราะเปิดเผย URL ตรงๆ)
-                      <a
-                        href={att.file}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="attachment-link"
-                      >
-                        📎 {att.name}
-                        {isLatestHistory && (
-                          <span className="latest-file-badge">
-                            เอกสารปัจจุบัน
-                          </span>
-                        )}
-                      </a>
-                      */}
-                        {/* ✅ Code ใหม่: โหลดผ่าน API -> Blob (ปลอดภัย) */}
                         <button
                           type="button"
-                          className="file-download-btn" // ✅ เรียกใช้ Class ที่สร้างใหม่
+                          className="file-download-btn"
                           onClick={(e) => {
                             e.preventDefault();
                             handleSecureDownload(att.file, att.name);
@@ -1515,18 +1551,88 @@ function ProcurementDetailPage() {
                           )}
                         </button>
 
-                        {att.file.toLowerCase().endsWith(".pdf") && (
-                          <button
-                            // ✅ 4. เปลี่ยน Style ปุ่ม View ให้เด่นขึ้น
-                            className={`view-pdf-btn ${
-                              isLatestHistory ? "btn-highlight" : ""
-                            }`}
-                            onClick={() => handleViewPdf(att)}
-                          >
-                            {/* ✅ 5. เปลี่ยนข้อความปุ่มเพื่อกระตุ้น Action */}
-                            {isLatestHistory ? "View & Sign" : "View"}
-                          </button>
-                        )}
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "0.25rem",
+                            alignItems: "center",
+                          }}
+                        >
+                          {/* 🟢 ปุ่มสรุป AI ประจำไฟล์นั้นๆ */}
+                          {att.file.toLowerCase().endsWith(".pdf") &&
+                            (request.current_step_details?.allow_ai_summary ||
+                              request.current_step_details) && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  // สร้าง Toast แบบ Loading ค้างไว้
+                                  const toastId = toast.loading(
+                                    "🤖 AI กำลังวิเคราะห์และสรุปเอกสาร (ไฟล์สแกนอาจใช้เวลา 10-20 วินาที)...",
+                                  );
+                                  setIsSubmitting(true);
+                                  try {
+                                    const response = await apiClient.post(
+                                      `/api/procurement/requests/${requestId}/summarize/`,
+                                      { attachment_id: att.id },
+                                    );
+                                    setRequest(response.data);
+                                    // อัปเดต Toast ให้เป็น Success
+                                    toast.update(toastId, {
+                                      render: `สรุปไฟล์ ${att.name} เรียบร้อยแล้ว!`,
+                                      type: "success",
+                                      isLoading: false,
+                                      autoClose: 3000,
+                                    });
+                                  } catch (error) {
+                                    console.error("AI Summarize error:", error);
+                                    // อัปเดต Toast ให้เป็น Error
+                                    toast.update(toastId, {
+                                      render:
+                                        error.response?.data?.error ||
+                                        "ไม่สามารถสรุปเอกสารด้วย AI ได้",
+                                      type: "error",
+                                      isLoading: false,
+                                      autoClose: 4000,
+                                    });
+                                  } finally {
+                                    setIsSubmitting(false);
+                                  }
+                                }}
+                                disabled={isSubmitting}
+                                style={{
+                                  backgroundColor: isSubmitting
+                                    ? "#a7f3d0"
+                                    : "#7c3aed",
+                                  color: "white",
+                                  border: "none",
+                                  padding: "0.2rem 0.5rem",
+                                  fontSize: "0.75rem",
+                                  borderRadius: "4px",
+                                  fontWeight: "600",
+                                  cursor: isSubmitting
+                                    ? "not-allowed"
+                                    : "pointer",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {isSubmitting
+                                  ? "⏳ กำลังวิเคราะห์..."
+                                  : "⚡ สรุป AI"}
+                              </button>
+                            )}
+
+                          {/* ปุ่ม View & Sign */}
+                          {att.file.toLowerCase().endsWith(".pdf") && (
+                            <button
+                              className={`view-pdf-btn ${
+                                isLatestHistory ? "btn-highlight" : ""
+                              }`}
+                              onClick={() => handleViewPdf(att)}
+                            >
+                              {isLatestHistory ? "View & Sign" : "View"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

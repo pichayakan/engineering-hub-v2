@@ -41,9 +41,12 @@ function ProcurementAnalyticsPage() {
     const fetchTemplates = async () => {
       try {
         const res = await apiClient.get("/api/procurement/templates/");
-        setTemplates(res.data);
+        // 🟢 แก้ไขสกัดเอาเฉพาะ Array (รองรับทั้ง Paginated Response และ Array ปกติ)
+        const tplList = res.data.results || res.data || [];
+        setTemplates(Array.isArray(tplList) ? tplList : []);
       } catch (err) {
         console.error("Failed to fetch templates", err);
+        setTemplates([]);
       }
     };
     fetchTemplates();
@@ -57,7 +60,7 @@ function ProcurementAnalyticsPage() {
       try {
         // ส่ง query param ทั้ง year, month และ template_id
         const res = await apiClient.get(
-          `/api/procurement/analytics/?year=${year}&month=${month}&template_id=${selectedTemplate}`
+          `/api/procurement/analytics/?year=${year}&month=${month}&template_id=${selectedTemplate}`,
         );
         setData(res.data);
       } catch (err) {
@@ -117,7 +120,8 @@ function ProcurementAnalyticsPage() {
             onChange={(e) => setSelectedTemplate(e.target.value)}
           >
             <option value="all">-- ทุกประเภทงาน (All Workflows) --</option>
-            {templates.map((tpl) => (
+            {/* 🟢 แก้ไขบรรทัดที่ 120: ครอบเช็ค Array.isArray() ก่อนสั่ง .map() */}
+            {(Array.isArray(templates) ? templates : []).map((tpl) => (
               <option key={tpl.id} value={tpl.id}>
                 {tpl.name}
               </option>

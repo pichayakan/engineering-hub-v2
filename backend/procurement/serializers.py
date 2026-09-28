@@ -7,11 +7,9 @@ from .models import (
     ProcurementRequest,
     RequestHistory,
     ProcurementAttachment,
-    ProcurementCategory,  # ✅ IMPORTED
+    ProcurementCategory,
 )
 from accounts.serializers import UserListSerializer, UserDetailForHistorySerializer
-
-# --- ✅ ADDED THIS NEW SERIALIZER ---
 
 
 class ProcurementCategorySerializer(serializers.ModelSerializer):
@@ -54,6 +52,7 @@ class StepSerializer(serializers.ModelSerializer):
             "is_signature_required",
             "requires_document_number",
             "requires_attachment",
+            "allow_ai_summary",  # ✅ เพิ่มฟิลด์ควบคุม AI สรุปเอกสาร
         ]
 
 
@@ -99,7 +98,7 @@ class RequestHistorySerializer(serializers.ModelSerializer):
             "approved_by_details",
             "timestamp",
             "notes",
-            "document_number",  # ✅ เพิ่ม document_number"
+            "document_number",
             "attachments",
         ]
 
@@ -126,7 +125,6 @@ class ProcurementListSerializer(serializers.ModelSerializer):
         source="workflow_template.name", read_only=True, allow_null=True
     )
 
-    # --- Field ที่เราจะคำนวณขึ้นมาใหม่ ---
     history_document_numbers = serializers.SerializerMethodField()
 
     class Meta:
@@ -148,10 +146,6 @@ class ProcurementListSerializer(serializers.ModelSerializer):
         )
 
     def get_history_document_numbers(self, obj):
-        """
-        รวบรวม document_number ทั้งหมดจาก history ที่มีค่า (ไม่ว่าง)
-        แล้วนำมาต่อกันด้วย ", "
-        """
         numbers = obj.history.exclude(
             document_number__isnull=True
         ).exclude(
@@ -176,7 +170,6 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
     )
     current_step_due_date = serializers.DateField(read_only=True)
 
-    # --- ✅ ADDED THIS LINE ---
     category_details = ProcurementCategorySerializer(
         source="category", read_only=True
     )
@@ -190,8 +183,8 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
             "title",
             "project",
             "project_name",
-            "category",  # ✅ ADDED THIS
-            "category_details",  # ✅ ADDED THIS
+            "category",
+            "category_details",
             "document_number",
             "workflow_template",
             "current_step",
@@ -204,6 +197,9 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
             "created_by",
             "attachments",
             "is_cancelled",
-            'budget_amount'
+            "budget_amount",
+            "ai_summary",                # ✅ เพิ่มฟิลด์ส่งข้อความสรุปไปแสดงที่ UI
+            "ai_summary_generated_at",   # ✅ เพิ่มฟิลด์เวลาที่สร้างสรุป
         ]
-        read_only_fields = ["current_step", "created_by"]
+        read_only_fields = ["current_step", "created_by",
+                            "ai_summary", "ai_summary_generated_at"]

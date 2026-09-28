@@ -83,16 +83,21 @@ function ProcurementListPage() {
           }
         }
         // กรณีที่ 2: กด Next/Prev (มี url ส่งมาแล้ว)
+        // กรณีที่ 2: กด Next/Prev (มี url ส่งมาแล้ว)
         else {
-          // พยายามแกะเลขหน้าจาก URL เพื่อแสดงผล
+          // 🟢 [แก้ไขจุดนี้] แปลง URL เต็มให้เหลือเฉพาะ Relative Path
           try {
             const urlObj = new URL(url);
+            // ดึงเฉพาะ pathname + query string เช่น /api/procurement/requests/?page=2
+            fetchUrl = `${urlObj.pathname}${urlObj.search}`;
+
             const pageParam = urlObj.searchParams.get("page");
             setCurrentPage(pageParam ? parseInt(pageParam) : 1);
           } catch {
+            fetchUrl = url; // fallback กรณีแปลง URL ไม่ผ่าน
             setCurrentPage(1);
           }
-          // ไม่ต้อง set requestParams เพราะ URL มี query string ครบแล้ว
+          // ไม่ต้อง set requestParams เพราะ fetchUrl มี query string ครบแล้ว
         }
 
         const response = await apiClient.get(fetchUrl, {
@@ -107,13 +112,13 @@ function ProcurementListPage() {
         console.error("Failed to fetch procurement requests", error);
         toast.error(
           "Failed to fetch requests: " +
-            (error.response?.data?.error || error.message)
+            (error.response?.data?.error || error.message),
         );
       } finally {
         setLoading(false);
       }
     },
-    [searchTerm, ordering, selectedCategory, statusFilter, selectedDepartment] // ✅ dependency ครบ
+    [searchTerm, ordering, selectedCategory, statusFilter, selectedDepartment], // ✅ dependency ครบ
   );
 
   // --- 3. Debounce Search & Auto Fetch on Filter Change ---
@@ -254,8 +259,8 @@ function ProcurementListPage() {
                       req.is_completed
                         ? "is-completed"
                         : req.is_cancelled
-                        ? "is-cancelled"
-                        : ""
+                          ? "is-cancelled"
+                          : ""
                     }
                   >
                     <td data-label="Title">
